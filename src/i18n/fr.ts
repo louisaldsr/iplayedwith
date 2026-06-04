@@ -1,9 +1,9 @@
-import type { Translations } from './en'
+import type { Translations } from './en';
 
 const fr: Translations = {
   home: {
-    title: 'Rugby Connections',
-    tagline: 'Six Degrés de Séparation — Édition Rugby',
+    title: 'I Played With',
+    tagline: "J'ai joué avec — Édition Rugby",
     launchGame: 'Lancer une partie',
   },
   setup: {
@@ -37,6 +37,6 @@ const fr: Translations = {
     time: 'Temps',
     playAgain: 'Rejouer',
   },
-}
+};
 
-export default fr
+export default fr;

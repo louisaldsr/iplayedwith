@@ -1,4 +1,4 @@
-# Rugby Connections — Brief Claude Code
+# I Played With — Brief Claude Code
 
 ## Contexte projet
 

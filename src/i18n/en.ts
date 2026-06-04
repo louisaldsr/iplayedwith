@@ -1,7 +1,7 @@
 const en = {
   home: {
-    title: 'Rugby Connections',
-    tagline: 'Six Degrees of Separation — Rugby Edition',
+    title: 'I Played With',
+    tagline: 'Find Teammate connections — Rugby Edition',
     launchGame: 'Launch Game',
   },
   setup: {
@@ -35,7 +35,7 @@ const en = {
     time: 'Time',
     playAgain: 'Play Again',
   },
-}
+};
 
-export type Translations = typeof en
-export default en
+export type Translations = typeof en;
+export default en;

@@ -1,19 +1,27 @@
 'use client'
 
-import { useReducer, useRef, useCallback } from 'react'
+import { useEffect, useReducer, useRef, useCallback } from 'react'
 import { Game, DifficultyLevel } from '../game/game'
 import { Player } from '../domain/player'
-import { GameEngine, createEngine, InputResult, UserInput } from '../game/engine'
-import { players, clubs, memberships } from '../mock/data'
-import { HomeScreen } from './home/HomeScreen'
+import { Club } from '../domain/club'
+import { Membership } from '../domain/membership'
+import { SportId } from '../domain/sport'
+import { GameEngine, createEngine, areDirectlyConnected, InputResult, UserInput } from '../game/engine'
+import { useTranslations } from '../i18n'
 import { SetupScreen } from './setup/SetupScreen'
 import { GameScreen } from './game/GameScreen'
 import { VictoryScreen } from './victory/VictoryScreen'
 
-type Phase = 'home' | 'setup' | 'playing' | 'victory'
+type Phase = 'setup' | 'playing' | 'victory'
+
+type DataState =
+  | { status: 'loading' }
+  | { status: 'error' }
+  | { status: 'ready'; players: Player[]; clubs: Club[]; memberships: Membership[] }
 
 type UIState = {
   phase: Phase
+  data: DataState
   difficulty: DifficultyLevel
   playerA: Player | null
   playerB: Player | null
@@ -23,7 +31,9 @@ type UIState = {
 }
 
 type Action =
-  | { type: 'GO_TO_SETUP' }
+  | { type: 'DATA_LOADING' }
+  | { type: 'DATA_ERROR' }
+  | { type: 'DATA_LOADED'; players: Player[]; clubs: Club[]; memberships: Membership[] }
   | { type: 'SET_PLAYER_A'; player: Player | null }
   | { type: 'SET_PLAYER_B'; player: Player | null }
   | { type: 'SET_DIFFICULTY'; difficulty: DifficultyLevel }
@@ -34,7 +44,8 @@ type Action =
 
 function initState(): UIState {
   return {
-    phase: 'home',
+    phase: 'setup',
+    data: { status: 'loading' },
     difficulty: 'easy',
     playerA: null,
     playerB: null,
@@ -46,8 +57,17 @@ function initState(): UIState {
 
 function reducer(state: UIState, action: Action): UIState {
   switch (action.type) {
-    case 'GO_TO_SETUP':
-      return { ...state, phase: 'setup' }
+    case 'DATA_LOADING':
+      return { ...state, data: { status: 'loading' } }
+
+    case 'DATA_ERROR':
+      return { ...state, data: { status: 'error' } }
+
+    case 'DATA_LOADED':
+      return {
+        ...state,
+        data: { status: 'ready', players: action.players, clubs: action.clubs, memberships: action.memberships },
+      }
 
     case 'SET_PLAYER_A':
       return { ...state, playerA: action.player }
@@ -78,27 +98,60 @@ function reducer(state: UIState, action: Action): UIState {
       return { ...state, lastError: null }
 
     case 'PLAY_AGAIN':
-      return initState()
+      return { ...initState(), data: state.data }
 
     default:
       return state
   }
 }
 
-export function GamePage() {
+type Props = {
+  sport: SportId
+}
+
+export function GamePage({ sport }: Props) {
+  const t = useTranslations()
   const [state, dispatch] = useReducer(reducer, undefined, initState)
   const engineRef = useRef<GameEngine | null>(null)
 
+  useEffect(() => {
+    let cancelled = false
+    dispatch({ type: 'DATA_LOADING' })
+
+    async function load() {
+      try {
+        const [playersRes, clubsRes, membershipsRes] = await Promise.all([
+          fetch(`/api/players?sport=${sport}`),
+          fetch(`/api/clubs?sport=${sport}`),
+          fetch(`/api/memberships?sport=${sport}`),
+        ])
+        if (!playersRes.ok || !clubsRes.ok || !membershipsRes.ok) throw new Error('Failed to load sport data')
+
+        const [players, clubs, memberships] = await Promise.all([
+          playersRes.json(),
+          clubsRes.json(),
+          membershipsRes.json(),
+        ])
+        if (cancelled) return
+        dispatch({ type: 'DATA_LOADED', players, clubs, memberships })
+      } catch {
+        if (!cancelled) dispatch({ type: 'DATA_ERROR' })
+      }
+    }
+
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [sport])
+
   const handleStart = useCallback(() => {
+    if (state.data.status !== 'ready') return
     if (!state.playerA || !state.playerB) return
-    engineRef.current = createEngine(
-      state.playerA,
-      state.playerB,
-      state.difficulty,
-      memberships,
-    )
+    if (state.difficulty === 'easy' && areDirectlyConnected(state.playerA, state.playerB, state.data.memberships)) return
+    engineRef.current = createEngine(state.playerA, state.playerB, state.difficulty, state.data.memberships)
     dispatch({ type: 'START_GAME', game: engineRef.current.game })
-  }, [state.playerA, state.playerB, state.difficulty])
+  }, [state.data, state.playerA, state.playerB, state.difficulty])
 
   const handleSubmit = useCallback((input: UserInput) => {
     if (!engineRef.current) return
@@ -113,12 +166,18 @@ export function GamePage() {
 
   return (
     <div className="game-page">
-      {state.phase === 'home' && (
-        <HomeScreen onLaunch={() => dispatch({ type: 'GO_TO_SETUP' })} />
+      {state.data.status === 'loading' && (
+        <p className="game-page__status">{t.common.loading}</p>
       )}
 
-      {state.phase === 'setup' && (
+      {state.data.status === 'error' && (
+        <p className="game-page__status game-page__status--error">{t.common.loadError}</p>
+      )}
+
+      {state.data.status === 'ready' && state.phase === 'setup' && (
         <SetupScreen
+          players={state.data.players}
+          memberships={state.data.memberships}
           playerA={state.playerA}
           playerB={state.playerB}
           difficulty={state.difficulty}
@@ -129,21 +188,22 @@ export function GamePage() {
         />
       )}
 
-      {state.phase === 'playing' && state.game && (
+      {state.data.status === 'ready' && state.phase === 'playing' && state.game && (
         <GameScreen
           game={state.game}
-          players={players}
-          clubs={clubs}
+          players={state.data.players}
+          clubs={state.data.clubs}
+          memberships={state.data.memberships}
           onSubmit={handleSubmit}
           lastError={state.lastError}
           onDismissError={() => dispatch({ type: 'DISMISS_ERROR' })}
         />
       )}
 
-      {state.phase === 'victory' && state.game && (
+      {state.data.status === 'ready' && state.phase === 'victory' && state.game && (
         <VictoryScreen
           game={state.game}
-          players={players}
+          players={state.data.players}
           moveCount={state.moveCount}
           onPlayAgain={handlePlayAgain}
         />

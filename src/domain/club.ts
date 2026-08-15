@@ -1,7 +1,9 @@
 import { ClubId } from './ids';
+import { SportId } from './sport';
 
-/** A rugby club as stored in the domain. */
+/** A club/team belonging to a specific sport's dataset. */
 export type Club = {
   id: ClubId;
   name: string;
+  sport: SportId;
 };

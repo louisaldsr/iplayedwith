@@ -6,4 +6,5 @@ export type Membership = {
   playerId: PlayerId;
   clubId: ClubId;
   season: Season;
+  competition?: string;
 };

@@ -1,8 +1,16 @@
 const en = {
   home: {
     title: 'I Played With',
-    tagline: 'Find Teammate connections — Rugby Edition',
-    launchGame: 'Launch Game',
+    tagline: 'Find Teammate connections',
+    chooseSportPrompt: 'Choose a sport',
+    sports: {
+      rugby: 'Rugby',
+      football: 'Football',
+    },
+  },
+  common: {
+    loading: 'Loading…',
+    loadError: 'Something went wrong loading the data. Please try again.',
   },
   setup: {
     title: 'Choose Your Players',
@@ -18,6 +26,8 @@ const en = {
     hard: 'Hard',
     hardDesc: 'Player + Club + Season',
     launch: 'Launch Game',
+    directlyConnectedWarning: 'These two players have already played together. In Easy mode, this link is auto-resolved — please pick a different pair.',
+    emptyState: 'No players available yet for this sport — check back soon.',
   },
   game: {
     chrono: 'Time',
@@ -28,6 +38,10 @@ const en = {
     seasonPlaceholder: '2022-2023',
     seasonFormatError: 'Expected format: YYYY-YYYY (e.g. 2022-2023)',
     closeError: 'Close',
+    clubSearchPlaceholder: 'Search a club…',
+    noSuggestions: 'No results',
+    addPlayer: 'Player',
+    addClub: 'Club',
   },
   victory: {
     heading: 'Congratulations!',

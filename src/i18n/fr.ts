@@ -3,8 +3,16 @@ import type { Translations } from './en';
 const fr: Translations = {
   home: {
     title: 'I Played With',
-    tagline: "J'ai joué avec — Édition Rugby",
-    launchGame: 'Lancer une partie',
+    tagline: "Trouvez les liens entre coéquipiers",
+    chooseSportPrompt: 'Choisissez un sport',
+    sports: {
+      rugby: 'Rugby',
+      football: 'Football',
+    },
+  },
+  common: {
+    loading: 'Chargement…',
+    loadError: 'Une erreur est survenue lors du chargement des données. Veuillez réessayer.',
   },
   setup: {
     title: 'Choisissez vos joueurs',
@@ -20,6 +28,8 @@ const fr: Translations = {
     hard: 'Difficile',
     hardDesc: 'Joueur + Club + Saison',
     launch: 'Lancer la partie',
+    directlyConnectedWarning: 'Ces deux joueurs ont déjà joué ensemble. En mode Facile, ce lien est auto-résolu — choisissez une autre paire.',
+    emptyState: 'Aucun joueur disponible pour ce sport pour le moment — revenez bientôt.',
   },
   game: {
     chrono: 'Temps',
@@ -30,6 +40,10 @@ const fr: Translations = {
     seasonPlaceholder: '2022-2023',
     seasonFormatError: 'Format attendu : AAAA-AAAA (ex : 2022-2023)',
     closeError: 'Fermer',
+    clubSearchPlaceholder: 'Rechercher un club…',
+    noSuggestions: 'Aucun résultat',
+    addPlayer: 'Joueur',
+    addClub: 'Club',
   },
   victory: {
     heading: 'Félicitations !',

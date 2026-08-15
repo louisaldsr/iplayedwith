@@ -138,6 +138,41 @@ body {
   max-width: 340px;
 }
 
+.home-screen__prompt {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.home-screen__sports {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.home-screen__sport-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+  padding: 20px 28px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.home-screen__sport-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
 /* ─── Setup screen ──────────────────────────────────────── */
 .setup-screen {
   display: flex;
@@ -161,6 +196,35 @@ body {
   width: 100%;
   justify-content: center;
   flex-wrap: wrap;
+}
+
+.setup-screen__warning {
+  font-size: 0.85rem;
+  color: var(--error);
+  background: var(--error-bg);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  text-align: center;
+  max-width: 480px;
+}
+
+.setup-screen__empty {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  text-align: center;
+  max-width: 420px;
+}
+
+/* ─── Data fetch status (loading/error) ─────────────────── */
+.game-page__status {
+  font-size: 1rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.game-page__status--error {
+  color: var(--error);
 }
 
 /* ─── PlayerPicker card ─────────────────────────────────── */
@@ -414,6 +478,74 @@ body {
   opacity: 1;
 }
 
+.graph-edge--hovered {
+  stroke: var(--text-primary);
+  stroke-width: 2;
+  opacity: 0.85;
+}
+
+/* ─── Edge info popup (easy mode) ───────────────────────── */
+.edge-popup {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  max-width: 360px;
+  width: calc(100% - 32px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edge-popup__close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.edge-popup__close:hover {
+  opacity: 1;
+}
+
+.edge-popup__players {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 20px 0 0;
+}
+
+.edge-popup__connections {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.edge-popup__connections li {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 3px 8px;
+}
+
 /* ─── Node card ─────────────────────────────────────────── */
 .node-card {
   position: absolute;
@@ -485,50 +617,162 @@ body {
 }
 
 /* ─── Input forms ───────────────────────────────────────── */
-.input-bar {
+/* ─── Move input bar ────────────────────────────────────── */
+.move-input {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  width: 100%;
-  max-width: 600px;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
+  width: 100%;
+  max-width: 700px;
   justify-content: center;
 }
 
-.input-field {
+.move-input--hard {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.move-input--hard > .btn {
+  align-self: center;
+}
+
+/* ─── Hard mode toggle ───────────────────────────────────── */
+.move-input__toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  width: 100%;
+}
+
+.move-input__toggle button {
+  flex: 1;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.move-input__toggle button.active {
+  background: var(--accent-dim);
+  color: var(--text-primary);
+  border: 1px solid var(--border-active);
+}
+
+/* ─── Autocomplete ──────────────────────────────────────── */
+.autocomplete-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+}
+
+.autocomplete-input {
+  width: 100%;
   background: var(--bg-input);
+  color: var(--text-primary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: 0.875rem;
   padding: 10px 14px;
+  font-size: 0.9rem;
   outline: none;
   transition: border-color 0.15s;
-  flex: 1;
-  min-width: 160px;
 }
 
-.input-field:focus {
-  border-color: var(--accent);
+.autocomplete-input:focus {
+  border-color: var(--border-active);
 }
 
-.input-field option {
+.autocomplete-dropdown {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
   background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  list-style: none;
+  z-index: 20;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
-.input-error {
-  font-size: 0.7rem;
-  color: var(--error);
-  width: 100%;
-  text-align: left;
+.autocomplete-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  transition: background 0.1s, color 0.1s;
 }
 
-.hard-input__field {
+.autocomplete-item:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+/* ─── Chips (locked selections) ─────────────────────────── */
+.input-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-full);
+  padding: 5px 10px 5px 12px;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.input-chip__clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  min-width: 120px;
+  align-items: center;
+}
+
+.input-chip__clear:hover {
+  color: var(--text-primary);
+}
+
+/* ─── Season chips ───────────────────────────────────────── */
+.season-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.season-btn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.season-btn:hover {
+  border-color: var(--border-active);
+  color: var(--text-primary);
+}
+
+.season-btn--selected {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--text-primary);
 }
 
 /* ─── Error banner ──────────────────────────────────────── */

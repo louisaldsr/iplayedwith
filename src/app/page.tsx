@@ -1,5 +1,9 @@
-import { GamePage } from '@/components/GamePage'
+import { SportSelectScreen } from '@/components/home/SportSelectScreen'
 
 export default function Home() {
-  return <GamePage />
+  return (
+    <div className="game-page">
+      <SportSelectScreen />
+    </div>
+  )
 }

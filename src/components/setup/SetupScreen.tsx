@@ -1,11 +1,14 @@
 import { Player } from '../../domain/player'
+import { Membership } from '../../domain/membership'
 import { DifficultyLevel } from '../../game/game'
+import { areDirectlyConnected } from '../../game/engine'
 import { useTranslations } from '../../i18n'
 import { PlayerPicker } from './PlayerPicker'
 import { DifficultyPicker } from './DifficultyPicker'
-import { players as allPlayers } from '../../mock/data'
 
 type Props = {
+  players: Player[]
+  memberships: Membership[]
   playerA: Player | null
   playerB: Player | null
   difficulty: DifficultyLevel
@@ -16,6 +19,8 @@ type Props = {
 }
 
 export function SetupScreen({
+  players: allPlayers,
+  memberships,
   playerA,
   playerB,
   difficulty,
@@ -25,7 +30,21 @@ export function SetupScreen({
   onStart,
 }: Props) {
   const t = useTranslations()
-  const canStart = playerA !== null && playerB !== null
+
+  if (allPlayers.length === 0) {
+    return (
+      <div className="setup-screen">
+        <h2 className="setup-screen__title">{t.setup.title}</h2>
+        <p className="setup-screen__empty">{t.setup.emptyState}</p>
+      </div>
+    )
+  }
+
+  const bothSelected = playerA !== null && playerB !== null
+  const directlyConnected = bothSelected && difficulty === 'easy'
+    ? areDirectlyConnected(playerA!, playerB!, memberships)
+    : false
+  const canStart = bothSelected && !directlyConnected
 
   return (
     <div className="setup-screen">
@@ -49,6 +68,12 @@ export function SetupScreen({
       </div>
 
       <DifficultyPicker value={difficulty} onChange={onDifficultyChange} />
+
+      {directlyConnected && (
+        <p className="setup-screen__warning">
+          {t.setup.directlyConnectedWarning}
+        </p>
+      )}
 
       <button
         type="button"

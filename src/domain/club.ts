@@ -6,4 +6,5 @@ export type Club = {
   id: ClubId;
   name: string;
   sport: SportId;
+  logoUrl?: string;
 };

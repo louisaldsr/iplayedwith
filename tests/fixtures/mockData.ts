@@ -2,6 +2,7 @@
 import { Club } from '@/domain/club';
 import { ClubId, PlayerId } from '@/domain/ids';
 import { Membership } from '@/domain/membership';
+import { Nationality } from '@/domain/nationality';
 import { Player } from '@/domain/player';
 import { Season } from '@/domain/season';
 
@@ -28,90 +29,90 @@ export const clubs: Club[] = [
 
 export const players: Player[] = [
   // Stade Toulousain
-  { id: PlayerId('p01'), name: 'Antoine Dupont', sport: 'rugby' },
-  { id: PlayerId('p02'), name: 'Romain Ntamack', sport: 'rugby' },
-  { id: PlayerId('p03'), name: 'Cyril Baille', sport: 'rugby' },
-  { id: PlayerId('p04'), name: 'Julien Marchand', sport: 'rugby' },
-  { id: PlayerId('p05'), name: 'Jerome Kaino', sport: 'rugby' }, // bridge: Toulouse → Toulon
+  { id: PlayerId('p01'), name: 'Antoine Dupont', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p02'), name: 'Romain Ntamack', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p03'), name: 'Cyril Baille', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p04'), name: 'Julien Marchand', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p05'), name: 'Jerome Kaino', sport: 'rugby', nationality: Nationality('NZ') }, // bridge: Toulouse → Toulon
 
   // Bordeaux-Bègles
-  { id: PlayerId('p06'), name: 'Matthieu Jalibert', sport: 'rugby' },
-  { id: PlayerId('p07'), name: 'Maxime Lucu', sport: 'rugby' },
-  { id: PlayerId('p08'), name: 'Cameron Woki', sport: 'rugby' },
-  { id: PlayerId('p09'), name: 'Louis Bielle-Biarrey', sport: 'rugby' },
-  { id: PlayerId('p10'), name: 'Ben Lam', sport: 'rugby' }, // bridge: Bordeaux → Racing
+  { id: PlayerId('p06'), name: 'Matthieu Jalibert', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p07'), name: 'Maxime Lucu', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p08'), name: 'Cameron Woki', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p09'), name: 'Louis Bielle-Biarrey', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p10'), name: 'Ben Lam', sport: 'rugby', nationality: Nationality('NZ') }, // bridge: Bordeaux → Racing
 
   // RC Toulon
-  { id: PlayerId('p11'), name: 'Baptiste Serin', sport: 'rugby' },
-  { id: PlayerId('p12'), name: 'Facundo Isa', sport: 'rugby' },
-  { id: PlayerId('p13'), name: 'Charles Ollivon', sport: 'rugby' },
-  { id: PlayerId('p14'), name: 'Gaël Fickou', sport: 'rugby' }, // bridge: Racing → Toulouse → Toulon
+  { id: PlayerId('p11'), name: 'Baptiste Serin', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p12'), name: 'Facundo Isa', sport: 'rugby', nationality: Nationality('AR') },
+  { id: PlayerId('p13'), name: 'Charles Ollivon', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p14'), name: 'Gaël Fickou', sport: 'rugby', nationality: Nationality('FR') }, // bridge: Racing → Toulouse → Toulon
 
   // Aviron Bayonnais
-  { id: PlayerId('p15'), name: 'Romain Buros', sport: 'rugby' },
-  { id: PlayerId('p16'), name: 'Nans Ducuing', sport: 'rugby' },
-  { id: PlayerId('p17'), name: 'Yannick Youyoutte', sport: 'rugby' },
-  { id: PlayerId('p18'), name: 'Julien Tisseron', sport: 'rugby' },
+  { id: PlayerId('p15'), name: 'Romain Buros', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p16'), name: 'Nans Ducuing', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p17'), name: 'Yannick Youyoutte', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p18'), name: 'Julien Tisseron', sport: 'rugby', nationality: Nationality('FR') },
 
   // ASM Clermont
-  { id: PlayerId('p19'), name: 'Damian Penaud', sport: 'rugby' },
-  { id: PlayerId('p20'), name: 'Idriss Abdehouche', sport: 'rugby' },
-  { id: PlayerId('p21'), name: 'Étienne Falgoux', sport: 'rugby' },
-  { id: PlayerId('p22'), name: 'Clément Lanen', sport: 'rugby' },
-  { id: PlayerId('p23'), name: 'George Moala', sport: 'rugby' }, // bridge: Clermont → Lyon
+  { id: PlayerId('p19'), name: 'Damian Penaud', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p20'), name: 'Idriss Abdehouche', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p21'), name: 'Étienne Falgoux', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p22'), name: 'Clément Lanen', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p23'), name: 'George Moala', sport: 'rugby', nationality: Nationality('NZ') }, // bridge: Clermont → Lyon
 
   // Castres Olympique
-  { id: PlayerId('p24'), name: 'Rory Kockott', sport: 'rugby' },
-  { id: PlayerId('p25'), name: 'Thomas Combezou', sport: 'rugby' },
-  { id: PlayerId('p26'), name: 'Mathieu Babillot', sport: 'rugby' },
-  { id: PlayerId('p27'), name: 'Pierre-Louis Barassi', sport: 'rugby' }, // bridge: Castres → Lyon
+  { id: PlayerId('p24'), name: 'Rory Kockott', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p25'), name: 'Thomas Combezou', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p26'), name: 'Mathieu Babillot', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p27'), name: 'Pierre-Louis Barassi', sport: 'rugby', nationality: Nationality('FR') }, // bridge: Castres → Lyon
 
   // Stade Rochelais
-  { id: PlayerId('p28'), name: 'Grégory Alldritt', sport: 'rugby' },
-  { id: PlayerId('p29'), name: 'Uini Atonio', sport: 'rugby' },
-  { id: PlayerId('p30'), name: 'Pierre Bourgarit', sport: 'rugby' },
-  { id: PlayerId('p31'), name: 'Antoine Hastoy', sport: 'rugby' }, // bridge: Pau → La Rochelle
-  { id: PlayerId('p32'), name: 'Thomas Berjon', sport: 'rugby' },
+  { id: PlayerId('p28'), name: 'Grégory Alldritt', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p29'), name: 'Uini Atonio', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p30'), name: 'Pierre Bourgarit', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p31'), name: 'Antoine Hastoy', sport: 'rugby', nationality: Nationality('FR') }, // bridge: Pau → La Rochelle
+  { id: PlayerId('p32'), name: 'Thomas Berjon', sport: 'rugby', nationality: Nationality('FR') },
 
   // Section Paloise
-  { id: PlayerId('p33'), name: 'Lucas Dessaigne', sport: 'rugby' },
-  { id: PlayerId('p34'), name: 'Quentin Lespiaucq', sport: 'rugby' },
-  { id: PlayerId('p35'), name: 'Julien Delannoy', sport: 'rugby' },
-  { id: PlayerId('p36'), name: 'Marko Gazzotti', sport: 'rugby' },
+  { id: PlayerId('p33'), name: 'Lucas Dessaigne', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p34'), name: 'Quentin Lespiaucq', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p35'), name: 'Julien Delannoy', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p36'), name: 'Marko Gazzotti', sport: 'rugby', nationality: Nationality('IT') },
 
   // Montpellier
-  { id: PlayerId('p37'), name: 'Vincent Rattez', sport: 'rugby' },
-  { id: PlayerId('p38'), name: 'Zack Holmes', sport: 'rugby' },
-  { id: PlayerId('p39'), name: 'Guilhem Guirado', sport: 'rugby' }, // bridge: Toulon → Montpellier
-  { id: PlayerId('p40'), name: 'Paul Willemse', sport: 'rugby' },
+  { id: PlayerId('p37'), name: 'Vincent Rattez', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p38'), name: 'Zack Holmes', sport: 'rugby', nationality: Nationality('US') },
+  { id: PlayerId('p39'), name: 'Guilhem Guirado', sport: 'rugby', nationality: Nationality('FR') }, // bridge: Toulon → Montpellier
+  { id: PlayerId('p40'), name: 'Paul Willemse', sport: 'rugby', nationality: Nationality('FR') },
 
   // Racing 92
-  { id: PlayerId('p41'), name: 'Donovan Taofifenua', sport: 'rugby' },
-  { id: PlayerId('p42'), name: 'Teddy Thomas', sport: 'rugby' }, // bridge: Racing → Stade Français
-  { id: PlayerId('p43'), name: 'Finn Russell', sport: 'rugby' },
-  { id: PlayerId('p44'), name: 'Baptiste Chouzenoux', sport: 'rugby' },
+  { id: PlayerId('p41'), name: 'Donovan Taofifenua', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p42'), name: 'Teddy Thomas', sport: 'rugby', nationality: Nationality('FR') }, // bridge: Racing → Stade Français
+  { id: PlayerId('p43'), name: 'Finn Russell', sport: 'rugby', nationality: Nationality('GB-SCT') },
+  { id: PlayerId('p44'), name: 'Baptiste Chouzenoux', sport: 'rugby', nationality: Nationality('FR') },
 
   // LOU Rugby
-  { id: PlayerId('p45'), name: 'Baptiste Couilloud', sport: 'rugby' },
-  { id: PlayerId('p46'), name: 'Ethan Dumortier', sport: 'rugby' },
-  { id: PlayerId('p47'), name: 'Charlie Ngatai', sport: 'rugby' },
-  { id: PlayerId('p48'), name: 'Léo Berdeu', sport: 'rugby' }, // bridge: Lyon → Bayonne
+  { id: PlayerId('p45'), name: 'Baptiste Couilloud', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p46'), name: 'Ethan Dumortier', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p47'), name: 'Charlie Ngatai', sport: 'rugby', nationality: Nationality('NZ') },
+  { id: PlayerId('p48'), name: 'Léo Berdeu', sport: 'rugby', nationality: Nationality('FR') }, // bridge: Lyon → Bayonne
 
   // Stade Français
-  { id: PlayerId('p49'), name: 'Joris Segonds', sport: 'rugby' },
-  { id: PlayerId('p50'), name: 'Sekou Macalou', sport: 'rugby' },
-  { id: PlayerId('p51'), name: 'Waisea Nayacalevu', sport: 'rugby' },
-  { id: PlayerId('p52'), name: 'Paul Alo-Emile', sport: 'rugby' },
+  { id: PlayerId('p49'), name: 'Joris Segonds', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p50'), name: 'Sekou Macalou', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p51'), name: 'Waisea Nayacalevu', sport: 'rugby', nationality: Nationality('FJ') },
+  { id: PlayerId('p52'), name: 'Paul Alo-Emile', sport: 'rugby', nationality: Nationality('FR') },
 
   // USAP Perpignan
-  { id: PlayerId('p53'), name: 'Melvyn Jaminet', sport: 'rugby' }, // bridge: Toulouse → Perpignan
-  { id: PlayerId('p54'), name: 'Santiago Arata', sport: 'rugby' },
-  { id: PlayerId('p55'), name: 'Selevasio Tolofua', sport: 'rugby' }, // bridge: Toulouse → Castres → Perpignan
+  { id: PlayerId('p53'), name: 'Melvyn Jaminet', sport: 'rugby', nationality: Nationality('FR') }, // bridge: Toulouse → Perpignan
+  { id: PlayerId('p54'), name: 'Santiago Arata', sport: 'rugby', nationality: Nationality('UY') },
+  { id: PlayerId('p55'), name: 'Selevasio Tolofua', sport: 'rugby', nationality: Nationality('FR') }, // bridge: Toulouse → Castres → Perpignan
 
   // RC Vannes
-  { id: PlayerId('p56'), name: 'Théo Hannoyer', sport: 'rugby' },
-  { id: PlayerId('p57'), name: 'Tristan Peculis', sport: 'rugby' },
-  { id: PlayerId('p58'), name: 'Killian Geraci', sport: 'rugby' },
+  { id: PlayerId('p56'), name: 'Théo Hannoyer', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p57'), name: 'Tristan Peculis', sport: 'rugby', nationality: Nationality('FR') },
+  { id: PlayerId('p58'), name: 'Killian Geraci', sport: 'rugby', nationality: Nationality('FR') },
 ];
 
 // ─── Memberships ────────────────────────────────────────────────────────────

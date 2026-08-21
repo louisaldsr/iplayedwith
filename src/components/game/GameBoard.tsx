@@ -4,6 +4,7 @@ import { Club } from '../../domain/club'
 import { Player } from '../../domain/player'
 import { PlayerId, ClubId } from '../../domain/ids'
 import { Season } from '../../domain/season'
+import { nationalTeamFor } from '../../domain/nationalTeam'
 import { playerKey, clubKey } from '../../game/graphBuilder'
 import { NodeCard } from './NodeCard'
 
@@ -181,6 +182,8 @@ export function GameBoard({ game, players, clubs }: Props) {
   }
 
   const playerMap = new Map(players.map(p => [p.id as string, p.name]))
+  const playerById = new Map(players.map(p => [p.id as string, p]))
+  const clubById = new Map(clubs.map(c => [c.id as string, c]))
   const clubMap = new Map(clubs.map(c => [c.id as string, c.name]))
 
   const center = (key: string): { x: number; y: number } | null => {
@@ -245,12 +248,14 @@ export function GameBoard({ game, players, clubs }: Props) {
           if (node.kind !== 'player') return null
           const pos = positions.get(key)
           if (!pos) return null
+          const p = playerById.get(node.id)
           return (
             <NodeCard
               key={key}
               nodeKey={key}
               label={playerMap.get(node.id) ?? node.id}
               kind="player"
+              nationality={p?.nationality ? nationalTeamFor(p.nationality, p.sport) : undefined}
               position={pos}
               onPointerDown={handlePointerDown}
               isDragging={dragging?.key === key}
@@ -340,16 +345,21 @@ export function GameBoard({ game, players, clubs }: Props) {
         let sublabel: string | undefined
         let kind: 'player' | 'club'
         let highlighted: boolean
+        let imageUrl: string | undefined
+        let nationality: Player['nationality']
 
         if (node.kind === 'player') {
           label = playerMap.get(node.id) ?? node.id
           kind = 'player'
           highlighted = pathPlayerKeys.has(key)
+          const p = playerById.get(node.id)
+          nationality = p?.nationality ? nationalTeamFor(p.nationality, p.sport) : undefined
         } else {
           label = clubMap.get(node.id) ?? node.id
           sublabel = node.season
           kind = 'club'
           highlighted = pathClubKeys.has(key)
+          imageUrl = clubById.get(node.id)?.logoUrl
         }
 
         return (
@@ -359,6 +369,8 @@ export function GameBoard({ game, players, clubs }: Props) {
             label={label}
             sublabel={sublabel}
             kind={kind}
+            imageUrl={imageUrl}
+            nationality={nationality}
             position={pos}
             onPointerDown={handlePointerDown}
             isDragging={dragging?.key === key}

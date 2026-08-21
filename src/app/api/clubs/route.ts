@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { isSportId } from '@/domain/sport';
+import { listClubs } from '@/services/clubsService';
+import { toErrorResponse } from '@/lib/apiErrors';
 
 /**
  * GET /api/clubs?sport=rugby&q=toulouse
@@ -16,16 +18,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'sport is required and must be a valid SportId' }, { status: 400 });
   }
 
-  let query = supabase
-    .from('clubs')
-    .select('id, name, sport')
-    .eq('sport', sport)
-    .order('name');
-
-  if (q) query = query.ilike('name', `%${q}%`).limit(20);
-
-  const { data, error } = await query;
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  try {
+    const clubs = await listClubs(supabase, sport, q);
+    return NextResponse.json(clubs);
+  } catch (err) {
+    return toErrorResponse(err);
+  }
 }

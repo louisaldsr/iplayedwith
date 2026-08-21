@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { SPORTS, SportId } from '@/domain/sport'
 import { Season } from '@/domain/season'
 
-type CreatedPlayer = { id: string; name: string; sport: SportId }
+type CreatedPlayer = { id: string; name: string; sport: SportId; nationality?: string }
 type ClubSuggestion = { id: string; name: string }
 type StagedRow = { key: string; clubId: string; clubName: string; season: string }
 type SavedRow = { clubId: string; clubName: string; season: string }
@@ -13,6 +13,7 @@ export default function NewPlayerPage() {
   // ── Stage 1: create the player ──────────────────────────────────────────
   const [name, setName] = useState('')
   const [sport, setSport] = useState<SportId>(SPORTS[0])
+  const [nationality, setNationality] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [player, setPlayer] = useState<CreatedPlayer | null>(null)
@@ -36,7 +37,7 @@ export default function NewPlayerPage() {
     const res = await fetch('/api/admin/players', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, sport }),
+      body: JSON.stringify({ name, sport, nationality: nationality.trim() || undefined }),
     })
     const body = await res.json()
     setCreating(false)
@@ -127,6 +128,7 @@ export default function NewPlayerPage() {
   function handleDone() {
     setPlayer(null)
     setName('')
+    setNationality('')
     setStaged([])
     setSaved([])
     setClubQuery('')
@@ -162,6 +164,18 @@ export default function NewPlayerPage() {
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
+          </div>
+
+          <div className="form-field">
+            <label className="form-label" htmlFor="player-nationality">Nationality (optional)</label>
+            <input
+              id="player-nationality"
+              className="form-input"
+              placeholder="FR or GB-ENG"
+              maxLength={6}
+              value={nationality}
+              onChange={e => setNationality(e.target.value.toUpperCase())}
+            />
           </div>
 
           {createError && <div className="error-banner">{createError}</div>}

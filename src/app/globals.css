@@ -1,3 +1,5 @@
+@import "flag-icons/css/flag-icons.min.css";
+
 *,
 *::before,
 *::after {
@@ -597,6 +599,25 @@ body {
   border: 1px solid var(--border-active);
   background: var(--bg-elevated);
   flex-shrink: 0;
+}
+
+.node-card__logo {
+  max-width: 28px;
+  max-height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.node-card__flag {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 20px;
+  height: 14px;
+  border-radius: 2px;
+  border: 1px solid var(--border-active);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  z-index: 2;
 }
 
 .node-card__label {

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { validateConnection } from '@/services/validateService';
+import { ValidationError } from '@/services/errors';
+import { toErrorResponse } from '@/lib/apiErrors';
 
 /**
  * POST /api/validate
@@ -11,50 +14,20 @@ import { supabase } from '@/lib/supabase';
  *   → checks that both players have that exact membership
  */
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { playerAId, playerBId, clubId, season } = body;
+  try {
+    const body = await req.json().catch(() => null);
+    const playerAId = typeof body?.playerAId === 'string' ? body.playerAId : '';
+    const playerBId = typeof body?.playerBId === 'string' ? body.playerBId : '';
+    const clubId = typeof body?.clubId === 'string' ? body.clubId : undefined;
+    const season = typeof body?.season === 'string' ? body.season : undefined;
 
-  if (!playerAId || !playerBId) {
-    return NextResponse.json({ error: 'playerAId and playerBId are required' }, { status: 400 });
+    if (!playerAId || !playerBId) {
+      throw new ValidationError('playerAId and playerBId are required');
+    }
+
+    const result = await validateConnection(supabase, { playerAId, playerBId, clubId, season });
+    return NextResponse.json(result);
+  } catch (err) {
+    return toErrorResponse(err);
   }
-
-  if (clubId && season) {
-    // Hard mode — exact membership check
-    const { data, error } = await supabase
-      .from('memberships')
-      .select('player_id, club_id, season')
-      .in('player_id', [playerAId, playerBId])
-      .eq('club_id', clubId)
-      .eq('season', season);
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-    const playerIds = (data ?? []).map((m) => m.player_id);
-    const valid = playerIds.includes(playerAId) && playerIds.includes(playerBId);
-
-    return NextResponse.json({ valid, membership: valid ? { clubId, season } : null });
-  }
-
-  // Easy mode — find any shared club+season between the two players
-  const { data: a, error: errA } = await supabase
-    .from('memberships')
-    .select('club_id, season')
-    .eq('player_id', playerAId);
-
-  const { data: b, error: errB } = await supabase
-    .from('memberships')
-    .select('club_id, season')
-    .eq('player_id', playerBId);
-
-  if (errA || errB) {
-    return NextResponse.json({ error: errA?.message ?? errB?.message }, { status: 500 });
-  }
-
-  const setB = new Set((b ?? []).map((m) => `${m.club_id}|${m.season}`));
-  const shared = (a ?? []).find((m) => setB.has(`${m.club_id}|${m.season}`));
-
-  return NextResponse.json({
-    valid: !!shared,
-    membership: shared ? { clubId: shared.club_id, season: shared.season } : null,
-  });
 }

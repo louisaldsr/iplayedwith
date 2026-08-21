@@ -1,7 +1,8 @@
-import { randomUUID } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { isSportId } from '@/domain/sport'
+import { createClub } from '@/services/clubsService'
+import { toErrorResponse } from '@/lib/apiErrors'
 
 /** POST /api/admin/clubs — body { name, sport, logoUrl? }. Rejects case-insensitive duplicate names within a sport. */
 export async function POST(req: NextRequest) {
@@ -13,23 +14,10 @@ export async function POST(req: NextRequest) {
   if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 })
   if (!isSportId(sport)) return NextResponse.json({ error: 'sport must be a valid SportId' }, { status: 400 })
 
-  const db = supabaseAdmin()
-
-  const { data: existing, error: lookupError } = await db
-    .from('clubs')
-    .select('id')
-    .eq('sport', sport)
-    .ilike('name', name)
-    .maybeSingle()
-
-  if (lookupError) return NextResponse.json({ error: lookupError.message }, { status: 500 })
-  if (existing) {
-    return NextResponse.json({ error: `A club named "${name}" already exists for ${sport}` }, { status: 409 })
+  try {
+    const club = await createClub(supabaseAdmin(), { name, sport, logoUrl })
+    return NextResponse.json(club, { status: 201 })
+  } catch (err) {
+    return toErrorResponse(err)
   }
-
-  const club = { id: randomUUID(), name, sport, logo_url: logoUrl }
-  const { error } = await db.from('clubs').insert(club)
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ id: club.id, name: club.name, sport: club.sport, logoUrl: club.logo_url }, { status: 201 })
 }

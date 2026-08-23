@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# scraper cache & generated seed data
+/scripts/input/players/profiles/
+/scripts/output/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

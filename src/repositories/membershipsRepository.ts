@@ -3,6 +3,7 @@ import { ClubId, PlayerId } from '@/domain/ids'
 import { Membership } from '@/domain/membership'
 import { Season } from '@/domain/season'
 import { SportId } from '@/domain/sport'
+import { fetchAllRows } from '@/lib/supabasePagination'
 
 type UpsertRow = { playerId: PlayerId; clubId: ClubId; season: Season; competition?: string }
 
@@ -45,14 +46,18 @@ export async function listBySport(
   db: SupabaseClient,
   sport: SportId,
 ): Promise<Pick<Membership, 'playerId' | 'clubId' | 'season'>[]> {
-  const { data, error } = await db
-    .from('memberships')
-    .select('player_id, club_id, season, clubs!inner(sport)')
-    .eq('clubs.sport', sport)
+  const rows = await fetchAllRows<{ player_id: string; club_id: string; season: string }>((from, to) =>
+    db
+      .from('memberships')
+      .select('player_id, club_id, season, clubs!inner(sport)')
+      .eq('clubs.sport', sport)
+      .order('player_id')
+      .order('club_id')
+      .order('season')
+      .range(from, to),
+  )
 
-  if (error) throw new Error(error.message)
-
-  return (data ?? []).map((m) => ({
+  return rows.map((m) => ({
     playerId: PlayerId(m.player_id),
     clubId: ClubId(m.club_id),
     season: m.season as Season,

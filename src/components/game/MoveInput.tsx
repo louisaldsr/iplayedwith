@@ -9,6 +9,7 @@ import { Season } from '../../domain/season'
 import { DifficultyLevel } from '../../game/game'
 import { UserInput } from '../../game/engine'
 import { useTranslations } from '../../i18n'
+import { AutocompleteInput } from '../shared/AutocompleteInput'
 
 type Props = {
   difficulty: DifficultyLevel
@@ -17,44 +18,6 @@ type Props = {
   memberships: Membership[]
   alreadyInGraph: Set<PlayerId>
   onSubmit: (input: UserInput) => void
-}
-
-type AutocompleteInputProps = {
-  value: string
-  onChange: (v: string) => void
-  onSelect: (name: string) => void
-  suggestions: { id: string; name: string }[]
-  placeholder: string
-  autoFocus?: boolean
-}
-
-function AutocompleteInput({ value, onChange, onSelect, suggestions, placeholder, autoFocus }: AutocompleteInputProps) {
-  return (
-    <div className="autocomplete-wrapper">
-      <input
-        className="autocomplete-input"
-        type="text"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoComplete="off"
-        autoFocus={autoFocus}
-      />
-      {value.length >= 1 && suggestions.length > 0 && (
-        <ul className="autocomplete-dropdown">
-          {suggestions.map(s => (
-            <li
-              key={s.id}
-              className="autocomplete-item"
-              onMouseDown={() => onSelect(s.name)}
-            >
-              {s.name}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
 }
 
 type Chip = { label: string; onClear: () => void }

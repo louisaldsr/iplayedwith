@@ -265,24 +265,8 @@ body {
   width: 100%;
 }
 
-.player-picker__input {
+.player-picker__empty .autocomplete-wrapper {
   width: 100%;
-  background: var(--bg-input);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: 0.875rem;
-  padding: 10px 14px;
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.player-picker__input:focus {
-  border-color: var(--accent);
-}
-
-.player-picker__input::placeholder {
-  color: var(--text-muted);
 }
 
 .player-picker__separator {
@@ -722,6 +706,11 @@ body {
   z-index: 20;
   max-height: 200px;
   overflow-y: auto;
+}
+
+.autocomplete-dropdown--down {
+  bottom: auto;
+  top: calc(100% + 4px);
 }
 
 .autocomplete-item {

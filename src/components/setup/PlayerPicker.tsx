@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Player } from '../../domain/player'
 import { useTranslations } from '../../i18n'
+import { AutocompleteInput } from '../shared/AutocompleteInput'
 
 type Props = {
   role: 'A' | 'B'
@@ -17,13 +18,20 @@ export function PlayerPicker({ role, selected, allPlayers, excludeId, onSelect }
   const [inputValue, setInputValue] = useState('')
 
   const available = allPlayers.filter(p => p.id !== excludeId)
+  const suggestions = available.filter(p =>
+    p.name.toLowerCase().includes(inputValue.toLowerCase())
+  )
 
-  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value
-    setInputValue(val)
-    const match = available.find(p => p.name.toLowerCase() === val.toLowerCase())
-    if (match) onSelect(match)
-    else onSelect(null)
+  function handleSelect(name: string) {
+    const match = available.find(p => p.name === name) ?? null
+    setInputValue(match?.name ?? name)
+    onSelect(match)
+  }
+
+  function handleInputChange(v: string) {
+    setInputValue(v)
+    const match = available.find(p => p.name.toLowerCase() === v.toLowerCase()) ?? null
+    onSelect(match)
   }
 
   function handleRandomize() {
@@ -39,7 +47,6 @@ export function PlayerPicker({ role, selected, allPlayers, excludeId, onSelect }
   }
 
   const roleLabel = role === 'A' ? t.setup.playerA : t.setup.playerB
-  const datalistId = `players-${role}`
 
   return (
     <div className={`player-picker${selected ? ' player-picker--selected' : ''}`}>
@@ -59,20 +66,14 @@ export function PlayerPicker({ role, selected, allPlayers, excludeId, onSelect }
         </div>
       ) : (
         <div className="player-picker__empty">
-          <input
-            type="text"
-            list={datalistId}
+          <AutocompleteInput
             value={inputValue}
             onChange={handleInputChange}
+            onSelect={handleSelect}
+            suggestions={suggestions}
             placeholder={t.setup.inputPlaceholder}
-            className="player-picker__input"
-            autoComplete="off"
+            dropdownDirection="down"
           />
-          <datalist id={datalistId}>
-            {available.map(p => (
-              <option key={p.id} value={p.name} />
-            ))}
-          </datalist>
           <span className="player-picker__separator">{t.setup.orSeparator}</span>
           <button type="button" className="btn btn--ghost btn--sm" onClick={handleRandomize}>
             {t.setup.randomize}

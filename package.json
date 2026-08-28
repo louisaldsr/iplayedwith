@@ -13,6 +13,7 @@
     "test:integration": "jest --testPathPattern=tests/integration",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "seed:map-players": "tsx --env-file=.env.local scripts/mapPlayers.ts",
     "seed:players": "tsx --env-file=.env.local scripts/seedPlayers.ts",
     "seed:memberships": "tsx --env-file=.env.local scripts/seedMemberships.ts"
   },

@@ -1,70 +1,114 @@
-import fs from 'node:fs'
 import path from 'node:path'
 import { getDb } from './lib/env'
-import { nationalityForStem } from './lib/nationalities'
-import { parsePlayersListHtml } from './lib/playersListParser'
-import { createPlayer } from '@/services/playersService'
+import { hasNoProfessionalCareer } from './lib/playerProfileParser'
+import { loadJson, saveJson, type PlayerMap, type PlayerMapEntry, type SeededMap, type SeededMapEntry } from './lib/playerMap'
+import { fetchWithCache } from './lib/fetchWithCache'
+import { createPlayer, listPlayers } from '@/services/playersService'
 import { ServiceError } from '@/services/errors'
-
-type PlayerMapEntry = { playerId: string; name: string; profileUrl: string }
-type PlayerMap = Record<string, PlayerMapEntry>
 
 const SAVE_EVERY = 25
 
-function loadMap(mapPath: string): PlayerMap {
-  if (!fs.existsSync(mapPath)) return {}
-  return JSON.parse(fs.readFileSync(mapPath, 'utf8')) as PlayerMap
-}
-
-function saveMap(mapPath: string, map: PlayerMap) {
-  fs.mkdirSync(path.dirname(mapPath), { recursive: true })
-  fs.writeFileSync(mapPath, JSON.stringify(map, null, 2), 'utf8')
+function seededEntry(
+  entry: PlayerMapEntry,
+  status: SeededMapEntry['status'],
+  extra: Partial<Pick<SeededMapEntry, 'playerId' | 'reason'>> = {},
+): SeededMapEntry {
+  return { status, name: entry.name, nationality: entry.nationality, profileUrl: entry.profileUrl, ...extra }
 }
 
 async function main() {
-  const stem = process.argv[2]
-  if (!stem) {
-    console.error('Usage: tsx scripts/seedPlayers.ts <nationality-stem>  (e.g. france)')
+  const dryRun = process.argv.includes('--dry-run')
+
+  const mapPath = path.resolve(__dirname, 'output', 'players-map.json')
+  const seededPath = path.resolve(__dirname, 'output', 'players-seeded.json')
+  const profilesDir = path.resolve(__dirname, 'input/players/profiles')
+
+  const map = loadJson<PlayerMap>(mapPath, {})
+  const entries = Object.entries(map)
+  if (entries.length === 0) {
+    console.error(`No players found in ${mapPath} — run mapPlayers.ts first.`)
     process.exit(1)
   }
 
-  const nationality = nationalityForStem(stem)
-  const inputPath = path.resolve(__dirname, 'input/players', `${stem}.html`)
-  const mapPath = path.resolve(__dirname, 'output', `players-map.${stem}.json`)
-
-  const html = fs.readFileSync(inputPath, 'utf8')
-  const listed = parsePlayersListHtml(html)
-  console.log(`Parsed ${listed.length} players from ${inputPath}`)
-
-  const map = loadMap(mapPath)
+  const seeded = loadJson<SeededMap>(seededPath, {})
   const db = getDb()
 
-  let created = 0
-  let skipped = 0
-  let failed = 0
+  // Names already in the DB (any source, including the admin UI), plus names created
+  // during this run — checked before every creation so the same real person appearing
+  // under a different allrugbyId (or entered by hand) doesn't get a duplicate row.
+  const existingNames = new Set((await listPlayers(db, 'rugby')).map((p) => p.name))
 
-  for (const player of listed) {
-    if (map[player.allrugbyId]) {
+  let processed = 0
+  let saved = 0
+  let rejected = 0
+  let manualCheck = 0
+  let failed = 0
+  let skipped = 0
+
+  for (const [allrugbyId, entry] of entries) {
+    const existing = seeded[allrugbyId]
+    if (existing && (existing.status === 'saved' || existing.status === 'rejected' || existing.status === 'manual check')) {
       skipped++
       continue
     }
 
+    processed++
+    if (processed % SAVE_EVERY === 0) {
+      console.log(`... ${processed} players processed`)
+      saveJson(seededPath, seeded)
+    }
+
+    const profilePath = path.join(profilesDir, `${allrugbyId}.html`)
+    let html: string
     try {
-      const created_ = await createPlayer(db, { name: player.name, sport: 'rugby', nationality })
-      map[player.allrugbyId] = { playerId: created_.id, name: created_.name, profileUrl: player.profileUrl }
-      created++
+      // Already cached by mapPlayers.ts — this only hits the network if the file is missing.
+      html = await fetchWithCache(entry.profileUrl, profilePath)
+    } catch (err) {
+      failed++
+      seeded[allrugbyId] = seededEntry(entry, 'failure', { reason: (err as Error).message })
+      console.error(`Failed to read profile for "${entry.name}" (${allrugbyId}): ${(err as Error).message}`)
+      continue
+    }
+
+    if (hasNoProfessionalCareer(html)) {
+      rejected++
+      seeded[allrugbyId] = seededEntry(entry, 'rejected', { reason: 'no professional career' })
+      continue
+    }
+
+    if (existingNames.has(entry.name)) {
+      manualCheck++
+      seeded[allrugbyId] = seededEntry(entry, 'manual check', {
+        reason: `name collision with an existing player named "${entry.name}"`,
+      })
+      continue
+    }
+
+    if (dryRun) {
+      saved++
+      existingNames.add(entry.name)
+      continue
+    }
+
+    try {
+      const created = await createPlayer(db, { name: entry.name, sport: 'rugby', nationality: entry.nationality ?? undefined })
+      seeded[allrugbyId] = seededEntry(entry, 'saved', { playerId: created.id })
+      existingNames.add(entry.name)
+      saved++
     } catch (err) {
       failed++
       const message = err instanceof ServiceError ? err.message : String(err)
-      console.error(`Failed to create player "${player.name}" (${player.allrugbyId}): ${message}`)
+      seeded[allrugbyId] = seededEntry(entry, 'failure', { reason: message })
+      console.error(`Failed to create player "${entry.name}" (${allrugbyId}): ${message}`)
     }
-
-    if (created % SAVE_EVERY === 0) saveMap(mapPath, map)
   }
 
-  saveMap(mapPath, map)
-  console.log(`Done. created=${created} skipped=${skipped} failed=${failed} total=${listed.length}`)
-  console.log(`Map written to ${mapPath}`)
+  saveJson(seededPath, seeded)
+  console.log(
+    `Done${dryRun ? ' (dry run, no DB writes)' : ''}. total=${entries.length} processed=${processed} ` +
+      `skipped=${skipped} saved=${saved} rejected=${rejected} manualCheck=${manualCheck} failed=${failed}`,
+  )
+  console.log(`Seeded map written to ${seededPath}`)
 }
 
 main().catch((err) => {

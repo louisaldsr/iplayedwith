@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { normalize } from './textNormalize';
 
 export type CsvClub = {
   id: string;
@@ -50,22 +51,17 @@ export const ALIASES: Record<string, string> = {
   brive: 'CA Brive',
   narbonne: 'RC Narbonnais',
   nice: 'Nissa Rugby',
-
-  carcassonne: 'US Carcassonne', // Pauillac is a suburb of Carcassonne
+  carcassonne: 'US Carcassonne',
   'mont-de-marsan': 'Stade Montois Rugby',
+
+  edimbourg: 'Edinburgh Rugby',
+  sharks: 'Sharks Durban',
+  sale: 'Sale Sharks',
+  'sale sharks': 'Sale Sharks',
+  chiefs: 'Waikato Chiefs',
+  trévise: 'Benetton Rugby Treviso',
+  harlequins: 'Harlequin Football Club',
 };
-
-const COMBINING_DIACRITICS = /[̀-ͯ]/g;
-
-function normalize(raw: string): string {
-  return raw
-    .normalize('NFD')
-    .replace(COMBINING_DIACRITICS, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 function containsWhole(haystack: string, needle: string): boolean {
   return new RegExp(

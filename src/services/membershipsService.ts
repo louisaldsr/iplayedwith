@@ -61,3 +61,30 @@ export async function deleteMembership(
 export async function listMembershipsBySport(db: SupabaseClient, sport: SportId): Promise<Membership[]> {
   return membershipsRepo.listBySport(db, sport)
 }
+
+/** Distinct seasons already entered for a club, most recent first, with squad size. */
+export async function listClubSeasons(
+  db: SupabaseClient,
+  clubId: string,
+): Promise<{ season: Season; playerCount: number }[]> {
+  const rows = await membershipsRepo.listByClub(db, ClubId(clubId))
+
+  const countBySeason = new Map<Season, number>()
+  for (const row of rows) {
+    countBySeason.set(row.season, (countBySeason.get(row.season) ?? 0) + 1)
+  }
+
+  return [...countBySeason.entries()]
+    .map(([season, playerCount]) => ({ season, playerCount }))
+    .sort((a, b) => b.season.localeCompare(a.season))
+}
+
+/** A club's roster for one season. */
+export async function listRoster(
+  db: SupabaseClient,
+  clubId: string,
+  rawSeason: string,
+): Promise<{ playerId: PlayerId; playerName: string }[]> {
+  const season = Season(rawSeason)
+  return membershipsRepo.listByClubAndSeason(db, ClubId(clubId), season)
+}

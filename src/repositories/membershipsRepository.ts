@@ -73,6 +73,45 @@ export async function listByPlayer(
   return (data ?? []).map((m) => ({ clubId: ClubId(m.club_id), season: m.season as Season }))
 }
 
+/** All (player, season) rows for a club, with player names joined in — used to list seasons already entered. */
+export async function listByClub(
+  db: SupabaseClient,
+  clubId: ClubId,
+): Promise<{ playerId: PlayerId; playerName: string; season: Season }[]> {
+  const { data, error } = await db
+    .from('memberships')
+    .select('player_id, season, players!inner(name)')
+    .eq('club_id', clubId)
+
+  if (error) throw new Error(error.message)
+
+  return (data as unknown as { player_id: string; season: string; players: { name: string } }[]).map((r) => ({
+    playerId: PlayerId(r.player_id),
+    playerName: r.players.name,
+    season: r.season as Season,
+  }))
+}
+
+/** A club's roster for one season, with player names joined in. */
+export async function listByClubAndSeason(
+  db: SupabaseClient,
+  clubId: ClubId,
+  season: Season,
+): Promise<{ playerId: PlayerId; playerName: string }[]> {
+  const { data, error } = await db
+    .from('memberships')
+    .select('player_id, players!inner(name)')
+    .eq('club_id', clubId)
+    .eq('season', season)
+
+  if (error) throw new Error(error.message)
+
+  return (data as unknown as { player_id: string; players: { name: string } }[]).map((r) => ({
+    playerId: PlayerId(r.player_id),
+    playerName: r.players.name,
+  }))
+}
+
 /** Returns the subset of `playerIds` that have the exact (clubId, season) membership. */
 export async function hasExactForAny(
   db: SupabaseClient,

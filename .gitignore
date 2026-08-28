@@ -38,6 +38,7 @@ yarn-error.log*
 
 # scraper cache & generated seed data
 /scripts/input/players/profiles/
+/scripts/input/countries
 /scripts/output/
 
 # typescript

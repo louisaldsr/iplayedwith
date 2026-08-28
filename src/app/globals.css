@@ -1080,3 +1080,24 @@ body {
   gap: 8px;
   list-style: none;
 }
+
+.season-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+}
+
+.season-item a {
+  display: block;
+  padding: 10px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+
+.season-item a:hover {
+  border-color: var(--accent);
+}

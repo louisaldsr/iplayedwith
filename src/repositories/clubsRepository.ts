@@ -31,6 +31,16 @@ export async function findManyByIds(
   return (data ?? []).map(toClub);
 }
 
+export async function findById(db: SupabaseClient, id: ClubId): Promise<Club | null> {
+  const { data, error } = await db
+    .from('clubs')
+    .select('id, name, sport, logo_url')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? toClub(data) : null;
+}
+
 export async function findByNameAndSport(
   db: SupabaseClient,
   name: string,

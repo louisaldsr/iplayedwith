@@ -111,10 +111,10 @@ async function processHtmlFile(
 }
 
 async function main() {
-  let inputPath: string
+  let inputArg: string
   let source: SourceId
   try {
-    ;({ inputPath, source } = parseArgs(process.argv.slice(2)))
+    ;({ inputPath: inputArg, source } = parseArgs(process.argv.slice(2)))
   } catch {
     console.error('Usage: tsx scripts/mapPlayers.ts [--source=allrugby.com|all.rugby] <path-to-html-file-or-folder>')
     console.error('  path: a saved player-list/transfers/mutations html file, or a folder of them —')
@@ -123,16 +123,16 @@ async function main() {
     return
   }
 
-  const htmlFiles = fs.statSync(inputPath).isDirectory()
+  const htmlFiles = fs.statSync(inputArg).isDirectory()
     ? fs
-        .readdirSync(inputPath)
+        .readdirSync(inputArg)
         .filter((f) => f.toLowerCase().endsWith('.html'))
         .sort()
-        .map((f) => path.join(inputPath, f))
-    : [inputPath]
+        .map((f) => path.join(inputArg, f))
+    : [inputArg]
 
   if (htmlFiles.length === 0) {
-    console.error(`No .html files found in ${inputPath}`)
+    console.error(`No .html files found in ${inputArg}`)
     process.exit(1)
   }
 

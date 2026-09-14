@@ -13,8 +13,14 @@
     "test:integration": "jest --testPathPattern=tests/integration",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "seed:map-players": "tsx --env-file=.env.local scripts/mapPlayers.ts",
     "seed:players": "tsx --env-file=.env.local scripts/seedPlayers.ts",
-    "seed:memberships": "tsx --env-file=.env.local scripts/seedMemberships.ts"
+    "seed:memberships": "tsx --env-file=.env.local scripts/seedMemberships.ts",
+    "seed:football:fetch": "tsx scripts/fetchFootballDataset.ts",
+    "seed:football:build": "tsx scripts/buildFootballDataset.ts",
+    "seed:football:clubs": "tsx --env-file=.env.local scripts/seedFootballClubs.ts",
+    "seed:football:players": "tsx --env-file=.env.local scripts/seedFootballPlayers.ts",
+    "seed:football:memberships": "tsx --env-file=.env.local scripts/seedFootballMemberships.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
@@ -33,6 +39,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "cheerio": "^1.2.0",
+    "csv-parse": "^7.0.2",
     "eslint": "^9.26.0",
     "eslint-config-next": "15.5.18",
     "jest": "^29.7.0",

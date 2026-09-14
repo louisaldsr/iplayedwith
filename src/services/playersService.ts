@@ -10,16 +10,27 @@ export async function listPlayers(db: SupabaseClient, sport: SportId, q?: string
   return playersRepo.listBySport(db, sport, q)
 }
 
-/** No duplicate-name guard: real people can share a name. */
-export async function createPlayer(
-  db: SupabaseClient,
-  input: { name: string; sport: SportId; nationality?: string },
-): Promise<Player> {
-  const player: Player = {
+export type CreatePlayerInput = { name: string; sport: SportId; nationality?: string }
+
+function toNewPlayer(input: CreatePlayerInput): Player {
+  return {
     id: PlayerId(randomUUID()),
     name: input.name,
     sport: input.sport,
     nationality: input.nationality ? Nationality(input.nationality) : undefined,
   }
-  return playersRepo.insert(db, player)
+}
+
+/** No duplicate-name guard: real people can share a name. */
+export async function createPlayer(db: SupabaseClient, input: CreatePlayerInput): Promise<Player> {
+  return playersRepo.insert(db, toNewPlayer(input))
+}
+
+/**
+ * Bulk counterpart to `createPlayer`, for seed imports. Same id generation and
+ * `Nationality` validation, applied to every input before anything is written — an
+ * invalid code fails the call rather than leaving a half-written batch behind.
+ */
+export async function createPlayers(db: SupabaseClient, inputs: CreatePlayerInput[]): Promise<Player[]> {
+  return playersRepo.insertMany(db, inputs.map(toNewPlayer))
 }

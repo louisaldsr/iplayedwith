@@ -11,6 +11,10 @@ export default function AdminDashboard() {
         <span className="admin-card__title">Add player</span>
         <span className="admin-card__desc">Create a player and build their career</span>
       </Link>
+      <Link href="/admin/clubs" className="admin-card">
+        <span className="admin-card__title">Clubs</span>
+        <span className="admin-card__desc">Build a club&rsquo;s season-by-season roster</span>
+      </Link>
     </div>
   )
 }

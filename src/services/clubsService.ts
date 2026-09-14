@@ -4,10 +4,21 @@ import * as clubsRepo from '@/repositories/clubsRepository'
 import { ClubId } from '@/domain/ids'
 import { Club } from '@/domain/club'
 import { SportId } from '@/domain/sport'
-import { ConflictError } from '@/services/errors'
+import { ConflictError, NotFoundError } from '@/services/errors'
 
 export async function listClubs(db: SupabaseClient, sport: SportId, q?: string): Promise<Club[]> {
   return clubsRepo.listBySport(db, sport, q)
+}
+
+export async function getClub(db: SupabaseClient, id: string): Promise<Club> {
+  const club = await clubsRepo.findById(db, ClubId(id))
+  if (!club) throw new NotFoundError(`club "${id}" not found`)
+  return club
+}
+
+/** Exact (case-insensitive) name lookup within a sport — the reconciliation path for a seed import that has to re-attach to a club it already created. */
+export async function findClubByName(db: SupabaseClient, name: string, sport: SportId): Promise<Club | null> {
+  return clubsRepo.findByNameAndSport(db, name, sport)
 }
 
 /** Rejects case-insensitive duplicate names within a sport. */

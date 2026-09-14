@@ -1,6 +1,54 @@
 import * as cheerio from 'cheerio'
 
 export type CareerRow = { season: string; clubName: string; competition: string }
+export type PlayerIdentity = { rawName: string; rawNationality: string | null }
+
+/**
+ * Parses the player's name and nationality from the page's JSON-LD block
+ * (`<script type="application/ld+json">`), which embeds a schema.org `Person`
+ * alongside a `BreadcrumbList` under a shared `@graph`. `rawName` is as displayed
+ * (e.g. "Bryan ARNAUD" — last name in caps) and `rawNationality` is a French
+ * country name (e.g. "Afrique du sud"); callers are responsible for title-casing
+ * the name and mapping the nationality to an ISO code.
+ */
+export function parsePlayerIdentity(html: string): PlayerIdentity | null {
+  const $ = cheerio.load(html)
+  let identity: PlayerIdentity | null = null
+
+  $('script[type="application/ld+json"]').each((_, script) => {
+    if (identity) return
+    let parsed: unknown
+    try {
+      parsed = JSON.parse($(script).contents().text())
+    } catch {
+      return
+    }
+    const graph = (parsed as { '@graph'?: unknown[] })['@graph'] ?? []
+    const person = graph.find(
+      (node): node is { name?: unknown; nationality?: unknown } =>
+        typeof node === 'object' && node !== null && (node as { '@type'?: unknown })['@type'] === 'Person',
+    )
+    if (!person || typeof person.name !== 'string') return
+    identity = {
+      rawName: person.name,
+      rawNationality: typeof person.nationality === 'string' ? person.nationality : null,
+    }
+  })
+
+  return identity
+}
+
+/**
+ * True when a player has no registered season data — their profile's `#saisons` tab
+ * strip only has the "Récapitulatif" (overview) placeholder tab (`saisonNav_ov`) and no
+ * per-season tabs (`saisonNav_YYYY`), which on real profiles correlates exactly with an
+ * empty `#saison_ov` table body. Used to reject amateur/no-career players before creating
+ * a player row for them.
+ */
+export function hasNoProfessionalCareer(html: string): boolean {
+  const $ = cheerio.load(html)
+  return $('#saisons li[id^="saisonNav_"]').length <= 1
+}
 
 /**
  * "25/26" -> "2025-2026". allrugby only ever shows 2-digit years; treat

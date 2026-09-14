@@ -16,6 +16,11 @@ export async function getClub(db: SupabaseClient, id: string): Promise<Club> {
   return club
 }
 
+/** Exact (case-insensitive) name lookup within a sport — the reconciliation path for a seed import that has to re-attach to a club it already created. */
+export async function findClubByName(db: SupabaseClient, name: string, sport: SportId): Promise<Club | null> {
+  return clubsRepo.findByNameAndSport(db, name, sport)
+}
+
 /** Rejects case-insensitive duplicate names within a sport. */
 export async function createClub(
   db: SupabaseClient,

@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { normalize } from './textNormalize';
+import { normalize } from '../../common/textNormalize';
 
 export type CsvClub = {
   id: string;

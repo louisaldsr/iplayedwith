@@ -49,6 +49,64 @@ export async function upsertMemberships(
   return membershipsRepo.upsertMany(db, parsed)
 }
 
+export type BulkMembershipRowInput = MembershipRowInput & { playerId: string }
+
+/** Rows per upsert request — a seed import writes tens of thousands at once. */
+const UPSERT_CHUNK_SIZE = 500
+
+/**
+ * Bulk counterpart to `upsertMemberships`, for seed imports.
+ *
+ * It enforces the same invariants — every season parses, and every referenced player and
+ * club exists and plays `sport` — but resolves them against one snapshot of the sport's
+ * players and clubs instead of two DB round-trips per player. Validation runs over all
+ * rows before the first write, so a bad row fails the call rather than landing a partial
+ * batch. Chunks are then sent in order; a mid-run failure leaves earlier chunks
+ * committed, and re-running is safe because the writes are upserts.
+ */
+export async function upsertMembershipsBulk(
+  db: SupabaseClient,
+  sport: SportId,
+  rows: BulkMembershipRowInput[],
+): Promise<number> {
+  const [clubs, players] = await Promise.all([clubsRepo.listBySport(db, sport), playersRepo.listBySport(db, sport)])
+  const clubIds = new Set<string>(clubs.map((c) => c.id))
+  const playerIds = new Set<string>(players.map((p) => p.id))
+
+  const parsed = rows.map((row, i) => {
+    if (!row.playerId) throw new ValidationError(`row ${i}: playerId is required`)
+    if (!row.clubId) throw new ValidationError(`row ${i}: clubId is required`)
+    if (!playerIds.has(row.playerId)) {
+      throw new NotFoundError(`row ${i}: player "${row.playerId}" not found for ${sport}`)
+    }
+    if (!clubIds.has(row.clubId)) {
+      throw new NotFoundError(`row ${i}: club "${row.clubId}" not found for ${sport}`)
+    }
+
+    let season: Season
+    try {
+      season = Season(row.season)
+    } catch (err) {
+      throw new ValidationError(`row ${i}: ${(err as Error).message}`)
+    }
+
+    return {
+      playerId: PlayerId(row.playerId),
+      clubId: ClubId(row.clubId),
+      season,
+      competition: row.competition?.trim() || undefined,
+    }
+  })
+
+  let written = 0
+  for (let i = 0; i < parsed.length; i += UPSERT_CHUNK_SIZE) {
+    const chunk = parsed.slice(i, i + UPSERT_CHUNK_SIZE)
+    await membershipsRepo.upsertMany(db, chunk)
+    written += chunk.length
+  }
+  return written
+}
+
 export async function deleteMembership(
   db: SupabaseClient,
   playerId: string,

@@ -37,8 +37,7 @@ yarn-error.log*
 .vercel
 
 # scraper cache & generated seed data
-/scripts/input/players/profiles/
-/scripts/input/countries
+/scripts/input/
 /scripts/output/
 
 # typescript

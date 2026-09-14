@@ -30,20 +30,27 @@ export type CareerMatchResult = {
  * Rows whose competition is dropped (see `competitionMapping`) are skipped entirely —
  * before club matching, so they don't add noise to manual review either. Rows whose
  * competition is a pan-European one get rewritten to the club's domestic league.
+ *
+ * `applyCompetitionFilter` (default true) can be set to false to skip both the drop
+ * list and the European-competition rewrite — that logic encodes allrugby.com-specific
+ * label semantics that don't necessarily hold for other sources, so every row that
+ * resolves to a known club is kept with its competition label passed through unchanged.
  */
 export function matchCareer(
   playerName: string,
   profileUrl: string,
   careerRows: CareerRow[],
   matcher: ClubMatcher,
+  options: { applyCompetitionFilter?: boolean } = {},
 ): CareerMatchResult {
+  const applyCompetitionFilter = options.applyCompetitionFilter ?? true
   const rows: MembershipRowInput[] = []
   const manualReviewRows: ManualReviewRow[] = []
   const unmatchedClubs: { season: string; clubName: string }[] = []
   let droppedCount = 0
 
   for (const row of careerRows) {
-    if (isDroppedCompetition(row.competition)) {
+    if (applyCompetitionFilter && isDroppedCompetition(row.competition)) {
       droppedCount++
       continue
     }
@@ -53,9 +60,9 @@ export function matchCareer(
       rows.push({
         clubId: match.clubId,
         season: row.season,
-        competition: resolveCompetition(match.clubId, row.competition),
+        competition: applyCompetitionFilter ? resolveCompetition(match.clubId, row.competition) : row.competition,
       })
-      if (isUnmappedEuropeanCompetition(match.clubId, row.competition)) {
+      if (applyCompetitionFilter && isUnmappedEuropeanCompetition(match.clubId, row.competition)) {
         // Still created above with the original (unrewritten) competition name — a real
         // club+season is worth having even with an imprecise label — but flagged here so
         // gaps in DOMESTIC_LEAGUE_BY_CLUB_ID are visible instead of silently swallowed.

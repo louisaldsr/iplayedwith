@@ -49,3 +49,28 @@ export async function insert(db: SupabaseClient, player: Player): Promise<Player
   if (error) throw new Error(error.message)
   return player
 }
+
+/** Rows per insert request — a seed import creates players in the tens of thousands, and one request each is far too many round-trips. */
+const INSERT_CHUNK_SIZE = 500
+
+/**
+ * Bulk counterpart to `insert`, for seed imports. Chunks the rows so a single request
+ * never carries an unbounded payload; chunks are sent in order, so a mid-run failure
+ * leaves every earlier chunk committed and the caller can resume from its own progress
+ * file rather than redoing the whole import.
+ */
+export async function insertMany(db: SupabaseClient, players: Player[]): Promise<Player[]> {
+  for (let i = 0; i < players.length; i += INSERT_CHUNK_SIZE) {
+    const chunk = players.slice(i, i + INSERT_CHUNK_SIZE)
+    const { error } = await db.from('players').insert(
+      chunk.map((player) => ({
+        id: player.id,
+        name: player.name,
+        sport: player.sport,
+        nationality: player.nationality ?? null,
+      })),
+    )
+    if (error) throw new Error(error.message)
+  }
+  return players
+}

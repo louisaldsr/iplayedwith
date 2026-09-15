@@ -7,8 +7,9 @@ import { toErrorResponse } from '@/lib/apiErrors';
 /**
  * GET /api/clubs?sport=rugby&q=toulouse
  *
- * `sport` is required. `q` is an optional case-insensitive name filter
- * capped at 20 results (typeahead); omit it to get the full sport roster.
+ * Typeahead search, capped at 20 results. Both `sport` and `q` are required — see the
+ * players route for why the unbounded variant is no longer reachable from a browser.
+ * The admin UI lists clubs through its own paginated endpoint.
  */
 export async function GET(req: NextRequest) {
   const sport = req.nextUrl.searchParams.get('sport') ?? '';
@@ -16,6 +17,10 @@ export async function GET(req: NextRequest) {
 
   if (!isSportId(sport)) {
     return NextResponse.json({ error: 'sport is required and must be a valid SportId' }, { status: 400 });
+  }
+
+  if (q === '') {
+    return NextResponse.json({ error: 'q is required' }, { status: 400 });
   }
 
   try {

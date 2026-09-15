@@ -5,13 +5,14 @@ import { Season } from '@/domain/season'
 import { SportId } from '@/domain/sport'
 import { fetchAllRows } from '@/lib/supabasePagination'
 
-type UpsertRow = { playerId: PlayerId; clubId: ClubId; season: Season; competition?: string }
+type UpsertRow = { playerId: PlayerId; clubId: ClubId; season: Season; sport: SportId; competition?: string }
 
 export async function upsertMany(db: SupabaseClient, rows: UpsertRow[]): Promise<Membership[]> {
   const payload = rows.map((r) => ({
     player_id: r.playerId,
     club_id: r.clubId,
     season: r.season,
+    sport: r.sport,
     competition: r.competition ?? null,
   }))
 
@@ -41,7 +42,11 @@ export async function deleteOne(db: SupabaseClient, playerId: PlayerId, clubId: 
   if (error) throw new Error(error.message)
 }
 
-/** Scoped via the club's sport, since memberships itself carries no sport column. */
+/**
+ * The whole sport-scoped table, paged. Server-side only — seed imports use it to
+ * reconcile against what is already stored. The game never calls this: it would be
+ * ~41k rows for football, and `listForPlayers` covers what a move actually needs.
+ */
 export async function listBySport(
   db: SupabaseClient,
   sport: SportId,
@@ -49,8 +54,8 @@ export async function listBySport(
   const rows = await fetchAllRows<{ player_id: string; club_id: string; season: string }>((from, to) =>
     db
       .from('memberships')
-      .select('player_id, club_id, season, clubs!inner(sport)')
-      .eq('clubs.sport', sport)
+      .select('player_id, club_id, season')
+      .eq('sport', sport)
       .order('player_id')
       .order('club_id')
       .order('season')
@@ -62,6 +67,45 @@ export async function listBySport(
     clubId: ClubId(m.club_id),
     season: m.season as Season,
   }))
+}
+
+/**
+ * Every membership held by any of `playerIds`, within one sport.
+ *
+ * This is the whole data dependency of a single game move: the engine only ever reads
+ * memberships of players already in the graph plus the one being submitted. With
+ * `memberships_sport_player_idx` that is one indexed lookup returning a few hundred rows,
+ * instead of the ~41k-row full-table load the client used to do up front.
+ */
+export async function listForPlayers(
+  db: SupabaseClient,
+  sport: SportId,
+  playerIds: PlayerId[],
+): Promise<Pick<Membership, 'playerId' | 'clubId' | 'season'>[]> {
+  if (playerIds.length === 0) return []
+
+  const { data, error } = await db
+    .from('memberships')
+    .select('player_id, club_id, season')
+    .eq('sport', sport)
+    .in('player_id', [...new Set(playerIds)])
+
+  if (error) throw new Error(error.message)
+
+  return (data ?? []).map((m) => ({
+    playerId: PlayerId(m.player_id),
+    clubId: ClubId(m.club_id),
+    season: m.season as Season,
+  }))
+}
+
+/** Distinct seasons a club has a roster for, most recent first. Drives the hard-mode season chips. */
+export async function listSeasonsByClub(db: SupabaseClient, clubId: ClubId): Promise<Season[]> {
+  const { data, error } = await db.from('memberships').select('season').eq('club_id', clubId)
+  if (error) throw new Error(error.message)
+
+  const seasons = new Set((data ?? []).map((r) => r.season as Season))
+  return [...seasons].sort((a, b) => Number(b.slice(0, 4)) - Number(a.slice(0, 4)))
 }
 
 export async function listByPlayer(

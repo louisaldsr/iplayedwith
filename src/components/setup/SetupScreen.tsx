@@ -1,14 +1,16 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import { Player } from '../../domain/player'
-import { Membership } from '../../domain/membership'
+import { SportId } from '../../domain/sport'
 import { DifficultyLevel } from '../../game/game'
-import { areDirectlyConnected } from '../../game/engine'
+import { arePlayersConnected } from '../../lib/gameApi'
 import { useTranslations } from '../../i18n'
 import { PlayerPicker } from './PlayerPicker'
 import { DifficultyPicker } from './DifficultyPicker'
 
 type Props = {
-  players: Player[]
-  memberships: Membership[]
+  sport: SportId
   playerA: Player | null
   playerB: Player | null
   difficulty: DifficultyLevel
@@ -18,9 +20,13 @@ type Props = {
   onStart: () => void
 }
 
+type ConnectionCheck =
+  | { status: 'idle' }
+  | { status: 'checking' }
+  | { status: 'done'; directlyConnected: boolean }
+
 export function SetupScreen({
-  players: allPlayers,
-  memberships,
+  sport,
   playerA,
   playerB,
   difficulty,
@@ -30,21 +36,41 @@ export function SetupScreen({
   onStart,
 }: Props) {
   const t = useTranslations()
+  const [check, setCheck] = useState<ConnectionCheck>({ status: 'idle' })
 
-  if (allPlayers.length === 0) {
-    return (
-      <div className="setup-screen">
-        <h2 className="setup-screen__title">{t.setup.title}</h2>
-        <p className="setup-screen__empty">{t.setup.emptyState}</p>
-      </div>
-    )
-  }
+  // Easy mode auto-resolves the club/season between two players, so a pair who already
+  // played together would be solved before it began. Only easy mode needs the guard.
+  const playerAId = playerA?.id
+  const playerBId = playerB?.id
+  const needsCheck = difficulty === 'easy'
 
-  const bothSelected = playerA !== null && playerB !== null
-  const directlyConnected = bothSelected && difficulty === 'easy'
-    ? areDirectlyConnected(playerA!, playerB!, memberships)
-    : false
-  const canStart = bothSelected && !directlyConnected
+  useEffect(() => {
+    if (!needsCheck || !playerAId || !playerBId) {
+      setCheck({ status: 'idle' })
+      return
+    }
+
+    let cancelled = false
+    setCheck({ status: 'checking' })
+
+    arePlayersConnected(playerAId, playerBId)
+      .then(directlyConnected => {
+        if (!cancelled) setCheck({ status: 'done', directlyConnected })
+      })
+      .catch(() => {
+        // Treat an unreachable check as "not connected" rather than blocking the game; the
+        // server revalidates every move regardless.
+        if (!cancelled) setCheck({ status: 'done', directlyConnected: false })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [needsCheck, playerAId, playerBId])
+
+  const directlyConnected = check.status === 'done' && check.directlyConnected
+  const canStart =
+    playerA !== null && playerB !== null && check.status !== 'checking' && !directlyConnected
 
   return (
     <div className="setup-screen">
@@ -53,15 +79,15 @@ export function SetupScreen({
       <div className="setup-screen__players">
         <PlayerPicker
           role="A"
+          sport={sport}
           selected={playerA}
-          allPlayers={allPlayers}
           excludeId={playerB?.id}
           onSelect={onSetPlayerA}
         />
         <PlayerPicker
           role="B"
+          sport={sport}
           selected={playerB}
-          allPlayers={allPlayers}
           excludeId={playerA?.id}
           onSelect={onSetPlayerB}
         />

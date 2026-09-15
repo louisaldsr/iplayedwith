@@ -4,8 +4,8 @@ import {
   createMembershipCollector,
   indexGames,
   seasonFromDatasetYear,
-} from '../../../scripts/lib/footballDataset'
-import type { Appearance, Club, Game, Player } from '../../../scripts/lib/transfermarktDataset'
+} from '../../../scripts/football/lib/dataset'
+import type { Appearance, Club, Game, Player } from '../../../scripts/football/lib/transfermarktDataset'
 
 const game = (gameId: string, competitionId: string, season: string, homeClubId: string, awayClubId: string): Game => ({
   gameId,

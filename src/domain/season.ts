@@ -16,3 +16,15 @@ export const Season = (raw: string): Season => {
   if (end !== start + 1) throw new Error(`Invalid season range: ${raw}`);
   return raw as Season;
 };
+
+/**
+ * Non-throwing counterpart to `Season`, for validating untrusted input.
+ *
+ * Request parsing checks many fields and reports its own errors, so a predicate reads
+ * better there than catching what the smart constructor throws.
+ */
+export function isSeason(raw: string): raw is Season {
+  if (!SEASON_REGEX.test(raw)) return false;
+  const [start, end] = raw.split('-').map(Number);
+  return end === start + 1;
+}

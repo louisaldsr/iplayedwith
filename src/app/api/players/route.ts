@@ -7,8 +7,10 @@ import { toErrorResponse } from '@/lib/apiErrors';
 /**
  * GET /api/players?sport=rugby&q=dupont
  *
- * `sport` is required. `q` is an optional case-insensitive name filter
- * capped at 20 results (typeahead); omit it to get the full sport roster.
+ * Typeahead search, capped at 20 results. Both `sport` and `q` are required: without `q`
+ * this would page the entire sport roster (~11k rows for football), which is what made
+ * the game slow to start. Server-side callers that genuinely need the full roster use
+ * `playersRepository.listBySport` directly.
  */
 export async function GET(req: NextRequest) {
   const sport = req.nextUrl.searchParams.get('sport') ?? '';
@@ -16,6 +18,10 @@ export async function GET(req: NextRequest) {
 
   if (!isSportId(sport)) {
     return NextResponse.json({ error: 'sport is required and must be a valid SportId' }, { status: 400 });
+  }
+
+  if (q === '') {
+    return NextResponse.json({ error: 'q is required' }, { status: 400 });
   }
 
   try {

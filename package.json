@@ -13,14 +13,14 @@
     "test:integration": "jest --testPathPattern=tests/integration",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "seed:map-players": "tsx --env-file=.env.local scripts/mapPlayers.ts",
-    "seed:players": "tsx --env-file=.env.local scripts/seedPlayers.ts",
-    "seed:memberships": "tsx --env-file=.env.local scripts/seedMemberships.ts",
-    "seed:football:fetch": "tsx scripts/fetchFootballDataset.ts",
-    "seed:football:build": "tsx scripts/buildFootballDataset.ts",
-    "seed:football:clubs": "tsx --env-file=.env.local scripts/seedFootballClubs.ts",
-    "seed:football:players": "tsx --env-file=.env.local scripts/seedFootballPlayers.ts",
-    "seed:football:memberships": "tsx --env-file=.env.local scripts/seedFootballMemberships.ts"
+    "seed:map-players": "tsx --env-file=.env.local scripts/rugby/mapPlayers.ts",
+    "seed:players": "tsx --env-file=.env.local scripts/rugby/seedPlayers.ts",
+    "seed:memberships": "tsx --env-file=.env.local scripts/rugby/seedMemberships.ts",
+    "seed:football:fetch": "tsx scripts/football/fetchDataset.ts",
+    "seed:football:build": "tsx scripts/football/buildDataset.ts",
+    "seed:football:clubs": "tsx --env-file=.env.local scripts/football/seedClubs.ts",
+    "seed:football:players": "tsx --env-file=.env.local scripts/football/seedPlayers.ts",
+    "seed:football:memberships": "tsx --env-file=.env.local scripts/football/seedMemberships.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",

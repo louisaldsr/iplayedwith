@@ -10,6 +10,15 @@ export async function listPlayers(db: SupabaseClient, sport: SportId, q?: string
   return playersRepo.listBySport(db, sport, q)
 }
 
+/** A random player from the sport, optionally excluding one already picked. */
+export async function randomPlayer(
+  db: SupabaseClient,
+  sport: SportId,
+  excludeId?: PlayerId,
+): Promise<Player | null> {
+  return playersRepo.findRandom(db, sport, excludeId)
+}
+
 export type CreatePlayerInput = { name: string; sport: SportId; nationality?: string }
 
 function toNewPlayer(input: CreatePlayerInput): Player {

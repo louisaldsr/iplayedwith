@@ -16,13 +16,17 @@ Jeu web "Six Degrés de Séparation" appliqué au rugby.
 ```
 BDD (PostgreSQL)
   → tables : players, clubs, memberships (données brutes, IDs string)
+  → `sport` est un espace : porté par les 3 tables, indexé,
+    invariant garanti par des FK composites (migration 006)
 
 Domaine (TypeScript)
   → objets validés, IDs brandés, smart constructors
 
-Game/Graph (client-only)
-  → GameNode, GameEdge, GameEngine
-  → jamais persisté côté serveur
+Game/Graph (règles côté serveur, graphe côté client)
+  → GameNode, GameEdge ; le client détient son graphe (quelques nœuds)
+  → les règles et les memberships vivent sur le serveur
+  → jamais persisté côté serveur : aucune session, le client
+    renvoie son graphe à chaque coup et le serveur le revalide
 ```
 
 ---
@@ -55,68 +59,70 @@ En mode Hard, l'user saisit joueur + club + saison explicitement.
 
 ---
 
-## Travail en cours — Bloc 3 : GameEngine
+## ✅ Bloc 3 terminé — Moteur de jeu côté serveur
 
-### Responsabilités
+Le jeu chargeait tout le dataset du sport au montage (55 requêtes séquentielles,
+7,56 Mo, 5,4 s mesurés pour le football). Les règles vivent désormais sur le serveur
+et le navigateur ne reçoit plus jamais les memberships.
 
-- Construire le graphe bipartite joueurs ↔ clubs à partir des `Membership[]`
-- Exposer `addInput(input: UserInput): Result` qui valide et insère un lien
-- Valider qu'un lien s'insère dans le chemin courant (Membership commun entre le dernier nœud et le nouveau)
-- Détecter la victoire (chemin A → B complet)
-
-### Interface cible
-
-```ts
-// src/game/engine.ts
-type UserInput =
-  | { kind: 'easy'; playerId: PlayerId }
-  | { kind: 'hard'; playerId: PlayerId; clubId: ClubId; season: Season }
-
-type InputResult =
-  | { ok: true;  game: Game }
-  | { ok: false; reason: string }
-
-type GameEngine = {
-  game: Game
-  addInput(input: UserInput): InputResult
-  isVictory(): boolean
-}
-
-function createEngine(playerA: Player, playerB: Player, difficulty: DifficultyLevel, memberships: Membership[]): GameEngine
-```
-
-### Logique de validation
+### Découpage
 
 ```
-addInput(input)
-  → résoudre le Membership commun entre dernier nœud du chemin et le joueur soumis
-     - mode easy  : chercher dans memberships[] un club commun (n'importe quelle saison)
-     - mode hard  : vérifier que le Membership exact (playerId, clubId, season) existe
-  → si trouvé  : addNode + addEdge dans game.nodes / game.edges → retourner { ok: true }
-  → si absent  : retourner { ok: false, reason: "..." }
-  → après chaque ajout : vérifier isVictory()
+src/game/
+  userInput.ts    — UserInput (easy | hard-player | hard-club)
+  moveRules.ts    — applyMove() : LA règle, partagée serveur + moteur mémoire
+  path.ts         — bfsPlayerPath() : détection de victoire
+  membershipIndex.ts / graphBuilder.ts — inchangés
+  engine.ts       — moteur mémoire, désormais implémentation de référence (tests)
+  remoteEngine.ts — pilote client : détient le graphe, POST chaque coup
+
+src/services/moveService.ts — applyMove() côté serveur
 ```
+
+**Point clé** : le serveur n'indexe que les memberships des joueurs du graphe
+(+ celui soumis) — une requête indexée d'environ 150 lignes au lieu de 41 424.
+Un coup ne peut jamais lire autre chose, ce qui rend cette tranche suffisante.
+
+### Session sans état
+
+Aucune table de session. Le client renvoie son graphe (quelques nœuds) à chaque
+coup ; le serveur **revalide chaque arête** contre la base avant de s'en servir —
+une arête forgée est rejetée. C'est ce qui rend le sans-état sûr.
+
+### Endpoints du jeu
+
+| Route | Rôle |
+|---|---|
+| `POST /api/:sport/move` | joue un coup, renvoie nœud + arêtes + victoire |
+| `GET /api/players?sport=&q=` | recherche joueur (`q` obligatoire, 20 max) |
+| `GET /api/clubs?sport=&q=` | recherche club (`q` obligatoire, 20 max) |
+| `GET /api/clubs/:id/seasons` | saisons d'un club (chips mode hard) |
+| `GET /api/players/random?sport=` | bouton « Randomize » |
+| `POST /api/validate` | A et B ont-ils déjà joué ensemble (garde mode easy) |
+
+`q` est **obligatoire** sur players/clubs : sans lui la route paginait toute la
+table. Le chemin non borné reste disponible côté serveur pour les imports.
 
 ---
 
-## Flux de validation (pour branchement UI futur)
+## Flux de validation
 
 ```
 Saisie user
-  → [UI] format/type check (string, format Season YYYY-YYYY)
-  → [API] POST /validate-input → résout Player/Club/Membership, retourne l'objet domaine ou 404
-  → [GameEngine] addInput() → valide le lien dans le chemin courant
-  → OK → addNode + addEdge dans Game
-  → KO → erreur "tentative erronée" affichée au user
+  → [UI] autocomplétion serveur débouncée (confort UX, ne pré-résout rien)
+  → [remoteEngine] POST /api/:sport/move avec le graphe courant
+  → [serveur] revalide les arêtes soumises, applique moveRules, calcule le chemin
+  → OK → le client ajoute le nœud et les arêtes renvoyés
+  → KO → erreur « tentative erronée » affichée au user
 ```
-
-L'autocomplétion est du confort UX uniquement — elle ne pré-résout pas l'objet domaine.
 
 ---
 
-## Prochaines étapes dans l'ordre
+## Prochaines étapes
 
 1. ~~Créer les fichiers domaine~~
 2. ~~Créer le mock data~~
-3. **Écrire le GameEngine** (`src/game/engine.ts`) — construction du graphe + `addInput()` + détection victoire
-4. Brancher l'UI React après
+3. ~~Écrire le GameEngine~~
+4. ~~Brancher l'UI React~~
+5. ~~Passer le moteur côté serveur + `sport` comme espace~~
+6. Appliquer `006_sport_space.sql` (audit → migration → déploiement → `007`)

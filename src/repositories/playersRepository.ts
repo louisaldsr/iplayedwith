@@ -20,6 +20,55 @@ export async function findById(db: SupabaseClient, id: PlayerId): Promise<Player
   return data ? toPlayer(data) : null
 }
 
+export async function findManyByIds(db: SupabaseClient, ids: PlayerId[]): Promise<Player[]> {
+  if (ids.length === 0) return []
+  const { data, error } = await db
+    .from('players')
+    .select('id, name, sport, nationality')
+    .in('id', [...new Set(ids)])
+  if (error) throw new Error(error.message)
+  return (data ?? []).map(toPlayer)
+}
+
+/**
+ * A uniformly random player from the sport, picked by offset over the row count.
+ *
+ * Two cheap queries beat the alternatives: `ORDER BY random()` sorts the whole table,
+ * and picking client-side would mean shipping the roster — the very thing this change
+ * exists to stop.
+ */
+export async function findRandom(db: SupabaseClient, sport: SportId, excludeId?: PlayerId): Promise<Player | null> {
+  const { count, error: countError } = await db
+    .from('players')
+    .select('id', { count: 'exact', head: true })
+    .eq('sport', sport)
+  if (countError) throw new Error(countError.message)
+  if (!count) return null
+
+  const pick = async (offset: number): Promise<Player | null> => {
+    const { data, error } = await db
+      .from('players')
+      .select('id, name, sport, nationality')
+      .eq('sport', sport)
+      .order('id')
+      .range(offset, offset)
+    if (error) throw new Error(error.message)
+    return data?.[0] ? toPlayer(data[0]) : null
+  }
+
+  const offset = Math.floor(Math.random() * count)
+  const player = await pick(offset)
+
+  // Landing on the excluded player: step to the next row rather than re-rolling, so this
+  // always terminates. Ordering by id makes "next" stable.
+  if (player && excludeId && player.id === excludeId) {
+    if (count === 1) return null
+    return pick((offset + 1) % count)
+  }
+
+  return player
+}
+
 export async function listBySport(db: SupabaseClient, sport: SportId, query?: string): Promise<Player[]> {
   if (query) {
     const { data, error } = await db
@@ -33,9 +82,9 @@ export async function listBySport(db: SupabaseClient, sport: SportId, query?: st
     return (data ?? []).map(toPlayer)
   }
 
-  // No filter — the caller wants the full sport roster (e.g. the game engine builds its
-  // graph client-side), so this must page through rather than rely on a single unbounded
-  // select, which PostgREST silently caps at 1000 rows.
+  // No filter — the full sport roster, paged because PostgREST silently caps an unbounded
+  // select at 1000 rows. Server-side callers only (seed imports); the API rejects a
+  // query-less request so this never reaches a browser.
   const rows = await fetchAllRows<PlayerRow>((from, to) =>
     db.from('players').select('id, name, sport, nationality').eq('sport', sport).order('name').order('id').range(from, to),
   )

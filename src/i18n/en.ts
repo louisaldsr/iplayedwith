@@ -27,7 +27,6 @@ const en = {
     hardDesc: 'Player + Club + Season',
     launch: 'Launch Game',
     directlyConnectedWarning: 'These two players have already played together. In Easy mode, this link is auto-resolved — please pick a different pair.',
-    emptyState: 'No players available yet for this sport — check back soon.',
   },
   game: {
     chrono: 'Time',

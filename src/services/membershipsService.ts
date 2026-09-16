@@ -32,12 +32,14 @@ export async function upsertMemberships(
       throw new ValidationError(`row ${i}: ${(err as Error).message}`)
     }
     const competition = row.competition?.trim() || undefined
-    return { playerId, clubId: ClubId(row.clubId), season, competition }
+    return { playerId, clubId: ClubId(row.clubId), season, sport: player.sport, competition }
   })
 
   const clubIds = [...new Set(parsed.map((m) => m.clubId))]
   const clubById = new Map((await clubsRepo.findManyByIds(db, clubIds)).map((c) => [c.id, c]))
 
+  // Since 006_sport_space.sql the composite FKs make a cross-sport membership impossible
+  // to insert. Kept so the admin UI gets this message instead of a raw FK violation.
   for (const clubId of clubIds) {
     const club = clubById.get(clubId)
     if (!club) throw new NotFoundError(`club "${clubId}" not found`)
@@ -94,6 +96,7 @@ export async function upsertMembershipsBulk(
       playerId: PlayerId(row.playerId),
       clubId: ClubId(row.clubId),
       season,
+      sport,
       competition: row.competition?.trim() || undefined,
     }
   })
@@ -118,6 +121,17 @@ export async function deleteMembership(
 
 export async function listMembershipsBySport(db: SupabaseClient, sport: SportId): Promise<Membership[]> {
   return membershipsRepo.listBySport(db, sport)
+}
+
+/**
+ * Seasons a club has a roster for, most recent first.
+ *
+ * The game's hard mode used to derive this by filtering the full in-memory membership
+ * list; this is the server-side replacement. Distinct from `listClubSeasons`, which also
+ * counts squad sizes for the admin UI.
+ */
+export async function listSeasonsForClub(db: SupabaseClient, clubId: string): Promise<Season[]> {
+  return membershipsRepo.listSeasonsByClub(db, ClubId(clubId))
 }
 
 /** Distinct seasons already entered for a club, most recent first, with squad size. */

@@ -29,7 +29,6 @@ const fr: Translations = {
     hardDesc: 'Joueur + Club + Saison',
     launch: 'Lancer la partie',
     directlyConnectedWarning: 'Ces deux joueurs ont déjà joué ensemble. En mode Facile, ce lien est auto-résolu — choisissez une autre paire.',
-    emptyState: 'Aucun joueur disponible pour ce sport pour le moment — revenez bientôt.',
   },
   game: {
     chrono: 'Temps',

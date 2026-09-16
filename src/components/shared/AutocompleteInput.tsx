@@ -2,6 +2,14 @@
 
 type Suggestion = { id: string; name: string }
 
+/**
+ * Upper bound on rendered suggestions.
+ *
+ * The API already caps typeahead results at 20; this guards against a caller passing a
+ * longer list, which previously meant mounting thousands of <li> on a single keystroke.
+ */
+const MAX_RENDERED = 20
+
 type Props = {
   value: string
   onChange: (v: string) => void
@@ -11,6 +19,8 @@ type Props = {
   autoFocus?: boolean
   minChars?: number
   dropdownDirection?: 'up' | 'down'
+  loading?: boolean
+  emptyLabel?: string
 }
 
 export function AutocompleteInput({
@@ -22,8 +32,13 @@ export function AutocompleteInput({
   autoFocus,
   minChars = 2,
   dropdownDirection = 'up',
+  loading = false,
+  emptyLabel,
 }: Props) {
-  const showDropdown = value.length >= minChars && suggestions.length > 0
+  const querying = value.trim().length >= minChars
+  const visible = suggestions.slice(0, MAX_RENDERED)
+  const showEmpty = querying && !loading && visible.length === 0 && !!emptyLabel
+  const showDropdown = querying && (loading || visible.length > 0 || showEmpty)
 
   return (
     <div className="autocomplete-wrapper">
@@ -40,7 +55,7 @@ export function AutocompleteInput({
         <ul
           className={`autocomplete-dropdown${dropdownDirection === 'down' ? ' autocomplete-dropdown--down' : ''}`}
         >
-          {suggestions.map(s => (
+          {visible.map(s => (
             <li
               key={s.id}
               className="autocomplete-item"
@@ -49,6 +64,12 @@ export function AutocompleteInput({
               {s.name}
             </li>
           ))}
+          {visible.length === 0 && loading && (
+            <li className="autocomplete-item autocomplete-item--status">…</li>
+          )}
+          {showEmpty && (
+            <li className="autocomplete-item autocomplete-item--status">{emptyLabel}</li>
+          )}
         </ul>
       )}
     </div>

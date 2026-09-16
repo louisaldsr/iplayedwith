@@ -73,8 +73,9 @@ export async function listBySport(
     return (data ?? []).map(toClub);
   }
 
-  // No filter — full sport roster for client-side use; page through rather than rely on
-  // a single unbounded select, which PostgREST silently caps at 1000 rows.
+  // No filter — the full sport club list, paged because PostgREST silently caps an
+  // unbounded select at 1000 rows. Server-side callers only (seed imports); the API
+  // rejects a query-less request so this never reaches a browser.
   const rows = await fetchAllRows<ClubRow>((from, to) =>
     db
       .from('clubs')

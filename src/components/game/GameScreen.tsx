@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Game } from '../../game/game'
 import { Player } from '../../domain/player'
 import { Club } from '../../domain/club'
-import { Membership } from '../../domain/membership'
 import { PlayerId } from '../../domain/ids'
-import { UserInput } from '../../game/engine'
+import { SportId } from '../../domain/sport'
+import { UserInput } from '../../game/userInput'
 import { useTranslations } from '../../i18n'
 import { GameBoard } from './GameBoard'
 import { MoveInput } from './MoveInput'
@@ -14,9 +14,11 @@ import { ErrorBanner } from './ErrorBanner'
 
 type Props = {
   game: Game
+  sport: SportId
+  /** Only the players and clubs on the board — each one arrives with the move that added it. */
   players: Player[]
   clubs: Club[]
-  memberships: Membership[]
+  submitting: boolean
   onSubmit: (input: UserInput) => void
   lastError: string | null
   onDismissError: () => void
@@ -29,7 +31,7 @@ function formatTime(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
-export function GameScreen({ game, players, clubs, memberships, onSubmit, lastError, onDismissError }: Props) {
+export function GameScreen({ game, sport, players, clubs, submitting, onSubmit, lastError, onDismissError }: Props) {
   const t = useTranslations()
   const [elapsed, setElapsed] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -75,11 +77,10 @@ export function GameScreen({ game, players, clubs, memberships, onSubmit, lastEr
         )}
         <MoveInput
           key={game.edges.length}
+          sport={sport}
           difficulty={game.difficulty}
-          players={players}
-          clubs={clubs}
-          memberships={memberships}
           alreadyInGraph={alreadyInGraph}
+          submitting={submitting}
           onSubmit={onSubmit}
         />
       </div>

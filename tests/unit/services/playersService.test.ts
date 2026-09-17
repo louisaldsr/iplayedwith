@@ -10,14 +10,25 @@ const mockedRepo = jest.mocked(playersRepo)
 afterEach(() => jest.clearAllMocks())
 
 describe('listPlayers', () => {
-  it('delegates to the repository with sport and query', async () => {
+  it('searches when given a query', async () => {
     const players = [{ id: PlayerId('p1'), name: 'Dupont', sport: 'rugby' as const }]
-    mockedRepo.listBySport.mockResolvedValue(players)
+    mockedRepo.searchBySport.mockResolvedValue(players)
 
     const result = await listPlayers(db, 'rugby', 'dup')
 
-    expect(mockedRepo.listBySport).toHaveBeenCalledWith(db, 'rugby', 'dup')
+    expect(mockedRepo.searchBySport).toHaveBeenCalledWith(db, 'rugby', 'dup')
+    expect(mockedRepo.listBySport).not.toHaveBeenCalled()
     expect(result).toBe(players)
+  })
+
+  // The unbounded path is for seed imports only — the API rejects a query-less request.
+  it('falls back to the full roster when no query is given', async () => {
+    mockedRepo.listBySport.mockResolvedValue([])
+
+    await listPlayers(db, 'rugby')
+
+    expect(mockedRepo.listBySport).toHaveBeenCalledWith(db, 'rugby')
+    expect(mockedRepo.searchBySport).not.toHaveBeenCalled()
   })
 })
 

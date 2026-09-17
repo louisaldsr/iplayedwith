@@ -7,7 +7,10 @@ import { SportId } from './sport';
  * the sport: it fields its own team in football but plays for a unified
  * Ireland team in rugby.
  */
-export function nationalTeamFor(nationality: Nationality, sport: SportId): Nationality {
+export function nationalTeamFor(
+  nationality: Nationality,
+  sport: SportId,
+): Nationality {
   if (nationality !== 'GB-NIR') return nationality;
   switch (sport) {
     case 'rugby':

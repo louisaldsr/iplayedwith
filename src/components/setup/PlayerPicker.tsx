@@ -7,6 +7,7 @@ import { SportId } from '../../domain/sport'
 import { useTranslations } from '../../i18n'
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch'
 import { searchPlayers, randomPlayer } from '../../lib/gameApi'
+import { searchEquals } from '../../lib/searchNormalize'
 import { AutocompleteInput } from '../shared/AutocompleteInput'
 
 type Props = {
@@ -26,21 +27,21 @@ export function PlayerPicker({ role, sport, selected, excludeId, onSelect }: Pro
     (q: string, signal: AbortSignal) => searchPlayers(sport, q, signal),
     [sport],
   )
-  const { results, loading } = useDebouncedSearch(inputValue, search)
+  const { results, loading, failed } = useDebouncedSearch(inputValue, search)
 
   const available = results.filter(p => p.id !== excludeId)
 
-  function handleSelect(name: string) {
-    const match = available.find(p => p.name === name) ?? null
-    setInputValue(match?.name ?? name)
-    onSelect(match)
+  function handleSelect(player: Player) {
+    setInputValue(player.name)
+    onSelect(player)
   }
 
   function handleInputChange(v: string) {
     setInputValue(v)
     // Typing away from an exact match clears the selection, so a half-typed name never
-    // leaves a stale player selected.
-    const match = available.find(p => p.name.toLowerCase() === v.toLowerCase()) ?? null
+    // leaves a stale player selected. Compared on the normalized form, so "gael fickou"
+    // counts as naming "Gaël Fickou".
+    const match = available.find(p => searchEquals(p.name, v)) ?? null
     onSelect(match)
   }
 
@@ -89,6 +90,8 @@ export function PlayerPicker({ role, sport, selected, excludeId, onSelect }: Pro
             suggestions={available}
             loading={loading}
             emptyLabel={t.game.noSuggestions}
+            failed={failed}
+            errorLabel={t.game.searchUnavailable}
             placeholder={t.setup.inputPlaceholder}
             dropdownDirection="down"
           />

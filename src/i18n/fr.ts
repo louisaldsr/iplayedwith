@@ -41,6 +41,7 @@ const fr: Translations = {
     closeError: 'Fermer',
     clubSearchPlaceholder: 'Rechercher un club…',
     noSuggestions: 'Aucun résultat',
+    searchUnavailable: 'Recherche indisponible — réessayez',
     addPlayer: 'Joueur',
     addClub: 'Club',
   },

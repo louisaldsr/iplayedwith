@@ -39,6 +39,7 @@ const en = {
     closeError: 'Close',
     clubSearchPlaceholder: 'Search a club…',
     noSuggestions: 'No results',
+    searchUnavailable: 'Search unavailable — try again',
     addPlayer: 'Player',
     addClub: 'Club',
   },

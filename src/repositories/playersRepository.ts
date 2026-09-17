@@ -69,22 +69,24 @@ export async function findRandom(db: SupabaseClient, sport: SportId, excludeId?:
   return player
 }
 
-export async function listBySport(db: SupabaseClient, sport: SportId, query?: string): Promise<Player[]> {
-  if (query) {
-    const { data, error } = await db
-      .from('players')
-      .select('id, name, sport, nationality')
-      .eq('sport', sport)
-      .ilike('name', `%${query}%`)
-      .order('name')
-      .limit(20)
-    if (error) throw new Error(error.message)
-    return (data ?? []).map(toPlayer)
-  }
+/**
+ * Typeahead search, capped at 20 and ranked by relevance.
+ *
+ * Goes through the `search_players` SQL function rather than the query builder, so that
+ * matching can be accent- and punctuation-insensitive ("gael fickou" finds "Gaël Fickou")
+ * and exact-then-prefix matches can be ordered ahead of mid-string ones — neither is
+ * expressible in PostgREST. See supabase/migrations/008_search_normalization.sql.
+ */
+export async function searchBySport(db: SupabaseClient, sport: SportId, query: string): Promise<Player[]> {
+  const { data, error } = await db.rpc('search_players', { p_sport: sport, p_q: query, p_limit: 20 })
+  if (error) throw new Error(error.message)
+  return ((data ?? []) as PlayerRow[]).map(toPlayer)
+}
 
-  // No filter — the full sport roster, paged because PostgREST silently caps an unbounded
-  // select at 1000 rows. Server-side callers only (seed imports); the API rejects a
-  // query-less request so this never reaches a browser.
+export async function listBySport(db: SupabaseClient, sport: SportId): Promise<Player[]> {
+  // The full sport roster, paged because PostgREST silently caps an unbounded select at
+  // 1000 rows. Server-side callers only (seed imports); the API rejects a query-less
+  // request so this never reaches a browser. Searching is `searchBySport`.
   const rows = await fetchAllRows<PlayerRow>((from, to) =>
     db.from('players').select('id, name, sport, nationality').eq('sport', sport).order('name').order('id').range(from, to),
   )

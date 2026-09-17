@@ -42,3 +42,39 @@ test.describe('sport setup screen', () => {
     expect(res.status()).toBe(400)
   })
 })
+
+// Requires 008_search_normalization.sql and 009_seed_club_aliases.sql on top of the
+// migrations above.
+test.describe('forgiving search', () => {
+  type ApiPlayer = { id: string; name: string }
+  type ApiClub = { id: string; name: string; matchedAlias?: string }
+
+  /** The de-accented, unpunctuated spelling a player is likely to actually type. */
+  const asTyped = (name: string) =>
+    name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, ' ').trim()
+
+  test('a name typed without its accents or punctuation still finds the player', async ({ request }) => {
+    // Pulled from the live roster rather than hard-coded, so the test does not depend on
+    // one particular player surviving a re-seed.
+    const sample: ApiPlayer[] = await (await request.get('/api/players?sport=rugby&q=an')).json()
+    const accented = sample.find(p => asTyped(p.name) !== p.name)
+    test.skip(!accented, 'no accented or punctuated name in this sample to search for')
+
+    const typed = asTyped(accented!.name)
+    const res = await request.get(`/api/players?sport=rugby&q=${encodeURIComponent(typed)}`)
+
+    expect(res.ok()).toBe(true)
+    const found: ApiPlayer[] = await res.json()
+    expect(found.map(p => p.id)).toContain(accented!.id)
+  })
+
+  test('a club is found by the name people use, not only its official one', async ({ request }) => {
+    const res = await request.get('/api/clubs?sport=rugby&q=la%20roch')
+    expect(res.ok()).toBe(true)
+
+    const clubs: ApiClub[] = await res.json()
+    const rochelais = clubs.find(c => c.name === 'Stade Rochelais')
+    expect(rochelais, 'expected "la roch" to reach the Stade Rochelais via its alias').toBeDefined()
+    expect(rochelais!.matchedAlias).toBe('La Rochelle')
+  })
+})

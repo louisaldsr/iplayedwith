@@ -7,7 +7,7 @@ import { SportId } from '@/domain/sport'
 import { Nationality } from '@/domain/nationality'
 
 export async function listPlayers(db: SupabaseClient, sport: SportId, q?: string): Promise<Player[]> {
-  return playersRepo.listBySport(db, sport, q)
+  return q ? playersRepo.searchBySport(db, sport, q) : playersRepo.listBySport(db, sport)
 }
 
 /** A random player from the sport, optionally excluding one already picked. */

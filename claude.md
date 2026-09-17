@@ -105,6 +105,39 @@ table. Le chemin non borné reste disponible côté serveur pour les imports.
 
 ---
 
+## ✅ Bloc 4 terminé — Recherche tolérante + alias de clubs
+
+La recherche exigeait l'orthographe exacte : `gael fickou` ne trouvait pas `Gaël Fickou`,
+`saint etienne` ne trouvait pas `Saint-Étienne`, et `la rochelle` ne trouvait rien du tout.
+
+### La règle de normalisation
+
+Minuscules → suppression des diacritiques → suppression de **tout** caractère non
+alphanumérique, espaces compris. `"AS Saint-Étienne"` → `assaintetienne`.
+
+Les séparateurs sont supprimés et non remplacés par un espace : c'est ce qui règle
+l'accent et la ponctuation avec une seule règle (`saint etienne` == `saint-etienne`,
+`oconnor` == `O'Connor`). Écrite deux fois — `public.search_normalize()` en SQL
+(colonnes générées `players.search_name` / `clubs.search_name`, indexées en trigrammes) et
+`src/lib/searchNormalize.ts` côté client pour la comparaison saisie ↔ suggestion. Un test
+de parité verrouille les deux.
+
+### Alias de clubs
+
+Table `club_aliases` : « La Rochelle » → Stade Rochelais, « UBB » → Union Bordeaux-Bègles.
+`search_clubs()` unit les correspondances nom + alias et renvoie `matchedAlias`, affiché en
+hint dans le dropdown. Seed rugby dans `009`, repris de la curation qui dormait dans
+`scripts/rugby/lib/clubsIndex.ts`. Sourcing à l'échelle : voir
+[docs/spikes/club-aliases.md](docs/spikes/club-aliases.md).
+
+### Pourquoi `.rpc()`
+
+Premiers appels `.rpc()` du codebase (`search_players`, `search_clubs`). PostgREST ne sait
+exprimer ni l'union nom + alias, ni un `ORDER BY` calculé depuis la requête (exact →
+préfixe → `similarity()`).
+
+---
+
 ## Flux de validation
 
 ```
@@ -125,4 +158,8 @@ Saisie user
 3. ~~Écrire le GameEngine~~
 4. ~~Brancher l'UI React~~
 5. ~~Passer le moteur côté serveur + `sport` comme espace~~
-6. Appliquer `006_sport_space.sql` (audit → migration → déploiement → `007`)
+6. ~~Appliquer `006_sport_space.sql` (audit → migration → déploiement → `007`)~~
+7. ~~Recherche insensible aux accents/ponctuation + alias de clubs~~
+8. Appliquer `008_search_normalization.sql` puis `009_seed_club_aliases.sql`
+   (contrôles post-application en bas de chaque fichier — alias non résolus, ambiguïtés)
+9. Trancher le sourcing des alias à l'échelle (rugby : 48/82 ; football : 0/176)

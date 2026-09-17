@@ -1,5 +1,5 @@
 import { Player } from '@/domain/player'
-import { Club } from '@/domain/club'
+import { ClubSearchResult } from '@/domain/club'
 import { PlayerId } from '@/domain/ids'
 import { Season } from '@/domain/season'
 import { SportId } from '@/domain/sport'
@@ -22,8 +22,8 @@ export function searchPlayers(sport: SportId, q: string, signal?: AbortSignal): 
   return getJson<Player[]>(`/api/players?sport=${sport}&q=${encodeURIComponent(q)}`, signal)
 }
 
-export function searchClubs(sport: SportId, q: string, signal?: AbortSignal): Promise<Club[]> {
-  return getJson<Club[]>(`/api/clubs?sport=${sport}&q=${encodeURIComponent(q)}`, signal)
+export function searchClubs(sport: SportId, q: string, signal?: AbortSignal): Promise<ClubSearchResult[]> {
+  return getJson<ClubSearchResult[]>(`/api/clubs?sport=${sport}&q=${encodeURIComponent(q)}`, signal)
 }
 
 export function listClubSeasons(clubId: string, signal?: AbortSignal): Promise<Season[]> {

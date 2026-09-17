@@ -726,6 +726,22 @@ body {
   color: var(--text-primary);
 }
 
+/* A failed search, told apart from one that simply matched nothing. */
+.autocomplete-item--error {
+  color: var(--error);
+}
+
+/* Why a row is in the list — the alias that matched, next to the official name. */
+.autocomplete-item__hint {
+  margin-left: 8px;
+  opacity: 0.6;
+  font-size: 0.8125rem;
+}
+
+.autocomplete-item__hint::before {
+  content: '· ';
+}
+
 /* ─── Chips (locked selections) ─────────────────────────── */
 .input-chip {
   display: inline-flex;

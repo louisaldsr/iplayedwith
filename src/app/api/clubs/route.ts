@@ -10,6 +10,9 @@ import { toErrorResponse } from '@/lib/apiErrors';
  * Typeahead search, capped at 20 results. Both `sport` and `q` are required — see the
  * players route for why the unbounded variant is no longer reachable from a browser.
  * The admin UI lists clubs through its own paginated endpoint.
+ *
+ * Matching ignores case, accents and punctuation, and also searches club aliases, so
+ * "la roch" returns the Stade Rochelais with `matchedAlias: "La Rochelle"`.
  */
 export async function GET(req: NextRequest) {
   const sport = req.nextUrl.searchParams.get('sport') ?? '';

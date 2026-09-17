@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Player } from '../../domain/player'
-import { Club } from '../../domain/club'
+import { ClubSearchResult } from '../../domain/club'
 import { PlayerId } from '../../domain/ids'
 import { Season } from '../../domain/season'
 import { SportId } from '../../domain/sport'
@@ -11,6 +11,7 @@ import { UserInput } from '../../game/userInput'
 import { useTranslations } from '../../i18n'
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch'
 import { searchPlayers, searchClubs, listClubSeasons } from '../../lib/gameApi'
+import { searchEquals } from '../../lib/searchNormalize'
 import { AutocompleteInput } from '../shared/AutocompleteInput'
 
 type Props = {
@@ -46,7 +47,7 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
   const [hardPlayerQuery, setHardPlayerQuery] = useState('')
   const [hardPlayer, setHardPlayer] = useState<Player | null>(null)
   const [hardClubQuery, setHardClubQuery] = useState('')
-  const [hardClub, setHardClub] = useState<Club | null>(null)
+  const [hardClub, setHardClub] = useState<ClubSearchResult | null>(null)
   const [hardSeason, setHardSeason] = useState<Season | null>(null)
   const [availableSeasons, setAvailableSeasons] = useState<Season[]>([])
 
@@ -60,15 +61,29 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
   )
 
   const activePlayerQuery = difficulty === 'easy' ? easyQuery : hardPlayerQuery
-  const { results: playerResults, loading: playersLoading } = useDebouncedSearch(
+  const { results: playerResults, loading: playersLoading, failed: playersFailed } = useDebouncedSearch(
     activePlayerQuery,
     playerSearch,
   )
-  const { results: clubResults, loading: clubsLoading } = useDebouncedSearch(hardClubQuery, clubSearch)
+  const { results: clubResults, loading: clubsLoading, failed: clubsFailed } = useDebouncedSearch(
+    hardClubQuery,
+    clubSearch,
+  )
 
   // Players already on the board can't be submitted again; filtering the ≤20 returned
   // rows is all that's needed now the full roster is never loaded.
   const available = playerResults.filter(p => !alreadyInGraph.has(p.id))
+
+  // A club found through an alias shows it as the hint: "Stade Rochelais · La Rochelle".
+  const clubSuggestions = clubResults.map(c => ({ ...c, hint: c.matchedAlias }))
+
+  /**
+   * Whether the typed text names this club — its official name, or the alias the player
+   * actually searched with. Without the alias arm, typing "la rochelle" in full would
+   * leave Submit disabled even though the row is right there in the dropdown.
+   */
+  const clubMatches = (club: ClubSearchResult, typed: string) =>
+    searchEquals(club.name, typed) || searchEquals(club.matchedAlias, typed)
 
   // Seasons come from the server per club — hard mode used to derive them by scanning the
   // full membership list.
@@ -106,16 +121,15 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
 
   // ── Easy mode ──────────────────────────────────────────────────────────────
 
-  function handleEasyPlayerSelect(name: string) {
-    const match = available.find(p => p.name === name) ?? null
-    setEasyPlayer(match)
-    setEasyQuery(match?.name ?? name)
+  function handleEasyPlayerSelect(player: Player) {
+    setEasyPlayer(player)
+    setEasyQuery(player.name)
   }
 
   function handleEasySubmit(e: React.FormEvent) {
     e.preventDefault()
     const player = easyPlayer
-      ?? available.find(p => p.name.toLowerCase() === easyQuery.toLowerCase())
+      ?? available.find(p => searchEquals(p.name, easyQuery))
       ?? null
     if (!player) return
     onSubmit({ kind: 'easy', playerId: player.id })
@@ -123,7 +137,7 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
 
   if (difficulty === 'easy') {
     const easyCanSubmit = !submitting && (
-      !!easyPlayer || available.some(p => p.name.toLowerCase() === easyQuery.toLowerCase())
+      !!easyPlayer || available.some(p => searchEquals(p.name, easyQuery))
     )
     return (
       <form onSubmit={handleEasySubmit} className="move-input">
@@ -140,6 +154,8 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
             suggestions={available}
             loading={playersLoading}
             emptyLabel={t.game.noSuggestions}
+            failed={playersFailed}
+            errorLabel={t.game.searchUnavailable}
             placeholder={t.game.playerPlaceholder}
             autoFocus
           />
@@ -153,16 +169,16 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
 
   // ── Hard mode ──────────────────────────────────────────────────────────────
 
-  function handleHardPlayerSelect(name: string) {
-    const match = available.find(p => p.name === name) ?? null
-    setHardPlayer(match)
-    setHardPlayerQuery(match?.name ?? name)
+  function handleHardPlayerSelect(player: Player) {
+    setHardPlayer(player)
+    setHardPlayerQuery(player.name)
   }
 
-  function handleHardClubSelect(name: string) {
-    const match = clubResults.find(c => c.name === name) ?? null
-    setHardClub(match)
-    setHardClubQuery(match?.name ?? name)
+  function handleHardClubSelect(club: ClubSearchResult) {
+    setHardClub(club)
+    // Always the official name, even when the alias is what was typed — the chip and the
+    // season list are about the club itself.
+    setHardClubQuery(club.name)
     setHardSeason(null)
   }
 
@@ -170,13 +186,13 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
     e.preventDefault()
     if (hardMode === 'player') {
       const player = hardPlayer
-        ?? available.find(p => p.name.toLowerCase() === hardPlayerQuery.toLowerCase())
+        ?? available.find(p => searchEquals(p.name, hardPlayerQuery))
         ?? null
       if (!player) return
       onSubmit({ kind: 'hard-player', playerId: player.id })
     } else {
       const club = hardClub
-        ?? clubResults.find(c => c.name.toLowerCase() === hardClubQuery.toLowerCase())
+        ?? clubResults.find(c => clubMatches(c, hardClubQuery))
         ?? null
       if (!club || !hardSeason) return
       onSubmit({ kind: 'hard-club', clubId: club.id, season: hardSeason })
@@ -185,8 +201,8 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
 
   const hardCanSubmit = !submitting && (
     hardMode === 'player'
-      ? (!!hardPlayer || available.some(p => p.name.toLowerCase() === hardPlayerQuery.toLowerCase()))
-      : ((!!hardClub || clubResults.some(c => c.name.toLowerCase() === hardClubQuery.toLowerCase())) && !!hardSeason)
+      ? (!!hardPlayer || available.some(p => searchEquals(p.name, hardPlayerQuery)))
+      : ((!!hardClub || clubResults.some(c => clubMatches(c, hardClubQuery))) && !!hardSeason)
   )
 
   return (
@@ -222,6 +238,8 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
             suggestions={available}
             loading={playersLoading}
             emptyLabel={t.game.noSuggestions}
+            failed={playersFailed}
+            errorLabel={t.game.searchUnavailable}
             placeholder={t.game.playerPlaceholder}
             autoFocus
           />
@@ -240,9 +258,11 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
               value={hardClubQuery}
               onChange={v => { setHardClubQuery(v); setHardClub(null) }}
               onSelect={handleHardClubSelect}
-              suggestions={clubResults}
+              suggestions={clubSuggestions}
               loading={clubsLoading}
               emptyLabel={t.game.noSuggestions}
+              failed={clubsFailed}
+              errorLabel={t.game.searchUnavailable}
               placeholder={t.game.clubSearchPlaceholder}
               autoFocus
             />

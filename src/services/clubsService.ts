@@ -2,12 +2,16 @@ import { randomUUID } from 'crypto'
 import { SupabaseClient } from '@supabase/supabase-js'
 import * as clubsRepo from '@/repositories/clubsRepository'
 import { ClubId } from '@/domain/ids'
-import { Club } from '@/domain/club'
+import { Club, ClubSearchResult } from '@/domain/club'
 import { SportId } from '@/domain/sport'
 import { ConflictError, NotFoundError } from '@/services/errors'
 
-export async function listClubs(db: SupabaseClient, sport: SportId, q?: string): Promise<Club[]> {
-  return clubsRepo.listBySport(db, sport, q)
+export async function listClubs(
+  db: SupabaseClient,
+  sport: SportId,
+  q?: string,
+): Promise<ClubSearchResult[]> {
+  return q ? clubsRepo.searchBySport(db, sport, q) : clubsRepo.listBySport(db, sport)
 }
 
 export async function getClub(db: SupabaseClient, id: string): Promise<Club> {
@@ -16,12 +20,12 @@ export async function getClub(db: SupabaseClient, id: string): Promise<Club> {
   return club
 }
 
-/** Exact (case-insensitive) name lookup within a sport — the reconciliation path for a seed import that has to re-attach to a club it already created. */
+/** Exact name lookup within a sport, ignoring case, accents and punctuation — the reconciliation path for a seed import that has to re-attach to a club it already created. */
 export async function findClubByName(db: SupabaseClient, name: string, sport: SportId): Promise<Club | null> {
   return clubsRepo.findByNameAndSport(db, name, sport)
 }
 
-/** Rejects case-insensitive duplicate names within a sport. */
+/** Rejects duplicate names within a sport, comparing on the normalized form. */
 export async function createClub(
   db: SupabaseClient,
   input: { name: string; sport: SportId; logoUrl?: string | null },

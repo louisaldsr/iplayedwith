@@ -11,14 +11,27 @@ const mockedRepo = jest.mocked(clubsRepo)
 afterEach(() => jest.clearAllMocks())
 
 describe('listClubs', () => {
-  it('delegates to the repository with sport and query', async () => {
-    const clubs = [{ id: ClubId('c1'), name: 'Toulouse', sport: 'rugby' as const }]
-    mockedRepo.listBySport.mockResolvedValue(clubs)
+  it('searches when given a query, carrying the matched alias through', async () => {
+    const clubs = [
+      { id: ClubId('c1'), name: 'Stade Rochelais', sport: 'rugby' as const, matchedAlias: 'La Rochelle' },
+    ]
+    mockedRepo.searchBySport.mockResolvedValue(clubs)
 
-    const result = await listClubs(db, 'rugby', 'toul')
+    const result = await listClubs(db, 'rugby', 'la roch')
 
-    expect(mockedRepo.listBySport).toHaveBeenCalledWith(db, 'rugby', 'toul')
+    expect(mockedRepo.searchBySport).toHaveBeenCalledWith(db, 'rugby', 'la roch')
+    expect(mockedRepo.listBySport).not.toHaveBeenCalled()
     expect(result).toBe(clubs)
+  })
+
+  // The unbounded path is for seed imports only — the API rejects a query-less request.
+  it('falls back to the full club list when no query is given', async () => {
+    mockedRepo.listBySport.mockResolvedValue([])
+
+    await listClubs(db, 'rugby')
+
+    expect(mockedRepo.listBySport).toHaveBeenCalledWith(db, 'rugby')
+    expect(mockedRepo.searchBySport).not.toHaveBeenCalled()
   })
 })
 

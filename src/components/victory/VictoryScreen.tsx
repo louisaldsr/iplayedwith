@@ -18,9 +18,9 @@ function formatTime(ms: number): string {
 
 export function VictoryScreen({ game, players, moveCount, onPlayAgain }: Props) {
   const t = useTranslations()
-  const playerMap = new Map(players.map(p => [p.id as string, p.name]))
+  const playerMap = new Map(players.map((p) => [p.id as string, p.name]))
   const elapsedMs = Date.now() - game.startedAt.getTime()
-  const pathNames = game.path.map(id => playerMap.get(id) ?? id)
+  const pathNames = game.path.map((id) => playerMap.get(id) ?? id)
 
   return (
     <div className="victory-screen">

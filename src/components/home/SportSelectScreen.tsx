@@ -15,7 +15,7 @@ export function SportSelectScreen() {
       <p className="home-screen__prompt">{t.home.chooseSportPrompt}</p>
 
       <div className="home-screen__sports">
-        {SPORTS.map(sport => (
+        {SPORTS.map((sport) => (
           <Link key={sport} href={`/${sport}`} className="home-screen__sport-card">
             {t.home.sports[sport]}
           </Link>

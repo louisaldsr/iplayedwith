@@ -26,7 +26,7 @@ export function GoToSeasonForm({ clubId }: { clubId: string }) {
           className="form-input"
           placeholder="2022-2023"
           value={seasonInput}
-          onChange={e => setSeasonInput(e.target.value)}
+          onChange={(e) => setSeasonInput(e.target.value)}
         />
         <button type="submit" className="btn btn--primary btn--sm">
           Open season

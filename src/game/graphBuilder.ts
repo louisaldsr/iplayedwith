@@ -23,12 +23,7 @@ export class GraphBuilder {
   private edges: GameEdge[]
   private difficulty: DifficultyLevel
 
-  constructor(
-    index: MembershipIndex,
-    nodes: Map<string, GameNode>,
-    edges: GameEdge[],
-    difficulty: DifficultyLevel,
-  ) {
+  constructor(index: MembershipIndex, nodes: Map<string, GameNode>, edges: GameEdge[], difficulty: DifficultyLevel) {
     this.index = index
     this.nodes = nodes
     this.edges = edges
@@ -75,9 +70,9 @@ export class GraphBuilder {
 
     if (this.difficulty === 'easy') {
       for (const m of this.index.getByPlayer(playerId)) {
-        const sharedPlayers = this.index.getByClub(m.clubId).filter(
-          mb => mb.season === m.season && mb.playerId !== playerId && this.nodes.has(playerKey(mb.playerId)),
-        )
+        const sharedPlayers = this.index
+          .getByClub(m.clubId)
+          .filter((mb) => mb.season === m.season && mb.playerId !== playerId && this.nodes.has(playerKey(mb.playerId)))
         if (sharedPlayers.length > 0) {
           this.ensureEdge(playerId, m.clubId, m.season)
           for (const mb of sharedPlayers) {
@@ -110,7 +105,7 @@ export class GraphBuilder {
   }
 
   private ensureEdge(playerId: PlayerId, clubId: ClubId, season: Season): void {
-    if (!this.edges.some(e => e.playerId === playerId && e.clubId === clubId && e.season === season)) {
+    if (!this.edges.some((e) => e.playerId === playerId && e.clubId === clubId && e.season === season)) {
       this.edges.push({ playerId, clubId, season })
     }
   }

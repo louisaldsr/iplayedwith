@@ -3,7 +3,7 @@ import { players, memberships } from '../../fixtures/mockData'
 import { PlayerId, ClubId } from '@/domain/ids'
 import { Season } from '@/domain/season'
 
-const byId = (id: string) => players.find(p => p.id === id)!
+const byId = (id: string) => players.find((p) => p.id === id)!
 
 describe('createEngine', () => {
   it('seeds both playerA and playerB into the graph', () => {

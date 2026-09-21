@@ -72,9 +72,7 @@ export function GameScreen({ game, sport, players, clubs, submitting, onSubmit, 
       </div>
 
       <div className="game-screen-controls">
-        {lastError && (
-          <ErrorBanner message={lastError} onDismiss={onDismissError} />
-        )}
+        {lastError && <ErrorBanner message={lastError} onDismiss={onDismissError} />}
         <MoveInput
           key={game.edges.length}
           sport={sport}

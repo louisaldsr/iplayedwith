@@ -88,7 +88,11 @@ async function main() {
     }
 
     try {
-      const created = await createPlayer(db, { name: entry.name, sport: 'rugby', nationality: entry.nationality ?? undefined })
+      const created = await createPlayer(db, {
+        name: entry.name,
+        sport: 'rugby',
+        nationality: entry.nationality ?? undefined,
+      })
       seeded[id] = seededEntry(entry, 'saved', { playerId: created.id })
       saved++
     } catch (err) {

@@ -40,9 +40,7 @@ export type MoveRequest = {
 }
 
 /** The node a successful move added, resolved so the board can render it without a lookup table. */
-export type ResolvedNode =
-  | { kind: 'player'; player: Player }
-  | { kind: 'club'; club: Club; season: Season }
+export type ResolvedNode = { kind: 'player'; player: Player } | { kind: 'club'; club: Club; season: Season }
 
 export type MoveResult =
   | { ok: true; node: ResolvedNode; edges: GameEdge[]; clubs: Club[]; victory: boolean; path: PlayerId[] }
@@ -84,11 +82,7 @@ function rehydrateNodes(graph: GraphState): Map<string, GameNode> {
  * submitted, so that slice is fetched in a single indexed query and everything else
  * proceeds in memory over a few hundred rows.
  */
-export async function applyMove(
-  db: SupabaseClient,
-  sport: SportId,
-  req: MoveRequest,
-): Promise<MoveResult> {
+export async function applyMove(db: SupabaseClient, sport: SportId, req: MoveRequest): Promise<MoveResult> {
   const playerAId = PlayerId(req.playerAId)
   const playerBId = PlayerId(req.playerBId)
 

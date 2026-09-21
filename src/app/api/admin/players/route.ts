@@ -19,7 +19,10 @@ export async function POST(req: NextRequest) {
       Nationality(nationality)
     } catch {
       return NextResponse.json(
-        { error: 'nationality must be a valid country code (e.g. FR) or UK home-nation code (GB-ENG, GB-SCT, GB-WLS, GB-NIR)' },
+        {
+          error:
+            'nationality must be a valid country code (e.g. FR) or UK home-nation code (GB-ENG, GB-SCT, GB-WLS, GB-NIR)',
+        },
         { status: 400 },
       )
     }

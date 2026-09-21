@@ -20,10 +20,7 @@ type Props = {
   onStart: () => void
 }
 
-type ConnectionCheck =
-  | { status: 'idle' }
-  | { status: 'checking' }
-  | { status: 'done'; directlyConnected: boolean }
+type ConnectionCheck = { status: 'idle' } | { status: 'checking' } | { status: 'done'; directlyConnected: boolean }
 
 export function SetupScreen({
   sport,
@@ -54,7 +51,7 @@ export function SetupScreen({
     setCheck({ status: 'checking' })
 
     arePlayersConnected(playerAId, playerBId)
-      .then(directlyConnected => {
+      .then((directlyConnected) => {
         if (!cancelled) setCheck({ status: 'done', directlyConnected })
       })
       .catch(() => {
@@ -69,44 +66,22 @@ export function SetupScreen({
   }, [needsCheck, playerAId, playerBId])
 
   const directlyConnected = check.status === 'done' && check.directlyConnected
-  const canStart =
-    playerA !== null && playerB !== null && check.status !== 'checking' && !directlyConnected
+  const canStart = playerA !== null && playerB !== null && check.status !== 'checking' && !directlyConnected
 
   return (
     <div className="setup-screen">
       <h2 className="setup-screen__title">{t.setup.title}</h2>
 
       <div className="setup-screen__players">
-        <PlayerPicker
-          role="A"
-          sport={sport}
-          selected={playerA}
-          excludeId={playerB?.id}
-          onSelect={onSetPlayerA}
-        />
-        <PlayerPicker
-          role="B"
-          sport={sport}
-          selected={playerB}
-          excludeId={playerA?.id}
-          onSelect={onSetPlayerB}
-        />
+        <PlayerPicker role="A" sport={sport} selected={playerA} excludeId={playerB?.id} onSelect={onSetPlayerA} />
+        <PlayerPicker role="B" sport={sport} selected={playerB} excludeId={playerA?.id} onSelect={onSetPlayerB} />
       </div>
 
       <DifficultyPicker value={difficulty} onChange={onDifficultyChange} />
 
-      {directlyConnected && (
-        <p className="setup-screen__warning">
-          {t.setup.directlyConnectedWarning}
-        </p>
-      )}
+      {directlyConnected && <p className="setup-screen__warning">{t.setup.directlyConnectedWarning}</p>}
 
-      <button
-        type="button"
-        className="btn btn--primary btn--lg"
-        disabled={!canStart}
-        onClick={onStart}
-      >
+      <button type="button" className="btn btn--primary btn--lg" disabled={!canStart} onClick={onStart}>
         {t.setup.launch}
       </button>
     </div>

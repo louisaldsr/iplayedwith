@@ -13,9 +13,7 @@ import { UserInput } from './userInput'
 export type { UserInput }
 
 /** The result of processing a user move. On failure, `reason` is a human-readable message. */
-export type InputResult =
-  | { ok: true; game: Game }
-  | { ok: false; reason: string }
+export type InputResult = { ok: true; game: Game } | { ok: false; reason: string }
 
 /**
  * The public interface of a running game session.
@@ -42,7 +40,7 @@ export function createEngine(
   playerA: Player,
   playerB: Player,
   difficulty: DifficultyLevel,
-  memberships: Membership[]
+  memberships: Membership[],
 ): GameEngine {
   const index = new MembershipIndex(memberships)
 

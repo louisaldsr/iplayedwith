@@ -6,11 +6,7 @@ import { Club, ClubSearchResult } from '@/domain/club'
 import { SportId } from '@/domain/sport'
 import { ConflictError, NotFoundError } from '@/services/errors'
 
-export async function listClubs(
-  db: SupabaseClient,
-  sport: SportId,
-  q?: string,
-): Promise<ClubSearchResult[]> {
+export async function listClubs(db: SupabaseClient, sport: SportId, q?: string): Promise<ClubSearchResult[]> {
   return q ? clubsRepo.searchBySport(db, sport, q) : clubsRepo.listBySport(db, sport)
 }
 

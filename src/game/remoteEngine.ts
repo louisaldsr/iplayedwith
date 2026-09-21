@@ -10,17 +10,14 @@ import { playerKey, clubKey } from './graphBuilder'
 import { UserInput } from './userInput'
 
 /** Mirrors the server's `ResolvedNode` — the node a move added, with its display data. */
-type ResolvedNode =
-  | { kind: 'player'; player: Player }
-  | { kind: 'club'; club: Club; season: Season }
+type ResolvedNode = { kind: 'player'; player: Player } | { kind: 'club'; club: Club; season: Season }
 
 type MoveResponse =
   | { ok: true; node: ResolvedNode; edges: GameEdge[]; clubs: Club[]; victory: boolean; path: PlayerId[] }
   | { ok: false; reason: string }
 
 export type RemoteInputResult =
-  | { ok: true; game: Game; players: Player[]; clubs: Club[] }
-  | { ok: false; reason: string }
+  { ok: true; game: Game; players: Player[]; clubs: Club[] } | { ok: false; reason: string }
 
 /**
  * Client-side driver for the server-authoritative game.

@@ -25,7 +25,7 @@ export function SeasonRosterEditor({ club, season, initialRoster }: Props) {
   const [creatingNationality, setCreatingNationality] = useState('')
   const [creating, setCreating] = useState(false)
 
-  const rosterIds = new Set(roster.map(r => r.playerId))
+  const rosterIds = new Set(roster.map((r) => r.playerId))
 
   async function handleQueryChange(value: string) {
     setQuery(value)
@@ -39,7 +39,7 @@ export function SeasonRosterEditor({ club, season, initialRoster }: Props) {
     const res = await fetch(`/api/players?sport=${club.sport}&q=${encodeURIComponent(value)}`)
     const body = res.ok ? await res.json() : []
     setSearching(false)
-    setSuggestions((body as PlayerSuggestion[]).filter(p => !rosterIds.has(p.id)))
+    setSuggestions((body as PlayerSuggestion[]).filter((p) => !rosterIds.has(p.id)))
   }
 
   async function addMembership(playerId: string, playerName: string) {
@@ -58,7 +58,7 @@ export function SeasonRosterEditor({ club, season, initialRoster }: Props) {
       return
     }
 
-    setRoster(rows => [...rows, { playerId, playerName }])
+    setRoster((rows) => [...rows, { playerId, playerName }])
     setQuery('')
     setSuggestions([])
     setCreatingName('')
@@ -100,7 +100,7 @@ export function SeasonRosterEditor({ club, season, initialRoster }: Props) {
       `/api/admin/memberships?playerId=${encodeURIComponent(playerId)}&clubId=${encodeURIComponent(club.id)}&season=${encodeURIComponent(season)}`,
       { method: 'DELETE' },
     )
-    setRoster(rows => rows.filter(r => r.playerId !== playerId))
+    setRoster((rows) => rows.filter((r) => r.playerId !== playerId))
   }
 
   const showCreatePanel = query.trim().length > 0 && !searching && suggestions.length === 0
@@ -108,11 +108,13 @@ export function SeasonRosterEditor({ club, season, initialRoster }: Props) {
   return (
     <div className="admin-form">
       <h1 className="admin-form__title">{club.name}</h1>
-      <p className="admin-form__subtitle">{season} — {club.sport}</p>
+      <p className="admin-form__subtitle">
+        {season} — {club.sport}
+      </p>
 
       {roster.length > 0 && (
         <ul className="membership-list">
-          {roster.map(row => (
+          {roster.map((row) => (
             <li key={row.playerId} className="input-chip">
               {row.playerName}
               <button
@@ -134,13 +136,13 @@ export function SeasonRosterEditor({ club, season, initialRoster }: Props) {
             className="autocomplete-input"
             placeholder="Search player"
             value={query}
-            onChange={e => handleQueryChange(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
             autoComplete="off"
             autoFocus
           />
           {suggestions.length > 0 && (
             <ul className="autocomplete-dropdown">
-              {suggestions.map(s => (
+              {suggestions.map((s) => (
                 <li key={s.id} className="autocomplete-item" onMouseDown={() => handleSelectSuggestion(s)}>
                   {s.name}
                 </li>
@@ -154,26 +156,34 @@ export function SeasonRosterEditor({ club, season, initialRoster }: Props) {
         <form onSubmit={handleCreateAndAdd} className="admin-form__body">
           <p className="admin-form__subtitle">No match for &ldquo;{query}&rdquo; — create a new player</p>
           <div className="form-field">
-            <label className="form-label" htmlFor="new-player-name">Name</label>
+            <label className="form-label" htmlFor="new-player-name">
+              Name
+            </label>
             <input
               id="new-player-name"
               className="form-input"
               value={creatingName}
-              onChange={e => setCreatingName(e.target.value)}
+              onChange={(e) => setCreatingName(e.target.value)}
             />
           </div>
           <div className="form-field">
-            <label className="form-label" htmlFor="new-player-nationality">Nationality (optional)</label>
+            <label className="form-label" htmlFor="new-player-nationality">
+              Nationality (optional)
+            </label>
             <input
               id="new-player-nationality"
               className="form-input"
               placeholder="FR or GB-ENG"
               maxLength={6}
               value={creatingNationality}
-              onChange={e => setCreatingNationality(e.target.value.toUpperCase())}
+              onChange={(e) => setCreatingNationality(e.target.value.toUpperCase())}
             />
           </div>
-          <button type="submit" className="btn btn--ghost btn--sm" disabled={creating || adding || !creatingName.trim()}>
+          <button
+            type="submit"
+            className="btn btn--ghost btn--sm"
+            disabled={creating || adding || !creatingName.trim()}
+          >
             {creating || adding ? 'Adding…' : 'Create & add'}
           </button>
         </form>

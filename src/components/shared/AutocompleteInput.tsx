@@ -61,35 +61,23 @@ export function AutocompleteInput<S extends Suggestion>({
         className="autocomplete-input"
         type="text"
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete="off"
         autoFocus={autoFocus}
       />
       {showDropdown && (
-        <ul
-          className={`autocomplete-dropdown${dropdownDirection === 'down' ? ' autocomplete-dropdown--down' : ''}`}
-        >
-          {visible.map(s => (
-            <li
-              key={s.id}
-              className="autocomplete-item"
-              onMouseDown={() => onSelect(s)}
-            >
+        <ul className={`autocomplete-dropdown${dropdownDirection === 'down' ? ' autocomplete-dropdown--down' : ''}`}>
+          {visible.map((s) => (
+            <li key={s.id} className="autocomplete-item" onMouseDown={() => onSelect(s)}>
               {s.name}
               {s.hint && <span className="autocomplete-item__hint">{s.hint}</span>}
             </li>
           ))}
-          {visible.length === 0 && loading && (
-            <li className="autocomplete-item autocomplete-item--status">…</li>
-          )}
-          {showEmpty && (
-            <li className="autocomplete-item autocomplete-item--status">{emptyLabel}</li>
-          )}
+          {visible.length === 0 && loading && <li className="autocomplete-item autocomplete-item--status">…</li>}
+          {showEmpty && <li className="autocomplete-item autocomplete-item--status">{emptyLabel}</li>}
           {showError && (
-            <li className="autocomplete-item autocomplete-item--status autocomplete-item--error">
-              {errorLabel}
-            </li>
+            <li className="autocomplete-item autocomplete-item--status autocomplete-item--error">{errorLabel}</li>
           )}
         </ul>
       )}

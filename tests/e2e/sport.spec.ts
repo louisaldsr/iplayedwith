@@ -8,7 +8,7 @@ test.describe('sport setup screen', () => {
   for (const sport of ['rugby', 'football'] as const) {
     test(`${sport} setup screen renders without loading a dataset`, async ({ page }) => {
       const dataRequests: string[] = []
-      page.on('request', req => {
+      page.on('request', (req) => {
         if (req.url().includes('/api/')) dataRequests.push(req.url())
       })
 
@@ -29,7 +29,7 @@ test.describe('sport setup screen', () => {
   test('player search is server-side and bounded', async ({ page }) => {
     await page.goto('/rugby')
 
-    const search = page.waitForResponse(r => r.url().includes('/api/players?') && r.ok())
+    const search = page.waitForResponse((r) => r.url().includes('/api/players?') && r.ok())
     await page.getByPlaceholder('Search a player…').first().fill('dup')
 
     const players = await (await search).json()
@@ -51,13 +51,17 @@ test.describe('forgiving search', () => {
 
   /** The de-accented, unpunctuated spelling a player is likely to actually type. */
   const asTyped = (name: string) =>
-    name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, ' ').trim()
+    name
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, ' ')
+      .trim()
 
   test('a name typed without its accents or punctuation still finds the player', async ({ request }) => {
     // Pulled from the live roster rather than hard-coded, so the test does not depend on
     // one particular player surviving a re-seed.
     const sample: ApiPlayer[] = await (await request.get('/api/players?sport=rugby&q=an')).json()
-    const accented = sample.find(p => asTyped(p.name) !== p.name)
+    const accented = sample.find((p) => asTyped(p.name) !== p.name)
     test.skip(!accented, 'no accented or punctuated name in this sample to search for')
 
     const typed = asTyped(accented!.name)
@@ -65,7 +69,7 @@ test.describe('forgiving search', () => {
 
     expect(res.ok()).toBe(true)
     const found: ApiPlayer[] = await res.json()
-    expect(found.map(p => p.id)).toContain(accented!.id)
+    expect(found.map((p) => p.id)).toContain(accented!.id)
   })
 
   test('a club is found by the name people use, not only its official one', async ({ request }) => {
@@ -73,7 +77,7 @@ test.describe('forgiving search', () => {
     expect(res.ok()).toBe(true)
 
     const clubs: ApiClub[] = await res.json()
-    const rochelais = clubs.find(c => c.name === 'Stade Rochelais')
+    const rochelais = clubs.find((c) => c.name === 'Stade Rochelais')
     expect(rochelais, 'expected "la roch" to reach the Stade Rochelais via its alias').toBeDefined()
     expect(rochelais!.matchedAlias).toBe('La Rochelle')
   })

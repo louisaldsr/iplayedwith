@@ -26,7 +26,8 @@ const en = {
     hard: 'Hard',
     hardDesc: 'Player + Club + Season',
     launch: 'Launch Game',
-    directlyConnectedWarning: 'These two players have already played together. In Easy mode, this link is auto-resolved — please pick a different pair.',
+    directlyConnectedWarning:
+      'These two players have already played together. In Easy mode, this link is auto-resolved — please pick a different pair.',
   },
   game: {
     chrono: 'Time',
@@ -49,7 +50,7 @@ const en = {
     time: 'Time',
     playAgain: 'Play Again',
   },
-};
+}
 
-export type Translations = typeof en;
-export default en;
+export type Translations = typeof en
+export default en

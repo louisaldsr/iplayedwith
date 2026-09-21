@@ -23,35 +23,29 @@ describe('upsertMemberships', () => {
   it('throws NotFoundError when the player does not exist', async () => {
     mockedPlayersRepo.findById.mockResolvedValue(null)
 
-    await expect(
-      upsertMemberships(db, 'p1', [{ clubId: 'c1', season: '2022-2023' }]),
-    ).rejects.toThrow(NotFoundError)
+    await expect(upsertMemberships(db, 'p1', [{ clubId: 'c1', season: '2022-2023' }])).rejects.toThrow(NotFoundError)
   })
 
   it('throws ValidationError on a malformed season, tagged with the row index', async () => {
     mockedPlayersRepo.findById.mockResolvedValue(player)
 
-    await expect(
-      upsertMemberships(db, 'p1', [{ clubId: 'c1', season: 'not-a-season' }]),
-    ).rejects.toThrow(/row 0/)
+    await expect(upsertMemberships(db, 'p1', [{ clubId: 'c1', season: 'not-a-season' }])).rejects.toThrow(/row 0/)
   })
 
   it('throws NotFoundError when a referenced club does not exist', async () => {
     mockedPlayersRepo.findById.mockResolvedValue(player)
     mockedClubsRepo.findManyByIds.mockResolvedValue([])
 
-    await expect(
-      upsertMemberships(db, 'p1', [{ clubId: 'c1', season: '2022-2023' }]),
-    ).rejects.toThrow(NotFoundError)
+    await expect(upsertMemberships(db, 'p1', [{ clubId: 'c1', season: '2022-2023' }])).rejects.toThrow(NotFoundError)
   })
 
   it('throws ValidationError when the club plays a different sport than the player', async () => {
     mockedPlayersRepo.findById.mockResolvedValue(player)
     mockedClubsRepo.findManyByIds.mockResolvedValue([{ ...club, sport: 'football' }])
 
-    await expect(
-      upsertMemberships(db, 'p1', [{ clubId: 'c1', season: '2022-2023' }]),
-    ).rejects.toThrow(/plays football, but player is rugby/)
+    await expect(upsertMemberships(db, 'p1', [{ clubId: 'c1', season: '2022-2023' }])).rejects.toThrow(
+      /plays football, but player is rugby/,
+    )
   })
 
   it('upserts when the player and every club match on sport', async () => {

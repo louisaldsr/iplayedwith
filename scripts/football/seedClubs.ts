@@ -52,7 +52,9 @@ async function main() {
         }
       }
       failed++
-      console.error(`Failed to create club "${club.name}" (${club.transfermarktId}): ${err instanceof ServiceError ? err.message : String(err)}`)
+      console.error(
+        `Failed to create club "${club.name}" (${club.transfermarktId}): ${err instanceof ServiceError ? err.message : String(err)}`,
+      )
     }
   }
 

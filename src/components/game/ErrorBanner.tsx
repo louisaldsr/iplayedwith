@@ -11,12 +11,7 @@ export function ErrorBanner({ message, onDismiss }: Props) {
   return (
     <div className="error-banner" role="alert">
       <span>{message}</span>
-      <button
-        type="button"
-        className="error-banner__close"
-        onClick={onDismiss}
-        aria-label={t.game.closeError}
-      >
+      <button type="button" className="error-banner__close" onClick={onDismiss} aria-label={t.game.closeError}>
         ✕
       </button>
     </div>

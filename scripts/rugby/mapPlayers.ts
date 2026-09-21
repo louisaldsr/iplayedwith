@@ -152,9 +152,7 @@ async function main() {
     saveJson(mapPath, map)
   }
 
-  console.log(
-    `Done. files=${htmlFiles.length} added=${added} skipped=${skipped} failed=${failed}`,
-  )
+  console.log(`Done. files=${htmlFiles.length} added=${added} skipped=${skipped} failed=${failed}`)
   console.log(`Map written to ${mapPath} (${Object.keys(map).length} players total)`)
 }
 

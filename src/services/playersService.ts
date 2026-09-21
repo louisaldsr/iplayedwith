@@ -11,11 +11,7 @@ export async function listPlayers(db: SupabaseClient, sport: SportId, q?: string
 }
 
 /** A random player from the sport, optionally excluding one already picked. */
-export async function randomPlayer(
-  db: SupabaseClient,
-  sport: SportId,
-  excludeId?: PlayerId,
-): Promise<Player | null> {
+export async function randomPlayer(db: SupabaseClient, sport: SportId, excludeId?: PlayerId): Promise<Player | null> {
   return playersRepo.findRandom(db, sport, excludeId)
 }
 

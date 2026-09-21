@@ -60,7 +60,5 @@ export function bfsPlayerPath(
   }
   fullPath.unshift(cur)
 
-  return fullPath
-    .filter((k) => k.startsWith('player:'))
-    .map((k) => k.slice('player:'.length) as PlayerId)
+  return fullPath.filter((k) => k.startsWith('player:')).map((k) => k.slice('player:'.length) as PlayerId)
 }

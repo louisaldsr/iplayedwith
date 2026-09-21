@@ -1,10 +1,10 @@
 /** Test fixture — rugby sample data, not used by the app at runtime. */
-import { Club } from '@/domain/club';
-import { ClubId, PlayerId } from '@/domain/ids';
-import { Membership } from '@/domain/membership';
-import { Nationality } from '@/domain/nationality';
-import { Player } from '@/domain/player';
-import { Season } from '@/domain/season';
+import { Club } from '@/domain/club'
+import { ClubId, PlayerId } from '@/domain/ids'
+import { Membership } from '@/domain/membership'
+import { Nationality } from '@/domain/nationality'
+import { Player } from '@/domain/player'
+import { Season } from '@/domain/season'
 
 // ─── Clubs (Top 14 saison 2024-2025) ───────────────────────────────────────
 
@@ -23,7 +23,7 @@ export const clubs: Club[] = [
   { id: ClubId('stade-francais'), name: 'Stade Français Paris', sport: 'rugby' },
   { id: ClubId('perpignan'), name: 'USA Perpignan', sport: 'rugby' },
   { id: ClubId('vannes'), name: 'RC Vannes', sport: 'rugby' },
-];
+]
 
 // ─── Players ────────────────────────────────────────────────────────────────
 
@@ -113,7 +113,7 @@ export const players: Player[] = [
   { id: PlayerId('p56'), name: 'Théo Hannoyer', sport: 'rugby', nationality: Nationality('FR') },
   { id: PlayerId('p57'), name: 'Tristan Peculis', sport: 'rugby', nationality: Nationality('FR') },
   { id: PlayerId('p58'), name: 'Killian Geraci', sport: 'rugby', nationality: Nationality('FR') },
-];
+]
 
 // ─── Memberships ────────────────────────────────────────────────────────────
 
@@ -665,7 +665,7 @@ export const memberships: Membership[] = [
     clubId: ClubId('vannes'),
     season: Season('2023-2024'),
   },
-];
+]
 
 /*
   Chemins de connexion illustratifs :

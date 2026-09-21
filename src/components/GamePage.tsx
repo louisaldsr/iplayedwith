@@ -152,9 +152,9 @@ export function GamePage({ sport }: Props) {
           playerA={state.playerA}
           playerB={state.playerB}
           difficulty={state.difficulty}
-          onSetPlayerA={p => dispatch({ type: 'SET_PLAYER_A', player: p })}
-          onSetPlayerB={p => dispatch({ type: 'SET_PLAYER_B', player: p })}
-          onDifficultyChange={d => dispatch({ type: 'SET_DIFFICULTY', difficulty: d })}
+          onSetPlayerA={(p) => dispatch({ type: 'SET_PLAYER_A', player: p })}
+          onSetPlayerB={(p) => dispatch({ type: 'SET_PLAYER_B', player: p })}
+          onDifficultyChange={(d) => dispatch({ type: 'SET_DIFFICULTY', difficulty: d })}
           onStart={handleStart}
         />
       )}

@@ -23,13 +23,10 @@ export function PlayerPicker({ role, sport, selected, excludeId, onSelect }: Pro
   const [inputValue, setInputValue] = useState('')
   const [randomizing, setRandomizing] = useState(false)
 
-  const search = useCallback(
-    (q: string, signal: AbortSignal) => searchPlayers(sport, q, signal),
-    [sport],
-  )
+  const search = useCallback((q: string, signal: AbortSignal) => searchPlayers(sport, q, signal), [sport])
   const { results, loading, failed } = useDebouncedSearch(inputValue, search)
 
-  const available = results.filter(p => p.id !== excludeId)
+  const available = results.filter((p) => p.id !== excludeId)
 
   function handleSelect(player: Player) {
     setInputValue(player.name)
@@ -41,7 +38,7 @@ export function PlayerPicker({ role, sport, selected, excludeId, onSelect }: Pro
     // Typing away from an exact match clears the selection, so a half-typed name never
     // leaves a stale player selected. Compared on the normalized form, so "gael fickou"
     // counts as naming "Gaël Fickou".
-    const match = available.find(p => searchEquals(p.name, v)) ?? null
+    const match = available.find((p) => searchEquals(p.name, v)) ?? null
     onSelect(match)
   }
 
@@ -71,11 +68,7 @@ export function PlayerPicker({ role, sport, selected, excludeId, onSelect }: Pro
 
       {selected ? (
         <div className="player-picker__selected">
-          <img
-            src="/dummy.svg"
-            alt={selected.name}
-            className="player-picker__avatar"
-          />
+          <img src="/dummy.svg" alt={selected.name} className="player-picker__avatar" />
           <span className="player-picker__name">{selected.name}</span>
           <button type="button" className="btn btn--ghost btn--sm" onClick={handleChange}>
             {t.setup.change}
@@ -96,12 +89,7 @@ export function PlayerPicker({ role, sport, selected, excludeId, onSelect }: Pro
             dropdownDirection="down"
           />
           <span className="player-picker__separator">{t.setup.orSeparator}</span>
-          <button
-            type="button"
-            className="btn btn--ghost btn--sm"
-            onClick={handleRandomize}
-            disabled={randomizing}
-          >
+          <button type="button" className="btn btn--ghost btn--sm" onClick={handleRandomize} disabled={randomizing}>
             {t.setup.randomize}
           </button>
         </div>

@@ -17,8 +17,10 @@ async function main() {
   const clubIds = loadSeededIds(CLUBS_SEEDED_PATH)
   const playerIds = loadSeededIds(PLAYERS_SEEDED_PATH)
 
-  if (Object.keys(clubIds).length === 0) throw new Error(`No clubs in ${CLUBS_SEEDED_PATH} — run "npm run seed:football:clubs" first.`)
-  if (Object.keys(playerIds).length === 0) throw new Error(`No players in ${PLAYERS_SEEDED_PATH} — run "npm run seed:football:players" first.`)
+  if (Object.keys(clubIds).length === 0)
+    throw new Error(`No clubs in ${CLUBS_SEEDED_PATH} — run "npm run seed:football:clubs" first.`)
+  if (Object.keys(playerIds).length === 0)
+    throw new Error(`No players in ${PLAYERS_SEEDED_PATH} — run "npm run seed:football:players" first.`)
 
   const rows: BulkMembershipRowInput[] = []
   const unresolved = { clubs: new Set<string>(), players: new Set<string>() }

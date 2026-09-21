@@ -1,5 +1,5 @@
 /** Competitions with no useful data for this game — the whole row is dropped, never becomes a membership. */
-const DROPPED_COMPETITIONS = new Set(['NPC', 'Nationale', 'Champ Rugby']);
+const DROPPED_COMPETITIONS = new Set(['NPC', 'Nationale', 'Champ Rugby'])
 
 /**
  * Pan-European club competitions. `parseCareerRows` keeps only the first competition
@@ -7,13 +7,7 @@ const DROPPED_COMPETITIONS = new Set(['NPC', 'Nationale', 'Champ Rugby']);
  * hold — sometimes the European competition ends up recorded instead. When it does, we
  * rewrite it to the club's actual domestic league via `DOMESTIC_LEAGUE_BY_CLUB_ID`.
  */
-const EUROPEAN_COMPETITIONS = new Set([
-  'Challenge Cup',
-  'H Cup',
-  'H CUP',
-  'Champions Cup',
-  'Anglo Welsh Cup',
-]);
+const EUROPEAN_COMPETITIONS = new Set(['Challenge Cup', 'H Cup', 'H CUP', 'Champions Cup', 'Anglo Welsh Cup'])
 
 /**
  * clubId -> domestic league, for every club currently playing in Europe (Champions Cup /
@@ -88,32 +82,22 @@ const DOMESTIC_LEAGUE_BY_CLUB_ID: Record<string, string> = {
   '2cfc1b29-1c35-47bb-9e84-83e2ca6770a6': 'Premiership', // Worcester Warriors
   '3b1f1517-eb9c-4439-b8b5-b55f726bf171': 'Premiership', // Wasps
   '954bbac2-8f61-4c7e-8afd-e8a4259f8fc9': 'Premiership', // London Irish
-};
+}
 
 /** True for a competition that should be dropped — the row is never turned into a membership. */
 export function isDroppedCompetition(competition: string | undefined): boolean {
-  return competition !== undefined && DROPPED_COMPETITIONS.has(competition);
+  return competition !== undefined && DROPPED_COMPETITIONS.has(competition)
 }
 
 /** Rewrites a pan-European competition (Challenge Cup / H Cup / Champions Cup) to the club's domestic league, when known; otherwise passes it through unchanged. */
-export function resolveCompetition(
-  clubId: string,
-  competition: string | undefined,
-): string | undefined {
+export function resolveCompetition(clubId: string, competition: string | undefined): string | undefined {
   if (competition !== undefined && EUROPEAN_COMPETITIONS.has(competition)) {
-    return DOMESTIC_LEAGUE_BY_CLUB_ID[clubId] ?? competition;
+    return DOMESTIC_LEAGUE_BY_CLUB_ID[clubId] ?? competition
   }
-  return competition;
+  return competition
 }
 
 /** True when a row's competition is pan-European but its club has no domestic-league mapping — `resolveCompetition` would leave it unrewritten, so callers should flag it for manual review instead of silently accepting the imprecise label. */
-export function isUnmappedEuropeanCompetition(
-  clubId: string,
-  competition: string | undefined,
-): boolean {
-  return (
-    competition !== undefined &&
-    EUROPEAN_COMPETITIONS.has(competition) &&
-    !(clubId in DOMESTIC_LEAGUE_BY_CLUB_ID)
-  );
+export function isUnmappedEuropeanCompetition(clubId: string, competition: string | undefined): boolean {
+  return competition !== undefined && EUROPEAN_COMPETITIONS.has(competition) && !(clubId in DOMESTIC_LEAGUE_BY_CLUB_ID)
 }

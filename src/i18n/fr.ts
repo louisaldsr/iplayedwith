@@ -1,9 +1,9 @@
-import type { Translations } from './en';
+import type { Translations } from './en'
 
 const fr: Translations = {
   home: {
     title: 'I Played With',
-    tagline: "Trouvez les liens entre coéquipiers",
+    tagline: 'Trouvez les liens entre coéquipiers',
     chooseSportPrompt: 'Choisissez un sport',
     sports: {
       rugby: 'Rugby',
@@ -28,7 +28,8 @@ const fr: Translations = {
     hard: 'Difficile',
     hardDesc: 'Joueur + Club + Saison',
     launch: 'Lancer la partie',
-    directlyConnectedWarning: 'Ces deux joueurs ont déjà joué ensemble. En mode Facile, ce lien est auto-résolu — choisissez une autre paire.',
+    directlyConnectedWarning:
+      'Ces deux joueurs ont déjà joué ensemble. En mode Facile, ce lien est auto-résolu — choisissez une autre paire.',
   },
   game: {
     chrono: 'Temps',
@@ -51,6 +52,6 @@ const fr: Translations = {
     time: 'Temps',
     playAgain: 'Rejouer',
   },
-};
+}
 
-export default fr;
+export default fr

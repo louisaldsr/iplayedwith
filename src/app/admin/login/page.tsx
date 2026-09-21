@@ -40,7 +40,7 @@ export default function AdminLoginPage() {
           className="form-input"
           placeholder="Password"
           value={password}
-          onChange={e => setPassword(e.target.value)}
+          onChange={(e) => setPassword(e.target.value)}
           autoFocus
         />
         {error && <div className="error-banner">{error}</div>}

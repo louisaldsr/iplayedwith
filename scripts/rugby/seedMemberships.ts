@@ -93,13 +93,11 @@ async function main() {
     }
 
     const careerRows = adapter.parseCareerRows(html)
-    const { rows, manualReviewRows: newManualReviewRows, droppedCount } = matchCareer(
-      entry.name,
-      entry.profileUrl,
-      careerRows,
-      matcher,
-      { applyCompetitionFilter: !noCompetitionFilter },
-    )
+    const {
+      rows,
+      manualReviewRows: newManualReviewRows,
+      droppedCount,
+    } = matchCareer(entry.name, entry.profileUrl, careerRows, matcher, { applyCompetitionFilter: !noCompetitionFilter })
     manualReviewRows.push(...newManualReviewRows)
     competitionRowsDropped += droppedCount
 

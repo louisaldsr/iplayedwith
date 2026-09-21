@@ -15,7 +15,12 @@ describe('validateConnection — hard mode (clubId + season given)', () => {
 
     const result = await validateConnection(db, { playerAId: 'a', playerBId: 'b', clubId: 'c1', season: '2022-2023' })
 
-    expect(mockedRepo.hasExactForAny).toHaveBeenCalledWith(db, [PlayerId('a'), PlayerId('b')], ClubId('c1'), '2022-2023')
+    expect(mockedRepo.hasExactForAny).toHaveBeenCalledWith(
+      db,
+      [PlayerId('a'), PlayerId('b')],
+      ClubId('c1'),
+      '2022-2023',
+    )
     expect(result).toEqual({ valid: true, membership: { clubId: 'c1', season: '2022-2023' } })
   })
 
@@ -33,7 +38,10 @@ describe('validateConnection — easy mode (no clubId/season)', () => {
     mockedRepo.listByPlayer.mockImplementation(async (_db, playerId) =>
       playerId === PlayerId('a')
         ? [{ clubId: ClubId('c1'), season: '2022-2023' as never }]
-        : [{ clubId: ClubId('c1'), season: '2022-2023' as never }, { clubId: ClubId('c2'), season: '2021-2022' as never }],
+        : [
+            { clubId: ClubId('c1'), season: '2022-2023' as never },
+            { clubId: ClubId('c2'), season: '2021-2022' as never },
+          ],
     )
 
     const result = await validateConnection(db, { playerAId: 'a', playerBId: 'b' })

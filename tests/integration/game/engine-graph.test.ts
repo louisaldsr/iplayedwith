@@ -4,7 +4,7 @@ import { players, memberships } from '../../fixtures/mockData'
 import { PlayerId, ClubId } from '@/domain/ids'
 import { Season } from '@/domain/season'
 
-const byId = (id: string) => players.find(p => p.id === id)!
+const byId = (id: string) => players.find((p) => p.id === id)!
 
 // ── Easy mode ────────────────────────────────────────────────────────────────
 
@@ -31,11 +31,11 @@ describe('easy mode — seed and graph expansion', () => {
 
     expect(nodes.has(playerKey(PlayerId('p04')))).toBe(true)
     // No club nodes in easy mode
-    expect([...nodes.keys()].every(k => k.startsWith('player:'))).toBe(true)
+    expect([...nodes.keys()].every((k) => k.startsWith('player:'))).toBe(true)
 
     // Edges store club+season metadata but no club node is created
-    expect(edges.some(e => e.playerId === 'p04' && e.clubId === 'stade-toulousain')).toBe(true)
-    expect(edges.some(e => e.playerId === 'p01' && e.clubId === 'stade-toulousain')).toBe(true)
+    expect(edges.some((e) => e.playerId === 'p04' && e.clubId === 'stade-toulousain')).toBe(true)
+    expect(edges.some((e) => e.playerId === 'p01' && e.clubId === 'stade-toulousain')).toBe(true)
   })
 
   it('does not create duplicate edges across multiple shared seasons', () => {
@@ -43,7 +43,7 @@ describe('easy mode — seed and graph expansion', () => {
     engine.addInput({ kind: 'easy', playerId: PlayerId('p02') })
     const { nodes } = engine.game
     // Still no club nodes
-    expect([...nodes.keys()].every(k => k.startsWith('player:'))).toBe(true)
+    expect([...nodes.keys()].every((k) => k.startsWith('player:'))).toBe(true)
   })
 })
 
@@ -93,7 +93,9 @@ describe('hard mode — club:season node and player node additions', () => {
 
     const { nodes, edges } = engine.game
     expect(nodes.has(clubKey(ClubId('stade-toulousain'), Season('2022-2023')))).toBe(true)
-    expect(edges.some(e => e.playerId === 'p01' && e.clubId === 'stade-toulousain' && e.season === '2022-2023')).toBe(true)
+    expect(edges.some((e) => e.playerId === 'p01' && e.clubId === 'stade-toulousain' && e.season === '2022-2023')).toBe(
+      true,
+    )
   })
 
   it('adds a player node connected to an existing club:season node', () => {
@@ -108,7 +110,9 @@ describe('hard mode — club:season node and player node additions', () => {
 
     const { nodes, edges } = engine.game
     expect(nodes.has(playerKey(PlayerId('p04')))).toBe(true)
-    expect(edges.some(e => e.playerId === 'p04' && e.clubId === 'stade-toulousain' && e.season === '2022-2023')).toBe(true)
+    expect(edges.some((e) => e.playerId === 'p04' && e.clubId === 'stade-toulousain' && e.season === '2022-2023')).toBe(
+      true,
+    )
   })
 
   it('rejects a hard-player if they share no existing club:season node', () => {

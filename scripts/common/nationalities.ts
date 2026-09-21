@@ -1,4 +1,4 @@
-import { normalize } from './textNormalize';
+import { normalize } from './textNormalize'
 
 /**
  * allrugby.com profile pages report nationality as a French country name (JSON-LD
@@ -203,18 +203,15 @@ const RAW_FRENCH_COUNTRY_TO_ALPHA2: Record<string, string> = {
   'Wallis-et-Futuna': 'WF',
   Guam: 'GU',
   'Îles Salomon': 'SB',
-};
+}
 
 const FRENCH_COUNTRY_TO_ALPHA2: Record<string, string> = Object.fromEntries(
-  Object.entries(RAW_FRENCH_COUNTRY_TO_ALPHA2).map(([name, code]) => [
-    normalize(name),
-    code,
-  ]),
-);
+  Object.entries(RAW_FRENCH_COUNTRY_TO_ALPHA2).map(([name, code]) => [normalize(name), code]),
+)
 
 /** Maps a raw French country name (as reported on an allrugby.com profile) to an ISO alpha-2 code, or null if unrecognized. */
 export function alpha2ForFrenchCountryName(raw: string): string | null {
-  return FRENCH_COUNTRY_TO_ALPHA2[normalize(raw)] ?? null;
+  return FRENCH_COUNTRY_TO_ALPHA2[normalize(raw)] ?? null
 }
 
 /**
@@ -470,16 +467,13 @@ const RAW_ENGLISH_COUNTRY_TO_ALPHA2: Record<string, string> = {
   Uzbekistan: 'UZ',
   Vietnam: 'VN',
   Yemen: 'YE',
-};
+}
 
 const ENGLISH_COUNTRY_TO_ALPHA2: Record<string, string> = Object.fromEntries(
-  Object.entries(RAW_ENGLISH_COUNTRY_TO_ALPHA2).map(([name, code]) => [
-    normalize(name),
-    code,
-  ]),
-);
+  Object.entries(RAW_ENGLISH_COUNTRY_TO_ALPHA2).map(([name, code]) => [normalize(name), code]),
+)
 
 /** Maps a raw English country name (as reported on an all.rugby profile) to an ISO alpha-2 code, or null if unrecognized. */
 export function alpha2ForEnglishCountryName(raw: string): string | null {
-  return ENGLISH_COUNTRY_TO_ALPHA2[normalize(raw)] ?? null;
+  return ENGLISH_COUNTRY_TO_ALPHA2[normalize(raw)] ?? null
 }

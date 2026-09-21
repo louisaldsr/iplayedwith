@@ -14,13 +14,10 @@ function requireSecret(): string {
 }
 
 async function getKey(secret: string): Promise<CryptoKey> {
-  return crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign', 'verify'],
-  )
+  return crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, [
+    'sign',
+    'verify',
+  ])
 }
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -29,8 +26,11 @@ function toBase64Url(bytes: Uint8Array): string {
 }
 
 function fromBase64Url(value: string): Uint8Array {
-  const padded = value.replace(/-/g, '+').replace(/_/g, '/').padEnd(value.length + ((4 - (value.length % 4)) % 4), '=')
-  return Uint8Array.from(atob(padded), c => c.charCodeAt(0))
+  const padded = value
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(value.length + ((4 - (value.length % 4)) % 4), '=')
+  return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0))
 }
 
 /** Creates a signed session token containing an expiry timestamp. */

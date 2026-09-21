@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ADMIN_SESSION_COOKIE, ADMIN_SESSION_MAX_AGE_SECONDS, constantTimeEqual, createSessionToken } from '@/lib/adminSession'
+import {
+  ADMIN_SESSION_COOKIE,
+  ADMIN_SESSION_MAX_AGE_SECONDS,
+  constantTimeEqual,
+  createSessionToken,
+} from '@/lib/adminSession'
 
 /** POST /api/admin/login — body { password }. Sets a signed session cookie on success. */
 export async function POST(req: NextRequest) {

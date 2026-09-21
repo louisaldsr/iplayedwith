@@ -132,8 +132,41 @@ export function createMembershipCollector(index: GameIndex) {
   }
 }
 
+/**
+ * Counts how many games each player actually played, as the fame metric's main signal.
+ *
+ * Deliberately applies the SAME scope filters as `createMembershipCollector`, off the same
+ * single pass over the 1.9M-row appearances table: a game only counts if it is one the graph
+ * could be built from. Counting out-of-scope appearances would rate a player on a career the
+ * game knows nothing about — a Bundesliga 2 veteran would outrank a Premier League regular
+ * while being unreachable in every puzzle.
+ *
+ * Unlike memberships, appearances are NOT deduped: three games in a season is three games.
+ */
+export function createAppearanceCounter(index: GameIndex) {
+  const gamesByPlayer = new Map<string, number>()
+
+  return {
+    add(appearance: Appearance) {
+      if (!index.big5ClubIds.has(appearance.playerClubId)) return
+      if (!index.seasonByGameId.has(appearance.gameId)) return
+      gamesByPlayer.set(appearance.playerId, (gamesByPlayer.get(appearance.playerId) ?? 0) + 1)
+    },
+    result(): Map<string, number> {
+      return gamesByPlayer
+    },
+  }
+}
+
 export type DatasetClub = { transfermarktId: string; name: string; logoUrl: string }
-export type DatasetPlayer = { transfermarktId: string; name: string; nationality: string | null }
+export type DatasetPlayer = {
+  transfermarktId: string
+  name: string
+  nationality: string | null
+  /** Fame signals — see src/domain/fame.ts. */
+  games: number
+  caps: number
+}
 export type FootballDataset = {
   generatedAt: string
   clubs: DatasetClub[]
@@ -156,6 +189,7 @@ export function buildDataset(
   memberships: DerivedMembership[],
   clubsById: Map<string, Club>,
   playersById: Map<string, Player>,
+  gamesByPlayer: Map<string, number> = new Map(),
 ): { dataset: FootballDataset; warnings: BuildWarning[] } {
   const warnings: BuildWarning[] = []
   const clubIds = new Set(memberships.map((m) => m.clubTransfermarktId))
@@ -188,7 +222,13 @@ export function buildDataset(
       const seen = unmappedNationalities.get(raw)
       unmappedNationalities.set(raw, { count: (seen?.count ?? 0) + 1, example: seen?.example ?? player.name })
     }
-    players.push({ transfermarktId: playerId, name: player.name, nationality })
+    players.push({
+      transfermarktId: playerId,
+      name: player.name,
+      nationality,
+      games: gamesByPlayer.get(playerId) ?? 0,
+      caps: player.caps,
+    })
   }
 
   for (const [country, { count, example }] of [...unmappedNationalities].sort()) {

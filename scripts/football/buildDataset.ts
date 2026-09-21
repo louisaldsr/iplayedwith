@@ -4,6 +4,7 @@ import { outputPath } from '../common/paths'
 import {
   BIG5_LEAGUES,
   buildDataset,
+  createAppearanceCounter,
   createMembershipCollector,
   indexGames,
   type BuildWarning,
@@ -51,21 +52,32 @@ async function main() {
       `${index.big5ClubIds.size} clubs with a Big-5 league game`,
   )
 
+  // Both collectors ride the same pass: the appearances table is 1.9M rows, and counting
+  // games needs exactly the rows memberships are folded from.
   const collector = createMembershipCollector(index)
+  const gameCounter = createAppearanceCounter(index)
   let appearances = 0
   await streamAppearances((appearance) => {
     appearances++
     collector.add(appearance)
+    gameCounter.add(appearance)
   })
   const memberships = collector.result()
+  const gamesByPlayer = gameCounter.result()
   console.log(`Appearances: ${appearances} read -> ${memberships.length} distinct (player, club, season) memberships`)
 
   const clubsById = await loadClubs()
   const playerIds = new Set(memberships.map((m) => m.playerTransfermarktId))
   const playersById = await loadPlayers((id) => playerIds.has(id))
 
-  const { dataset, warnings } = buildDataset(memberships, clubsById, playersById)
+  const { dataset, warnings } = buildDataset(memberships, clubsById, playersById, gamesByPlayer)
   reportWarnings(warnings)
+
+  const withCaps = dataset.players.filter((p) => p.caps > 0).length
+  console.log(
+    `Fame signals: games for ${dataset.players.filter((p) => p.games > 0).length}/${dataset.players.length} ` +
+      `players, international caps for ${withCaps} (${((100 * withCaps) / dataset.players.length).toFixed(1)}%)`,
+  )
 
   const outPath = outputPath('football-dataset.json')
   saveJson(outPath, dataset)

@@ -65,24 +65,36 @@ function seasonToRange(text: string): string | null {
 }
 
 /**
- * Parses the season-by-season table under `#saison_ov` on a player's
- * allrugby.com profile page. That table stacks 3 sections (season detail,
- * career totals by competition, career totals by club) as separate `tbody`
- * siblings inside one `<table>` — only the first `tbody` is season data, so
- * we scope to it explicitly rather than walking every row in the table.
+ * One row of the season table, before any filtering — a single (season, club, competition)
+ * line, with the club/season carried over from the last `sepSaison`/`sepClub` row.
  *
- * Rows for the same season+club (e.g. Top 14 then Champions Cup) are
- * deduped, keeping only the first (which is always the top-tier domestic
- * competition). International/national-team rows are excluded entirely —
- * they aren't real clubs.
+ * `matches` is the table's "Matchs" column, or null when the cell is empty or unparseable.
  */
-export function parseCareerRows(html: string): CareerRow[] {
+export type CareerTableRow = CareerRow & { isInternational: boolean; matches: number | null }
+
+/**
+ * Walks the season-by-season table under `#saison_ov` on a player's allrugby.com profile
+ * page, emitting every line as-is.
+ *
+ * That table stacks 3 sections (season detail, career totals by competition, career totals
+ * by club) as separate `tbody` siblings inside one `<table>` — only the first `tbody` is
+ * season data, so we scope to it explicitly rather than walking every row in the table.
+ * Scoping here is also what keeps the match counts honest: the other two tbodies hold the
+ * same matches already summed, so a wider selector would double-count them.
+ *
+ * The column layout is `Saison | (logos) | Club | Compétition | Matchs | V/N/D | …`, but the
+ * first three cells are only present on the row that opens a season or a club (they carry a
+ * `rowspan` over the rows below) — hence the running `offset`.
+ *
+ * Callers do their own filtering: `parseCareerRows` wants one row per season+club and no
+ * national teams, `parseCareerStats` wants every row and both kinds.
+ */
+function walkCareerTable(html: string): CareerTableRow[] {
   const $ = cheerio.load(html)
   const tbody = $('#saison_ov table.JOverall > tbody').first()
   if (tbody.length === 0) return []
 
-  const rows: CareerRow[] = []
-  const seen = new Set<string>()
+  const rows: CareerTableRow[] = []
 
   let currentSeason: string | null = null
   let currentClub: string | null = null
@@ -103,20 +115,81 @@ export function parseCareerRows(html: string): CareerRow[] {
       offset = 1
     }
     if (isSepSaison || isSepClub) {
-      currentClub = $(tds.get(offset + 1)).text().trim()
+      currentClub = $(tds.get(offset + 1))
+        .text()
+        .trim()
       currentIsInternational = isInternational
       offset += 2
     }
 
-    if (currentIsInternational || !currentSeason || !currentClub) return
+    if (!currentSeason || !currentClub) return
 
-    const competition = $(tds.get(offset)).text().trim()
-    const key = `${currentSeason}||${currentClub}`
-    if (seen.has(key)) return
-    seen.add(key)
-
-    rows.push({ season: currentSeason, clubName: currentClub, competition })
+    rows.push({
+      season: currentSeason,
+      clubName: currentClub,
+      competition: $(tds.get(offset)).text().trim(),
+      isInternational: currentIsInternational,
+      matches: parseCount($(tds.get(offset + 1)).text()),
+    })
   })
 
   return rows
+}
+
+/** "12" -> 12; an empty, non-numeric or negative cell -> null. */
+function parseCount(text: string): number | null {
+  const match = text.trim().match(/^\d+$/)
+  return match ? parseInt(match[0], 10) : null
+}
+
+/**
+ * The player's club career: one row per season+club, national teams excluded.
+ *
+ * Rows for the same season+club (e.g. Top 14 then Champions Cup) are deduped, keeping only
+ * the first (which is always the top-tier domestic competition). International/national-team
+ * rows are excluded entirely — they aren't real clubs.
+ */
+export function parseCareerRows(html: string): CareerRow[] {
+  const rows: CareerRow[] = []
+  const seen = new Set<string>()
+
+  for (const row of walkCareerTable(html)) {
+    if (row.isInternational) continue
+
+    const key = `${row.season}||${row.clubName}`
+    if (seen.has(key)) continue
+    seen.add(key)
+
+    rows.push({ season: row.season, clubName: row.clubName, competition: row.competition })
+  }
+
+  return rows
+}
+
+/** Raw fame signals read off a profile — see src/domain/fame.ts. */
+export type CareerStats = { games: number; caps: number }
+
+/**
+ * Counts matches played, as the fame metric's main signal.
+ *
+ * Note what this sums that `parseCareerRows` throws away: EVERY competition line of a season,
+ * not just the first. A season at Clermont is "Top 14: 12 matchs" plus "Champions Cup: 4
+ * matchs", and both count towards how much this player was actually seen playing — whereas
+ * the membership import only needs to know he was at Clermont that year.
+ *
+ * `caps` comes from the same table's national-team lines ("Géorgie · Test Matchs · 2"),
+ * which the membership import drops because a country is not a club. They are the best
+ * available fame signal on the rugby side, so they are counted rather than discarded.
+ */
+export function parseCareerStats(html: string): CareerStats {
+  let games = 0
+  let caps = 0
+
+  for (const row of walkCareerTable(html)) {
+    if (row.matches === null) continue
+    if (row.isInternational) caps += row.matches
+    else games += row.matches
+  }
+
+  return { games, caps }
 }

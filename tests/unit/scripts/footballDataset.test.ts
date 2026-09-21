@@ -1,6 +1,7 @@
 import {
   buildDataset,
   clubLogoUrl,
+  createAppearanceCounter,
   createMembershipCollector,
   indexGames,
   seasonFromDatasetYear,
@@ -130,16 +131,72 @@ describe('createMembershipCollector', () => {
   })
 })
 
+describe('createAppearanceCounter', () => {
+  const count = (appearances: Appearance[]) => {
+    const counter = createAppearanceCounter(indexGames(GAMES))
+    appearances.forEach((a) => counter.add(a))
+    return counter.result()
+  }
+
+  it('counts every game, unlike memberships which fold them', () => {
+    const games = count([appearance('p1', 'c1', 'g1'), appearance('p1', 'c1', 'g2'), appearance('p1', 'c1', 'g3')])
+    expect(games.get('p1')).toBe(3)
+  })
+
+  it('counts a repeated appearance row twice — the source has one row per player per game', () => {
+    expect(count([appearance('p1', 'c1', 'g1'), appearance('p1', 'c1', 'g1')]).get('p1')).toBe(2)
+  })
+
+  it('sums a season at one club and a season at another', () => {
+    expect(count([appearance('p4', 'c2', 'g1'), appearance('p4', 'c1', 'g7')]).get('p4')).toBe(2)
+  })
+
+  it('applies the same scope filters as the membership collector', () => {
+    // Out-of-scope club, pre-2012 season, unknown game — none may count, or a player would be
+    // rated on a career the graph knows nothing about.
+    const games = count([
+      appearance('p3', 'c9', 'g2'),
+      appearance('p5', 'c1', 'g4'),
+      appearance('p1', 'c1', 'missing-game'),
+    ])
+    expect(games.size).toBe(0)
+  })
+
+  it('agrees with the membership collector on which appearances are in scope', () => {
+    const appearances = [
+      appearance('p1', 'c1', 'g1'),
+      appearance('p1', 'c1', 'g4'), // pre-2012
+      appearance('p3', 'c9', 'g2'), // out of scope club
+      appearance('p7', 'c3', 'g8'),
+    ]
+    const collector = createMembershipCollector(indexGames(GAMES))
+    const counter = createAppearanceCounter(indexGames(GAMES))
+    appearances.forEach((a) => {
+      collector.add(a)
+      counter.add(a)
+    })
+    expect([...counter.result().keys()].sort()).toEqual(
+      [...new Set(collector.result().map((m) => m.playerTransfermarktId))].sort(),
+    )
+  })
+})
+
 describe('buildDataset', () => {
   const clubs = new Map<string, Club>([
     ['c1', { clubId: 'c1', name: 'Arsenal FC' }],
     ['c2', { clubId: 'c2', name: 'Chelsea FC' }],
   ])
+  const player = (playerId: string, name: string, countryOfCitizenship: string, caps = 0): Player => ({
+    playerId,
+    name,
+    countryOfCitizenship,
+    caps,
+  })
   const players = new Map<string, Player>([
-    ['p1', { playerId: 'p1', name: 'Alex Iwobi', countryOfCitizenship: 'Nigeria' }],
-    ['p2', { playerId: 'p2', name: 'Yannick Bolasie', countryOfCitizenship: 'DR Congo' }],
-    ['p3', { playerId: 'p3', name: 'No Nation', countryOfCitizenship: '' }],
-    ['p4', { playerId: 'p4', name: 'Unknown Land', countryOfCitizenship: 'Atlantis' }],
+    ['p1', player('p1', 'Alex Iwobi', 'Nigeria', 77)],
+    ['p2', player('p2', 'Yannick Bolasie', 'DR Congo')],
+    ['p3', player('p3', 'No Nation', '')],
+    ['p4', player('p4', 'Unknown Land', 'Atlantis')],
   ])
   const membership = (playerTransfermarktId: string, clubTransfermarktId: string) => ({
     playerTransfermarktId,
@@ -151,7 +208,19 @@ describe('buildDataset', () => {
   it('emits only the clubs and players its memberships reference, with crest urls', () => {
     const { dataset } = buildDataset([membership('p1', 'c1')], clubs, players)
     expect(dataset.clubs).toEqual([{ transfermarktId: 'c1', name: 'Arsenal FC', logoUrl: clubLogoUrl('c1') }])
-    expect(dataset.players).toEqual([{ transfermarktId: 'p1', name: 'Alex Iwobi', nationality: 'NG' }])
+    expect(dataset.players).toEqual([
+      { transfermarktId: 'p1', name: 'Alex Iwobi', nationality: 'NG', games: 0, caps: 77 },
+    ])
+  })
+
+  it('attaches each player their game count', () => {
+    const { dataset } = buildDataset([membership('p1', 'c1')], clubs, players, new Map([['p1', 142]]))
+    expect(dataset.players[0]).toMatchObject({ games: 142, caps: 77 })
+  })
+
+  it('stores zero games for a player the counter never saw', () => {
+    const { dataset } = buildDataset([membership('p2', 'c1')], clubs, players, new Map([['p1', 142]]))
+    expect(dataset.players[0]).toMatchObject({ games: 0, caps: 0 })
   })
 
   it('maps Transfermarkt country spellings to alpha-2 codes', () => {

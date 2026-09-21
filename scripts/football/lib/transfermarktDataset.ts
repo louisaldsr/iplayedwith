@@ -61,7 +61,7 @@ async function streamCsv(file: DatasetFile, onRow: (row: Record<string, string>)
 export type Competition = { competitionId: string; slug: string; type: string; countryName: string }
 export type Club = { clubId: string; name: string }
 export type Game = { gameId: string; competitionId: string; season: string; homeClubId: string; awayClubId: string }
-export type Player = { playerId: string; name: string; countryOfCitizenship: string }
+export type Player = { playerId: string; name: string; countryOfCitizenship: string; caps: number }
 export type Appearance = { playerId: string; playerClubId: string; gameId: string }
 
 /**
@@ -112,15 +112,23 @@ export async function streamAppearances(onAppearance: (appearance: Appearance) =
   })
 }
 
-/** Loads players, optionally keeping only the ids the caller cares about (~11k of ~50k). */
+/**
+ * Loads players, optionally keeping only the ids the caller cares about (~11k of ~50k).
+ *
+ * `international_caps` is a snapshot of the player's current national-team record, and is
+ * blank for 61% of the table's 50k rows — a missing value is read as 0 rather than dropped,
+ * which is why the fame formula only gives caps a partial weight.
+ */
 export async function loadPlayers(keep?: (playerId: string) => boolean): Promise<Map<string, Player>> {
   const byId = new Map<string, Player>()
   await streamCsv('players.csv.gz', (row) => {
     if (keep && !keep(row.player_id)) return
+    const caps = parseInt(row.international_caps, 10)
     byId.set(row.player_id, {
       playerId: row.player_id,
       name: row.name,
       countryOfCitizenship: row.country_of_citizenship,
+      caps: Number.isFinite(caps) && caps > 0 ? caps : 0,
     })
   })
   return byId

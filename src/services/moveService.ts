@@ -45,7 +45,7 @@ export type ResolvedNode =
   | { kind: 'club'; club: Club; season: Season }
 
 export type MoveResult =
-  | { ok: true; node: ResolvedNode; edges: GameEdge[]; victory: boolean; path: PlayerId[] }
+  | { ok: true; node: ResolvedNode; edges: GameEdge[]; clubs: Club[]; victory: boolean; path: PlayerId[] }
   | { ok: false; reason: string }
 
 /** Player ids whose memberships the engine can touch while processing `move`. */
@@ -125,14 +125,28 @@ export async function applyMove(
   if (rejection) return { ok: false, reason: rejection }
 
   const path = bfsPlayerPath(nodes, edges, playerAId, playerBId)
+  const newEdges = edges.slice(edgeCountBefore)
 
   return {
     ok: true,
     node: await resolveNode(db, sport, req.move),
-    edges: edges.slice(edgeCountBefore),
+    edges: newEdges,
+    clubs: await resolveEdgeClubs(db, newEdges),
     victory: path !== null,
     path: path ?? [],
   }
+}
+
+/**
+ * Loads the clubs the new edges point at.
+ *
+ * In easy mode the added node is a player and no club node is ever created, yet each edge
+ * carries a (club, season) the board shows when the edge is opened. Without this the client
+ * holds a club id it has no name for and prints the id.
+ */
+async function resolveEdgeClubs(db: SupabaseClient, edges: GameEdge[]): Promise<Club[]> {
+  const ids = [...new Set(edges.map((e) => e.clubId))]
+  return clubsRepo.findManyByIds(db, ids)
 }
 
 /** Loads the name/nationality/logo the board needs for the node just added. */

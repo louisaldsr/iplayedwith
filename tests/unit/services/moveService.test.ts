@@ -27,6 +27,7 @@ beforeEach(() => {
   )
   mockedPlayers.findById.mockImplementation(async (_db, id) => playerById(id) ?? null)
   mockedClubs.findById.mockImplementation(async (_db, id) => clubById(id) ?? null)
+  mockedClubs.findManyByIds.mockImplementation(async (_db, ids) => clubs.filter((c) => ids.includes(c.id)))
 })
 
 afterEach(() => jest.clearAllMocks())
@@ -233,5 +234,51 @@ describe('applyMove — resolved node', () => {
         move: { kind: 'easy', playerId: PlayerId('p02') },
       })),
     ).rejects.toThrow(/does not play rugby/)
+  })
+})
+
+describe('applyMove — clubs behind the new edges', () => {
+  // Easy mode adds no club node, but the board names the (club, season) an edge stands for
+  // when it is opened. If the move does not carry the club back, the client only has an id.
+  it('returns the clubs of the edges an easy move added', async () => {
+    const result = await applyMove(
+      db,
+      'rugby',
+      request({
+        playerAId: 'p01',
+        playerBId: 'p07',
+        graph: newGraph('p01', 'p07'),
+        move: { kind: 'easy', playerId: PlayerId('p02') },
+      }),
+    )
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    const returned = new Set(result.clubs.map((c) => c.id))
+    for (const edge of result.edges) {
+      expect(returned.has(edge.clubId)).toBe(true)
+    }
+    expect(result.clubs.every((c) => c.name.length > 0)).toBe(true)
+  })
+
+  it('returns the club of the edges a hard move added', async () => {
+    const result = await applyMove(
+      db,
+      'rugby',
+      request({
+        playerAId: 'p01',
+        playerBId: 'p07',
+        difficulty: 'hard',
+        graph: newGraph('p01', 'p07'),
+        move: { kind: 'hard-club', clubId: ClubId('stade-toulousain'), season: Season('2022-2023') },
+      }),
+    )
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    const returned = new Set(result.clubs.map((c) => c.id))
+    for (const edge of result.edges) {
+      expect(returned.has(edge.clubId)).toBe(true)
+    }
   })
 })

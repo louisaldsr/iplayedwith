@@ -15,7 +15,7 @@ type ResolvedNode =
   | { kind: 'club'; club: Club; season: Season }
 
 type MoveResponse =
-  | { ok: true; node: ResolvedNode; edges: GameEdge[]; victory: boolean; path: PlayerId[] }
+  | { ok: true; node: ResolvedNode; edges: GameEdge[]; clubs: Club[]; victory: boolean; path: PlayerId[] }
   | { ok: false; reason: string }
 
 export type RemoteInputResult =
@@ -102,6 +102,7 @@ export function createRemoteEngine(
     if (!result.ok) return { ok: false, reason: result.reason }
 
     applyNode(result.node)
+    mergeClubs(result.clubs)
     game.edges.push(...result.edges)
     game.path = result.path
     victory = result.victory
@@ -109,6 +110,19 @@ export function createRemoteEngine(
     // New array identities so React sees the change; `game` is mutated in place, matching
     // what the in-memory engine did and what GamePage's reducer expects.
     return { ok: true, game, players: [...players], clubs: [...clubs] }
+  }
+
+  /**
+   * Keeps every club an edge refers to, not just the ones that became nodes.
+   *
+   * Easy mode never adds a club node, but the board names the (club, season) behind an edge
+   * when it is opened — without these the popup would fall back to the raw club id.
+   */
+  function mergeClubs(incoming: Club[]): void {
+    for (const club of incoming) {
+      const id = ClubId(club.id)
+      if (!clubs.some((c) => c.id === id)) clubs.push(club)
+    }
   }
 
   function applyNode(node: ResolvedNode): void {

@@ -185,6 +185,7 @@ export function GameBoard({ game, players, clubs }: Props) {
   const playerById = new Map(players.map(p => [p.id as string, p]))
   const clubById = new Map(clubs.map(c => [c.id as string, c]))
   const clubMap = new Map(clubs.map(c => [c.id as string, c.name]))
+  const isTarget = (id: string) => id === game.playerA.id || id === game.playerB.id
 
   const center = (key: string): { x: number; y: number } | null => {
     const p = positions.get(key)
@@ -260,6 +261,7 @@ export function GameBoard({ game, players, clubs }: Props) {
               onPointerDown={handlePointerDown}
               isDragging={dragging?.key === key}
               highlighted={game.path.includes(node.id)}
+              target={isTarget(node.id)}
             />
           )
         })}
@@ -375,6 +377,7 @@ export function GameBoard({ game, players, clubs }: Props) {
             onPointerDown={handlePointerDown}
             isDragging={dragging?.key === key}
             highlighted={highlighted}
+            target={node.kind === 'player' && isTarget(node.id)}
           />
         )
       })}

@@ -25,6 +25,9 @@
   --player-border: #3a3f6e;
   --club-tint: #1a2422;
   --club-border: #2e4a44;
+  --target-tint: #1c355a;
+  --target-border: #b0925a;
+  --target-glow: rgba(176, 146, 90, 0.22);
   --error: #f87171;
   --error-bg: rgba(248, 113, 113, 0.1);
   --success: #4ade80;
@@ -561,6 +564,13 @@ body {
 .node-card--club {
   background: var(--club-tint);
   border-color: var(--club-border);
+}
+
+/* Players A and B, the two ends to connect */
+.node-card--target {
+  background: var(--target-tint);
+  border-color: var(--target-border);
+  box-shadow: 0 0 0 3px var(--target-glow);
 }
 
 .node-card--dragging {

@@ -11,6 +11,7 @@ type Props = {
   onPointerDown: (e: React.PointerEvent, key: string) => void
   isDragging?: boolean
   highlighted?: boolean
+  target?: boolean
 }
 
 export function NodeCard({
@@ -24,10 +25,12 @@ export function NodeCard({
   onPointerDown,
   isDragging,
   highlighted,
+  target,
 }: Props) {
   const classes = [
     'node-card',
     `node-card--${kind}`,
+    target ? 'node-card--target' : '',
     isDragging ? 'node-card--dragging' : '',
     highlighted ? 'node-card--highlighted' : '',
   ]

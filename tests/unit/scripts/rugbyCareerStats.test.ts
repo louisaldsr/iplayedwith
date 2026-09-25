@@ -42,29 +42,24 @@ const profile = (...tbodies: string[]) =>
   `</table></div></body></html>`
 
 describe('parseCareerStats', () => {
-  it('sums every competition of a season, not just the top-tier one', () => {
-    // The exact case parseCareerRows collapses: one Clermont season is Top 14 + Champions Cup.
-    const html = profile(seasonRow('19/20', 'Clermont', 'Top 14', '12') + competitionRow('Champions Cup', '4'))
-    expect(parseCareerStats(html)).toEqual({ games: 16, caps: 0 })
-  })
-
-  it('sums across seasons and clubs', () => {
-    const html = profile(
-      seasonRow('19/20', 'Clermont', 'Top 14', '12') +
-        seasonRow('18/19', 'Clermont', 'Top 14', '20') +
-        competitionRow('Challenge Cup', '3'),
-    )
-    expect(parseCareerStats(html).games).toBe(35)
-  })
-
-  it('counts national-team rows as caps, and keeps them out of games', () => {
+  it('counts national-team rows as caps', () => {
     const html = profile(
       seasonRow('19/20', 'Clermont', 'Top 14', '12') + clubRow('Géorgie', 'Test Matchs', '2', 'international sepClub'),
     )
-    expect(parseCareerStats(html)).toEqual({ games: 12, caps: 2 })
+    expect(parseCareerStats(html)).toEqual({ caps: 2 })
   })
 
-  it('keeps counting club games after a national-team row', () => {
+  it('sums caps across seasons', () => {
+    const html = profile(
+      seasonRow('19/20', 'Clermont', 'Top 14', '12') +
+        clubRow('France', 'Six Nations', '5', 'international sepClub') +
+        seasonRow('18/19', 'Clermont', 'Top 14', '20') +
+        clubRow('France', 'Autumn Nations Series', '3', 'international sepClub'),
+    )
+    expect(parseCareerStats(html)).toEqual({ caps: 8 })
+  })
+
+  it('never counts club games as caps, even right after a national-team row', () => {
     // The international flag is carried until the next club row; if it leaked, the club games
     // below would silently land in caps.
     const html = profile(
@@ -72,56 +67,85 @@ describe('parseCareerStats', () => {
         clubRow('France', 'Autumn Nations Series', '2', 'international sepClub') +
         seasonRow('18/19', 'Clermont', 'Top 14', '20'),
     )
-    expect(parseCareerStats(html)).toEqual({ games: 32, caps: 2 })
+    expect(parseCareerStats(html)).toEqual({ caps: 2 })
   })
 
   it('ignores the career-total tbodies that follow the season detail', () => {
     // The table stacks 3 tbodies; the 2nd and 3rd hold the same matches already summed, so a
     // wider selector would roughly triple every count.
     const html = profile(
-      seasonRow('19/20', 'Clermont', 'Top 14', '12'),
-      seasonRow('', 'Top 14', 'Total', '12'),
-      seasonRow('', 'Clermont', 'Total', '12'),
+      clubRow('France', 'Six Nations', '5', 'international sepClub'),
+      clubRow('France', 'Total', '5', 'international sepClub'),
     )
-    expect(parseCareerStats(html).games).toBe(12)
+    expect(parseCareerStats(html)).toEqual({ caps: 0 })
   })
 
-  it('skips an empty or non-numeric match count rather than producing NaN', () => {
-    const html = profile(
-      seasonRow('19/20', 'Clermont', 'Top 14', '') +
-        seasonRow('18/19', 'Clermont', 'Top 14', '-') +
-        seasonRow('17/18', 'Clermont', 'Top 14', '7'),
-    )
-    expect(parseCareerStats(html).games).toBe(7)
-  })
-
-  it('returns zeros for a profile with no season table', () => {
-    expect(parseCareerStats('<html><body>no career here</body></html>')).toEqual({ games: 0, caps: 0 })
+  it('returns zero caps for a profile with no season table', () => {
+    expect(parseCareerStats('<html><body>no career here</body></html>')).toEqual({ caps: 0 })
   })
 })
 
 /**
- * `parseCareerStats` was added by extracting a shared row walker out of `parseCareerRows`.
- * These lock the membership import's input, which is what that refactor put at risk.
+ * The membership import's input: one row per season+club, with `games` filling the
+ * `memberships.games` contract — every match for that club that season, all competitions.
  */
 describe('parseCareerRows', () => {
-  it('keeps one row per season+club, with the first competition listed', () => {
+  it('keeps one row per season+club, with the first competition and ALL its matches', () => {
+    // One Clermont season is Top 14 + Champions Cup: one membership, 16 games.
     const html = profile(seasonRow('19/20', 'Clermont', 'Top 14', '12') + competitionRow('Champions Cup', '4'))
-    expect(parseCareerRows(html)).toEqual([{ season: '2019-2020', clubName: 'Clermont', competition: 'Top 14' }])
+    expect(parseCareerRows(html)).toEqual([
+      { season: '2019-2020', clubName: 'Clermont', competition: 'Top 14', games: 16 },
+    ])
   })
 
-  it('excludes national teams', () => {
+  it('keeps each season its own games', () => {
+    const html = profile(
+      seasonRow('19/20', 'Clermont', 'Top 14', '12') +
+        seasonRow('18/19', 'Clermont', 'Top 14', '20') +
+        competitionRow('Challenge Cup', '3'),
+    )
+    expect(parseCareerRows(html).map((r) => [r.season, r.games])).toEqual([
+      ['2019-2020', 12],
+      ['2018-2019', 23],
+    ])
+  })
+
+  it('excludes national teams, and their matches never reach a club', () => {
     const html = profile(
       seasonRow('19/20', 'Clermont', 'Top 14', '12') + clubRow('Géorgie', 'Test Matchs', '2', 'international sepClub'),
     )
-    expect(parseCareerRows(html).map((r) => r.clubName)).toEqual(['Clermont'])
+    expect(parseCareerRows(html)).toEqual([
+      { season: '2019-2020', clubName: 'Clermont', competition: 'Top 14', games: 12 },
+    ])
   })
 
-  it('keeps both clubs of a mid-season move', () => {
+  it('keeps both clubs of a mid-season move, each with its own games', () => {
     const html = profile(seasonRow('19/20', 'Clermont', 'Top 14', '12') + clubRow('Racing 92', 'Top 14', '6'))
     expect(parseCareerRows(html)).toEqual([
-      { season: '2019-2020', clubName: 'Clermont', competition: 'Top 14' },
-      { season: '2019-2020', clubName: 'Racing 92', competition: 'Top 14' },
+      { season: '2019-2020', clubName: 'Clermont', competition: 'Top 14', games: 12 },
+      { season: '2019-2020', clubName: 'Racing 92', competition: 'Top 14', games: 6 },
+    ])
+  })
+
+  it('reports null games when no line of the season has a count, not 0', () => {
+    // null = the source does not say; 0 would claim he played no match.
+    const html = profile(seasonRow('19/20', 'Clermont', 'Top 14', '') + competitionRow('Champions Cup', '-'))
+    expect(parseCareerRows(html)[0].games).toBeNull()
+  })
+
+  it('sums the lines that do have a count when others are empty', () => {
+    const html = profile(seasonRow('19/20', 'Clermont', 'Top 14', '') + competitionRow('Champions Cup', '4'))
+    expect(parseCareerRows(html)[0].games).toBe(4)
+  })
+
+  it('ignores the career-total tbodies that follow the season detail', () => {
+    const html = profile(
+      seasonRow('19/20', 'Clermont', 'Top 14', '12'),
+      seasonRow('', 'Top 14', 'Total', '12'),
+      seasonRow('', 'Clermont', 'Total', '12'),
+    )
+    expect(parseCareerRows(html)).toEqual([
+      { season: '2019-2020', clubName: 'Clermont', competition: 'Top 14', games: 12 },
     ])
   })
 

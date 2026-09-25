@@ -1,6 +1,10 @@
 import * as cheerio from 'cheerio'
 
-export type CareerRow = { season: string; clubName: string; competition: string }
+/**
+ * One membership-to-be: a season at a club. `games` fills the `memberships.games` contract —
+ * every competition line of that season at that club, summed; null when no line has a count.
+ */
+export type CareerRow = { season: string; clubName: string; competition: string; games: number | null }
 export type PlayerIdentity = { rawName: string; rawNationality: string | null }
 
 /**
@@ -70,7 +74,7 @@ function seasonToRange(text: string): string | null {
  *
  * `matches` is the table's "Matchs" column, or null when the cell is empty or unparseable.
  */
-export type CareerTableRow = CareerRow & { isInternational: boolean; matches: number | null }
+export type CareerTableRow = Omit<CareerRow, 'games'> & { isInternational: boolean; matches: number | null }
 
 /**
  * Walks the season-by-season table under `#saison_ov` on a player's allrugby.com profile
@@ -145,51 +149,55 @@ function parseCount(text: string): number | null {
 /**
  * The player's club career: one row per season+club, national teams excluded.
  *
- * Rows for the same season+club (e.g. Top 14 then Champions Cup) are deduped, keeping only
- * the first (which is always the top-tier domestic competition). International/national-team
- * rows are excluded entirely — they aren't real clubs.
+ * A season at a club is usually several lines — "Top 14: 12" then "Champions Cup: 4". They
+ * collapse into one row: `competition` is the first line's (always the top-tier domestic one),
+ * and `games` is the sum of ALL of them, because the membership contract counts every match
+ * played for that club that season. International/national-team rows are excluded entirely —
+ * they aren't clubs, and their matches are caps, read by `parseCareerStats`.
  */
 export function parseCareerRows(html: string): CareerRow[] {
   const rows: CareerRow[] = []
-  const seen = new Set<string>()
+  const bySeasonClub = new Map<string, CareerRow>()
 
   for (const row of walkCareerTable(html)) {
     if (row.isInternational) continue
 
     const key = `${row.season}||${row.clubName}`
-    if (seen.has(key)) continue
-    seen.add(key)
+    const existing = bySeasonClub.get(key)
+    if (existing) {
+      if (row.matches !== null) existing.games = (existing.games ?? 0) + row.matches
+      continue
+    }
 
-    rows.push({ season: row.season, clubName: row.clubName, competition: row.competition })
+    const created: CareerRow = {
+      season: row.season,
+      clubName: row.clubName,
+      competition: row.competition,
+      games: row.matches,
+    }
+    bySeasonClub.set(key, created)
+    rows.push(created)
   }
 
   return rows
 }
 
-/** Raw fame signals read off a profile — see src/domain/fame.ts. */
-export type CareerStats = { games: number; caps: number }
+/** Raw fame signals read off a profile that memberships cannot carry — see src/domain/fame.ts. */
+export type CareerStats = { caps: number }
 
 /**
- * Counts matches played, as the fame metric's main signal.
+ * Counts international caps: the national-team lines of the career table ("Géorgie · Test
+ * Matchs · 2"), which `parseCareerRows` drops because a country is not a club.
  *
- * Note what this sums that `parseCareerRows` throws away: EVERY competition line of a season,
- * not just the first. A season at Clermont is "Top 14: 12 matchs" plus "Champions Cup: 4
- * matchs", and both count towards how much this player was actually seen playing — whereas
- * the membership import only needs to know he was at Clermont that year.
- *
- * `caps` comes from the same table's national-team lines ("Géorgie · Test Matchs · 2"),
- * which the membership import drops because a country is not a club. They are the best
- * available fame signal on the rugby side, so they are counted rather than discarded.
+ * Club games are not counted here: they belong to each membership (`parseCareerRows`), so the
+ * fame score reads them from the same rows as the seasons they are divided by.
  */
 export function parseCareerStats(html: string): CareerStats {
-  let games = 0
   let caps = 0
 
   for (const row of walkCareerTable(html)) {
-    if (row.matches === null) continue
-    if (row.isInternational) caps += row.matches
-    else games += row.matches
+    if (row.isInternational && row.matches !== null) caps += row.matches
   }
 
-  return { games, caps }
+  return { caps }
 }

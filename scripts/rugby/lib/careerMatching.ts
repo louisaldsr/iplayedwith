@@ -61,6 +61,7 @@ export function matchCareer(
         clubId: match.clubId,
         season: row.season,
         competition: applyCompetitionFilter ? resolveCompetition(match.clubId, row.competition) : row.competition,
+        games: row.games,
       })
       if (applyCompetitionFilter && isUnmappedEuropeanCompetition(match.clubId, row.competition)) {
         // Still created above with the original (unrewritten) competition name — a real

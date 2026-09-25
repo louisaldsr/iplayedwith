@@ -10,6 +10,7 @@ import { sourceOf, type SeededMap } from './lib/playerMap'
 import { SOURCES } from './lib/sources'
 import { upsertMemberships, listMembershipsBySport, type MembershipRowInput } from '@/services/membershipsService'
 import { ServiceError } from '@/services/errors'
+import { isAfterLatestSeason, Season } from '@/domain/season'
 
 type MembershipConflictRow = {
   playerName: string
@@ -72,6 +73,7 @@ async function main() {
   let playersFailed = 0
   let competitionRowsDropped = 0
   let conflictsSkipped = 0
+  let afterLatestSeason = 0
 
   for (const [id, entry] of savedEntries) {
     playersProcessed++
@@ -92,7 +94,11 @@ async function main() {
       continue
     }
 
-    const careerRows = adapter.parseCareerRows(html)
+    // Before club matching: a season the dataset does not cover must not create memberships,
+    // nor add unmatched clubs to the manual review.
+    const allCareerRows = adapter.parseCareerRows(html)
+    const careerRows = allCareerRows.filter((row) => !isAfterLatestSeason(Season(row.season)))
+    afterLatestSeason += allCareerRows.length - careerRows.length
     const {
       rows,
       manualReviewRows: newManualReviewRows,
@@ -143,7 +149,8 @@ async function main() {
   console.log(
     `Done${dryRun ? ' (dry run, no DB writes)' : ''}. players=${playersProcessed} ` +
       `memberships=${membershipsUpserted} failed=${playersFailed} manualReview=${manualReviewRows.length} ` +
-      `competitionRowsDropped=${competitionRowsDropped} conflictsSkipped=${conflictsSkipped}`,
+      `competitionRowsDropped=${competitionRowsDropped} conflictsSkipped=${conflictsSkipped} ` +
+      `afterLatestSeason=${afterLatestSeason}`,
   )
   console.log(`Manual review rows written to ${manualReviewPath}`)
   console.log(`Membership conflicts written to ${conflictsPath}`)

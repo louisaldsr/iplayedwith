@@ -28,3 +28,22 @@ export function isSeason(raw: string): raw is Season {
   const [start, end] = raw.split('-').map(Number)
   return end === start + 1
 }
+
+/**
+ * The last season the dataset covers — the same for every sport.
+ *
+ * Sources keep publishing the season in progress (a scraped site adds each round as it is
+ * played), but a season that has barely started is not comparable with the finished ones: a
+ * club's squad is a handful of names, every game count is tiny, and nothing else in the
+ * database reaches it. So memberships stop here, and every import skips what comes after.
+ *
+ * Moving the dataset forward is a deliberate step: bump this, then re-run the imports.
+ */
+export const LATEST_SEASON = Season('2025-2026')
+
+/** True when `season` starts after `LATEST_SEASON` — i.e. it is out of the dataset. */
+export function isAfterLatestSeason(season: Season): boolean {
+  return startYear(season) > startYear(LATEST_SEASON)
+}
+
+const startYear = (season: Season): number => Number(season.slice(0, 4))

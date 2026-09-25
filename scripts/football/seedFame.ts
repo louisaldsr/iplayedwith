@@ -4,19 +4,20 @@ import { getDb } from '../common/env'
 import { PLAYERS_SEEDED_PATH, loadFootballDataset, loadSeededIds } from './lib/seed'
 
 /**
- * Step 5 of the football pipeline: writes each player's fame signals, then refreshes the
- * season counts.
+ * Step 5 of the football pipeline: writes each player's international caps as fame signals.
+ *
+ * Only caps: games played live on `memberships` (written by `seedMemberships`), where the score
+ * reads them alongside the seasons they are divided by.
  *
  * A step of its own rather than part of `seedPlayers`, because players are INSERTed once and
  * reattached from the id map on a re-run — so a signal written inside that step would never be
  * refreshed. Here, re-running is the point: the signals are overwritten every time, which is
  * what "recompute on each data import" means.
  *
- * Run it AFTER `seedMemberships` — the season refresh reads the memberships table, so running
- * it on an empty one leaves everyone at `seasons: 0` and drops the intensity term of the score.
  *
- * No progress file — one RPC per 1000 players, and re-running rewrites the same values.
- * `players.fame` is a generated column, so it follows each write with no recompute step.
+ * No progress file — one RPC per 1000 players, and re-running rewrites the same values. This
+ * step writes `player_fame.details` only; the score is derived from it separately and stays
+ * NULL until that runs.
  */
 async function main() {
   const dryRun = process.argv.includes('--dry-run')
@@ -36,12 +37,12 @@ async function main() {
       unresolved.push(player.transfermarktId)
       continue
     }
-    // A dataset built before these fields existed has no `games`/`caps` key at all; that would
-    // read as 0 here and quietly score every player as if they had never played.
-    if (player.games === undefined || player.caps === undefined) {
-      throw new Error('The dataset carries no fame signals — it predates them. Re-run "npm run seed:football:build".')
+    // A dataset built before caps existed has no `caps` key at all; that would read as 0 here
+    // and quietly score every player as uncapped.
+    if (player.caps === undefined) {
+      throw new Error('The dataset carries no caps — it predates them. Re-run "npm run seed:football:build".')
     }
-    rows.push({ playerId, gamesPlayed: player.games, caps: player.caps })
+    rows.push({ playerId, caps: player.caps })
   }
 
   if (unresolved.length > 0) {
@@ -50,10 +51,9 @@ async function main() {
     )
   }
 
-  const withGames = rows.filter((r) => r.gamesPlayed > 0).length
   const withCaps = rows.filter((r) => r.caps > 0).length
   console.log(
-    `${rows.length} players resolved — games>0 for ${withGames}, caps>0 for ${withCaps} ` +
+    `${rows.length} players resolved — caps>0 for ${withCaps} ` +
       `(${((100 * withCaps) / Math.max(rows.length, 1)).toFixed(1)}%).`,
   )
 
@@ -63,8 +63,8 @@ async function main() {
   }
 
   try {
-    const { written, seasonsRefreshed } = await importFameDetails(getDb(), 'football', rows)
-    console.log(`Done. details written=${written}, season counts refreshed=${seasonsRefreshed}`)
+    const { written } = await importFameDetails(getDb(), 'football', rows)
+    console.log(`Done. details written=${written}`)
   } catch (err) {
     throw new Error(`Failed to import fame: ${err instanceof ServiceError ? err.message : String(err)}`)
   }

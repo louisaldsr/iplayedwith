@@ -1,4 +1,4 @@
-import { Season } from '@/domain/season'
+import { isAfterLatestSeason, Season } from '@/domain/season'
 import { alpha2ForEnglishCountryName } from '../../common/nationalities'
 import type { Appearance, Club, Game, Player } from './transfermarktDataset'
 
@@ -33,14 +33,18 @@ export function clubLogoUrl(clubId: string): string {
 
 /**
  * Dataset seasons are the starting year as a string ("2012" is the 2012/13 season);
- * the domain's `Season` is "YYYY-YYYY". Returns null for an unparseable year or one
- * before `FIRST_SEASON_YEAR`, which is how out-of-scope rows get filtered out.
+ * the domain's `Season` is "YYYY-YYYY". Returns null for an unparseable year, one before
+ * `FIRST_SEASON_YEAR`, or one after `LATEST_SEASON` — which is how out-of-scope rows get
+ * filtered out.
  */
 export function seasonFromDatasetYear(raw: string): Season | null {
   if (!/^\d{4}$/.test(raw)) return null
   const year = Number(raw)
   if (year < FIRST_SEASON_YEAR) return null
-  return Season(`${year}-${year + 1}`)
+  const season = Season(`${year}-${year + 1}`)
+  // Upper bound, shared by every sport: a season after it produces no membership, so no club
+  // or player is emitted for it either.
+  return isAfterLatestSeason(season) ? null : season
 }
 
 const clubSeasonKey = (clubId: string, season: string) => `${clubId}||${season}`
@@ -90,16 +94,21 @@ export type DerivedMembership = {
   clubTransfermarktId: string
   season: Season
   competition: string | null
+  /** Appearances for this club in this season — the `memberships.games` contract. */
+  games: number
 }
 
 /**
  * Folds appearances (one row per player per game played) into distinct
- * (player, club, season) memberships — the unit the game's graph is built from.
+ * (player, club, season) memberships — the unit the game's graph is built from — counting
+ * the appearances of each one as its `games`.
  *
  * A player who moved mid-season legitimately produces two memberships for that season,
- * one per club; the memberships primary key is (player_id, club_id, season), so both
- * are kept. Appearances for clubs outside the Big-5 scope are ignored, as are games in
- * seasons before `FIRST_SEASON_YEAR`.
+ * one per club, each with its own count; the memberships primary key is
+ * (player_id, club_id, season), so both are kept. Appearances for clubs outside the Big-5
+ * scope are ignored, as are games in seasons before `FIRST_SEASON_YEAR` — the same filter
+ * decides both whether a membership exists and what its games are, so the two can never
+ * describe different scopes.
  */
 export function createMembershipCollector(index: GameIndex) {
   const seen = new Map<string, DerivedMembership>()
@@ -111,13 +120,18 @@ export function createMembershipCollector(index: GameIndex) {
       if (!season) return
 
       const key = `${appearance.playerId}||${appearance.playerClubId}||${season}`
-      if (seen.has(key)) return
+      const existing = seen.get(key)
+      if (existing) {
+        existing.games++
+        return
+      }
 
       seen.set(key, {
         playerTransfermarktId: appearance.playerId,
         clubTransfermarktId: appearance.playerClubId,
         season,
         competition: index.domesticLeagueByClubSeason.get(clubSeasonKey(appearance.playerClubId, season)) ?? null,
+        games: 1,
       })
     },
     /** Distinct memberships, ordered for a stable, diffable output file. */
@@ -132,39 +146,12 @@ export function createMembershipCollector(index: GameIndex) {
   }
 }
 
-/**
- * Counts how many games each player actually played, as the fame metric's main signal.
- *
- * Deliberately applies the SAME scope filters as `createMembershipCollector`, off the same
- * single pass over the 1.9M-row appearances table: a game only counts if it is one the graph
- * could be built from. Counting out-of-scope appearances would rate a player on a career the
- * game knows nothing about — a Bundesliga 2 veteran would outrank a Premier League regular
- * while being unreachable in every puzzle.
- *
- * Unlike memberships, appearances are NOT deduped: three games in a season is three games.
- */
-export function createAppearanceCounter(index: GameIndex) {
-  const gamesByPlayer = new Map<string, number>()
-
-  return {
-    add(appearance: Appearance) {
-      if (!index.big5ClubIds.has(appearance.playerClubId)) return
-      if (!index.seasonByGameId.has(appearance.gameId)) return
-      gamesByPlayer.set(appearance.playerId, (gamesByPlayer.get(appearance.playerId) ?? 0) + 1)
-    },
-    result(): Map<string, number> {
-      return gamesByPlayer
-    },
-  }
-}
-
 export type DatasetClub = { transfermarktId: string; name: string; logoUrl: string }
 export type DatasetPlayer = {
   transfermarktId: string
   name: string
   nationality: string | null
-  /** Fame signals — see src/domain/fame.ts. */
-  games: number
+  /** Fame signal memberships cannot carry — see src/domain/fame.ts. */
   caps: number
 }
 export type FootballDataset = {
@@ -189,7 +176,6 @@ export function buildDataset(
   memberships: DerivedMembership[],
   clubsById: Map<string, Club>,
   playersById: Map<string, Player>,
-  gamesByPlayer: Map<string, number> = new Map(),
 ): { dataset: FootballDataset; warnings: BuildWarning[] } {
   const warnings: BuildWarning[] = []
   const clubIds = new Set(memberships.map((m) => m.clubTransfermarktId))
@@ -226,7 +212,6 @@ export function buildDataset(
       transfermarktId: playerId,
       name: player.name,
       nationality,
-      games: gamesByPlayer.get(playerId) ?? 0,
       caps: player.caps,
     })
   }

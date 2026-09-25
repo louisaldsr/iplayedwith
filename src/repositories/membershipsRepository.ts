@@ -5,21 +5,50 @@ import { Season } from '@/domain/season'
 import { SportId } from '@/domain/sport'
 import { fetchAllRows } from '@/lib/supabasePagination'
 
-type UpsertRow = { playerId: PlayerId; clubId: ClubId; season: Season; sport: SportId; competition?: string }
+type UpsertRow = {
+  playerId: PlayerId
+  clubId: ClubId
+  season: Season
+  sport: SportId
+  competition?: string
+  games?: number | null
+}
 
+/**
+ * Upserts on (player_id, club_id, season).
+ *
+ * `games` is written only for the rows that carry the key. An upsert updates exactly the
+ * columns present in its payload, so a row sent WITHOUT `games` keeps its stored value — which
+ * is what stops a writer that knows nothing about games (the admin form) from erasing what an
+ * import wrote. Rows with and without the key are therefore sent as two separate requests:
+ * mixed in one payload, PostgREST would fill the missing key with NULL.
+ */
 export async function upsertMany(db: SupabaseClient, rows: UpsertRow[]): Promise<Membership[]> {
+  const withGames = rows.filter((r) => r.games !== undefined)
+  const withoutGames = rows.filter((r) => r.games === undefined)
+
+  const written: Membership[] = []
+  for (const group of [withGames, withoutGames]) {
+    if (group.length === 0) continue
+    written.push(...(await upsertGroup(db, group)))
+  }
+  return written
+}
+
+async function upsertGroup(db: SupabaseClient, rows: UpsertRow[]): Promise<Membership[]> {
   const payload = rows.map((r) => ({
     player_id: r.playerId,
     club_id: r.clubId,
     season: r.season,
     sport: r.sport,
     competition: r.competition ?? null,
+    ...(r.games !== undefined && { games: r.games }),
   }))
 
   const { data, error } = await db
     .from('memberships')
     .upsert(payload, { onConflict: 'player_id,club_id,season' })
-    .select('player_id, club_id, season, competition')
+    .select('player_id, club_id, season, competition, games')
 
   if (error) throw new Error(error.message)
 
@@ -28,6 +57,7 @@ export async function upsertMany(db: SupabaseClient, rows: UpsertRow[]): Promise
     clubId: ClubId(r.club_id),
     season: r.season as Season,
     competition: r.competition ?? undefined,
+    games: r.games,
   }))
 }
 

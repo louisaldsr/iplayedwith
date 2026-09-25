@@ -14,6 +14,11 @@ async function main() {
   const dryRun = process.argv.includes('--dry-run')
 
   const dataset = loadFootballDataset()
+  // A dataset built before memberships carried games has no `games` key at all. Seeding it
+  // would write NULL everywhere and silently drop the signal, so stop and say how to fix it.
+  if (dataset.memberships.some((m) => m.games === undefined)) {
+    throw new Error('The dataset predates membership games. Re-run "npm run seed:football:build".')
+  }
   const clubIds = loadSeededIds(CLUBS_SEEDED_PATH)
   const playerIds = loadSeededIds(PLAYERS_SEEDED_PATH)
 
@@ -37,6 +42,7 @@ async function main() {
       clubId,
       season: membership.season,
       competition: membership.competition ?? undefined,
+      games: membership.games,
     })
   }
 

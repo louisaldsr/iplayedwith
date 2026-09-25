@@ -30,15 +30,17 @@ async function main() {
     process.exit(1)
   }
 
-  const scored = players.filter((p) => p.fame !== null)
+  const scored = players.filter((p) => p.score !== null)
   const unscored = players.length - scored.length
 
   console.log(`\n=== ${sportArg} — ${players.length} players ===\n`)
 
   // Coverage first: a clean-looking distribution over signals nobody wrote is the trap to catch.
-  const withGames = players.filter((p) => (p.details.gamesPlayed ?? 0) > 0).length
+  // Games and seasons come from memberships, exactly as the score will read them.
+  const withGames = players.filter((p) => (p.games ?? 0) > 0).length
+  const gamesUnknown = players.filter((p) => p.seasons > 0 && p.games === null).length
   const withCaps = players.filter((p) => (p.details.caps ?? 0) > 0).length
-  const noMemberships = players.filter((p) => (p.details.seasons ?? 0) === 0).length
+  const noMemberships = players.filter((p) => p.seasons === 0).length
   const pct = (n: number) => `${((100 * n) / players.length).toFixed(1)}%`
 
   // The most recent import stamps every row it touched with the same `updatedAt`; anything
@@ -51,6 +53,9 @@ async function main() {
   console.log(`  scored (fame not null)      : ${scored.length} (${pct(scored.length)})`)
   console.log(`  never imported              : ${unscored} (${pct(unscored)})`)
   console.log(`  games > 0                   : ${withGames} (${pct(withGames)})`)
+  // Memberships exist but no import has said how many games — the membership import predates
+  // `memberships.games`, or the source has no count. Re-running that import fixes the former.
+  console.log(`  memberships, games unknown  : ${gamesUnknown} (${pct(gamesUnknown)})`)
   console.log(`  international caps > 0      : ${withCaps} (${pct(withCaps)})`)
   // Scored but unreachable in a puzzle: a career, but no membership landed — usually club-name
   // matching failing during the import. A health check on the import as much as on fame.
@@ -62,10 +67,10 @@ async function main() {
     process.exit(1)
   }
 
-  const sorted = [...scored].sort((a, b) => (b.fame ?? 0) - (a.fame ?? 0))
+  const sorted = [...scored].sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
 
   const deciles = new Array(10).fill(0)
-  for (const p of scored) deciles[Math.min(9, Math.floor((p.fame ?? 0) / 10))]++
+  for (const p of scored) deciles[Math.min(9, Math.floor((p.score ?? 0) / 10))]++
   const maxDecile = Math.max(...deciles)
   console.log('\nDistribution')
   deciles.forEach((count, i) => {
@@ -79,9 +84,9 @@ async function main() {
   console.log('   most players have a handful of games and no cap)')
 
   const line = (p: (typeof sorted)[number], rank: number) =>
-    `  ${String(rank).padStart(5)}. ${String(p.fame).padStart(3)}  ${p.name.padEnd(28).slice(0, 28)} ` +
-    `games=${String(p.details.gamesPlayed ?? 0).padStart(4)} caps=${String(p.details.caps ?? 0).padStart(3)} ` +
-    `seasons=${String(p.details.seasons ?? 0).padStart(2)}`
+    `  ${String(rank).padStart(5)}. ${String(p.score).padStart(3)}  ${p.name.padEnd(28).slice(0, 28)} ` +
+    `games=${String(p.games ?? '-').padStart(4)} caps=${String(p.details.caps ?? 0).padStart(3)} ` +
+    `seasons=${String(p.seasons).padStart(2)}`
 
   console.log(`\nTop ${TOP_N} — these should be household names`)
   sorted.slice(0, TOP_N).forEach((p, i) => console.log(line(p, i + 1)))

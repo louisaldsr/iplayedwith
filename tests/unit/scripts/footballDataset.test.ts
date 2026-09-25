@@ -1,12 +1,12 @@
 import {
   buildDataset,
   clubLogoUrl,
-  createAppearanceCounter,
   createMembershipCollector,
   indexGames,
   seasonFromDatasetYear,
 } from '../../../scripts/football/lib/dataset'
 import type { Appearance, Club, Game, Player } from '../../../scripts/football/lib/transfermarktDataset'
+import { LATEST_SEASON } from '@/domain/season'
 
 const game = (gameId: string, competitionId: string, season: string, homeClubId: string, awayClubId: string): Game => ({
   gameId,
@@ -48,6 +48,12 @@ describe('seasonFromDatasetYear', () => {
     expect(seasonFromDatasetYear('2000')).toBeNull()
   })
 
+  it('rejects seasons after the latest season covered, and keeps that season itself', () => {
+    const latestStart = Number(LATEST_SEASON.slice(0, 4))
+    expect(seasonFromDatasetYear(String(latestStart))).toBe(LATEST_SEASON)
+    expect(seasonFromDatasetYear(String(latestStart + 1))).toBeNull()
+  })
+
   it('rejects malformed years', () => {
     expect(seasonFromDatasetYear('')).toBeNull()
     expect(seasonFromDatasetYear('20/21')).toBeNull()
@@ -84,10 +90,17 @@ describe('createMembershipCollector', () => {
     return collector.result()
   }
 
-  it('folds repeated appearances for one club-season into a single membership', () => {
+  it('folds the appearances of one club-season into a single membership, counting them as games', () => {
+    // g1 twice: the source has one row per player per game, so a repeated row is two games.
     const rows = collect([appearance('p1', 'c1', 'g1'), appearance('p1', 'c1', 'g1'), appearance('p1', 'c1', 'g2')])
     expect(rows).toEqual([
-      { playerTransfermarktId: 'p1', clubTransfermarktId: 'c1', season: '2015-2016', competition: 'Premier League' },
+      {
+        playerTransfermarktId: 'p1',
+        clubTransfermarktId: 'c1',
+        season: '2015-2016',
+        competition: 'Premier League',
+        games: 3,
+      },
     ])
   })
 
@@ -99,22 +112,36 @@ describe('createMembershipCollector', () => {
   it('counts a cup-only appearance as a membership, labelled with the domestic league', () => {
     const rows = collect([appearance('p2', 'c1', 'g2')])
     expect(rows).toEqual([
-      { playerTransfermarktId: 'p2', clubTransfermarktId: 'c1', season: '2015-2016', competition: 'Premier League' },
+      {
+        playerTransfermarktId: 'p2',
+        clubTransfermarktId: 'c1',
+        season: '2015-2016',
+        competition: 'Premier League',
+        games: 1,
+      },
     ])
   })
 
   it('leaves the competition null when the club played no domestic league game that season', () => {
     const rows = collect([appearance('p7', 'c3', 'g8')])
     expect(rows).toEqual([
-      { playerTransfermarktId: 'p7', clubTransfermarktId: 'c3', season: '2015-2016', competition: null },
+      { playerTransfermarktId: 'p7', clubTransfermarktId: 'c3', season: '2015-2016', competition: null, games: 1 },
     ])
   })
 
-  it('keeps both clubs for a player who moved mid-season', () => {
-    const rows = collect([appearance('p4', 'c2', 'g1'), appearance('p4', 'c1', 'g7')])
-    expect(rows).toEqual([
-      { playerTransfermarktId: 'p4', clubTransfermarktId: 'c1', season: '2015-2016', competition: 'Premier League' },
-      { playerTransfermarktId: 'p4', clubTransfermarktId: 'c2', season: '2015-2016', competition: 'Premier League' },
+  it('keeps both clubs for a player who moved mid-season, each with its own games', () => {
+    const rows = collect([appearance('p4', 'c2', 'g1'), appearance('p4', 'c2', 'g1'), appearance('p4', 'c1', 'g7')])
+    expect(rows.map((r) => [r.clubTransfermarktId, r.season, r.games])).toEqual([
+      ['c1', '2015-2016', 1],
+      ['c2', '2015-2016', 2],
+    ])
+  })
+
+  it('counts games separately for each season at the same club', () => {
+    const rows = collect([appearance('p1', 'c1', 'g1'), appearance('p1', 'c1', 'g2'), appearance('p1', 'c1', 'g6')])
+    expect(rows.map((r) => [r.season, r.games])).toEqual([
+      ['2015-2016', 2],
+      ['2016-2017', 1],
     ])
   })
 
@@ -128,56 +155,6 @@ describe('createMembershipCollector', () => {
 
   it('ignores appearances whose game is unknown', () => {
     expect(collect([appearance('p1', 'c1', 'missing-game')])).toEqual([])
-  })
-})
-
-describe('createAppearanceCounter', () => {
-  const count = (appearances: Appearance[]) => {
-    const counter = createAppearanceCounter(indexGames(GAMES))
-    appearances.forEach((a) => counter.add(a))
-    return counter.result()
-  }
-
-  it('counts every game, unlike memberships which fold them', () => {
-    const games = count([appearance('p1', 'c1', 'g1'), appearance('p1', 'c1', 'g2'), appearance('p1', 'c1', 'g3')])
-    expect(games.get('p1')).toBe(3)
-  })
-
-  it('counts a repeated appearance row twice — the source has one row per player per game', () => {
-    expect(count([appearance('p1', 'c1', 'g1'), appearance('p1', 'c1', 'g1')]).get('p1')).toBe(2)
-  })
-
-  it('sums a season at one club and a season at another', () => {
-    expect(count([appearance('p4', 'c2', 'g1'), appearance('p4', 'c1', 'g7')]).get('p4')).toBe(2)
-  })
-
-  it('applies the same scope filters as the membership collector', () => {
-    // Out-of-scope club, pre-2012 season, unknown game — none may count, or a player would be
-    // rated on a career the graph knows nothing about.
-    const games = count([
-      appearance('p3', 'c9', 'g2'),
-      appearance('p5', 'c1', 'g4'),
-      appearance('p1', 'c1', 'missing-game'),
-    ])
-    expect(games.size).toBe(0)
-  })
-
-  it('agrees with the membership collector on which appearances are in scope', () => {
-    const appearances = [
-      appearance('p1', 'c1', 'g1'),
-      appearance('p1', 'c1', 'g4'), // pre-2012
-      appearance('p3', 'c9', 'g2'), // out of scope club
-      appearance('p7', 'c3', 'g8'),
-    ]
-    const collector = createMembershipCollector(indexGames(GAMES))
-    const counter = createAppearanceCounter(indexGames(GAMES))
-    appearances.forEach((a) => {
-      collector.add(a)
-      counter.add(a)
-    })
-    expect([...counter.result().keys()].sort()).toEqual(
-      [...new Set(collector.result().map((m) => m.playerTransfermarktId))].sort(),
-    )
   })
 })
 
@@ -203,24 +180,13 @@ describe('buildDataset', () => {
     clubTransfermarktId,
     season: '2015-2016' as never,
     competition: 'Premier League',
+    games: 1,
   })
 
   it('emits only the clubs and players its memberships reference, with crest urls', () => {
     const { dataset } = buildDataset([membership('p1', 'c1')], clubs, players)
     expect(dataset.clubs).toEqual([{ transfermarktId: 'c1', name: 'Arsenal FC', logoUrl: clubLogoUrl('c1') }])
-    expect(dataset.players).toEqual([
-      { transfermarktId: 'p1', name: 'Alex Iwobi', nationality: 'NG', games: 0, caps: 77 },
-    ])
-  })
-
-  it('attaches each player their game count', () => {
-    const { dataset } = buildDataset([membership('p1', 'c1')], clubs, players, new Map([['p1', 142]]))
-    expect(dataset.players[0]).toMatchObject({ games: 142, caps: 77 })
-  })
-
-  it('stores zero games for a player the counter never saw', () => {
-    const { dataset } = buildDataset([membership('p2', 'c1')], clubs, players, new Map([['p1', 142]]))
-    expect(dataset.players[0]).toMatchObject({ games: 0, caps: 0 })
+    expect(dataset.players).toEqual([{ transfermarktId: 'p1', name: 'Alex Iwobi', nationality: 'NG', caps: 77 }])
   })
 
   it('maps Transfermarkt country spellings to alpha-2 codes', () => {

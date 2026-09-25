@@ -3,12 +3,49 @@ import * as playersRepo from '@/repositories/playersRepository'
 import * as clubsRepo from '@/repositories/clubsRepository'
 import * as membershipsRepo from '@/repositories/membershipsRepository'
 import { ClubId, PlayerId } from '@/domain/ids'
-import { Season } from '@/domain/season'
+import { isAfterLatestSeason, LATEST_SEASON, Season } from '@/domain/season'
 import { SportId } from '@/domain/sport'
 import { Membership } from '@/domain/membership'
 import { NotFoundError, ValidationError } from '@/services/errors'
 
-export type MembershipRowInput = { clubId: string; season: string; competition?: string }
+/**
+ * `games` follows the contract on `Membership.games`. Leaving it out (undefined) means "this
+ * writer has nothing to say about games": the stored value is kept, so a writer that does not
+ * know about games — the admin form — cannot erase what an import wrote. Passing `null`
+ * explicitly writes NULL ("the source does not say").
+ */
+export type MembershipRowInput = { clubId: string; season: string; competition?: string; games?: number | null }
+
+/**
+ * A per-club-season count above this is a parsing bug, not a season.
+ *
+ * Set above the longest season of any team sport (baseball: 162 regular-season games plus a
+ * postseason), so it never rejects a real row whatever the sport. What it catches is a column
+ * shifting by one in a scraped table or a CSV — minutes played landing in `games` would be in
+ * the thousands.
+ */
+const MAX_PLAUSIBLE_GAMES_PER_SEASON = 250
+
+/**
+ * Rejects a season the dataset does not cover. The import scripts filter those rows out before
+ * they get here; this is the net under them, and what gives the admin form a clear message.
+ */
+function checkWithinDataset(season: Season, label: string): Season {
+  if (isAfterLatestSeason(season)) {
+    throw new ValidationError(`${label}: season ${season} is after the latest season covered (${LATEST_SEASON})`)
+  }
+  return season
+}
+
+function parseGames(value: number | null | undefined, label: string): number | null | undefined {
+  if (value === undefined || value === null) return value
+  if (!Number.isInteger(value)) throw new ValidationError(`${label}: expected a whole number, got ${value}`)
+  if (value < 0) throw new ValidationError(`${label}: must not be negative, got ${value}`)
+  if (value > MAX_PLAUSIBLE_GAMES_PER_SEASON) {
+    throw new ValidationError(`${label}: ${value} games in one season is implausible — check the source column`)
+  }
+  return value
+}
 
 /**
  * Validates each season and that every referenced club plays the same sport as the player,
@@ -31,8 +68,10 @@ export async function upsertMemberships(
     } catch (err) {
       throw new ValidationError(`row ${i}: ${(err as Error).message}`)
     }
+    checkWithinDataset(season, `row ${i}`)
     const competition = row.competition?.trim() || undefined
-    return { playerId, clubId: ClubId(row.clubId), season, sport: player.sport, competition }
+    const games = parseGames(row.games, `row ${i}: games`)
+    return { playerId, clubId: ClubId(row.clubId), season, sport: player.sport, competition, games }
   })
 
   const clubIds = [...new Set(parsed.map((m) => m.clubId))]
@@ -91,6 +130,7 @@ export async function upsertMembershipsBulk(
     } catch (err) {
       throw new ValidationError(`row ${i}: ${(err as Error).message}`)
     }
+    checkWithinDataset(season, `row ${i}`)
 
     return {
       playerId: PlayerId(row.playerId),
@@ -98,6 +138,7 @@ export async function upsertMembershipsBulk(
       season,
       sport,
       competition: row.competition?.trim() || undefined,
+      games: parseGames(row.games, `row ${i}: games`),
     }
   })
 

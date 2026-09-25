@@ -147,8 +147,8 @@ export type FameDetailsRow = { playerId: PlayerId; details: ImportedFameDetails 
  * `upsert`, and an upsert here would have to restate `name` and `sport` on every row — so a
  * stale import would silently overwrite a player's identity with what it happens to believe.
  *
- * Note what is NOT here: nothing recomputes the score afterwards. `players.fame` is a
- * generated column, so it is recalculated by this very statement.
+ * Note what is NOT here: nothing computes the score afterwards. `player_fame.score` is written
+ * by a separate step and stays NULL until it runs — the signals land first.
  * See supabase/migrations/010_player_fame.sql.
  */
 export async function applyFameDetails(db: SupabaseClient, sport: SportId, rows: FameDetailsRow[]): Promise<number> {
@@ -165,42 +165,79 @@ export async function applyFameDetails(db: SupabaseClient, sport: SportId, rows:
   return updated
 }
 
-/**
- * Recounts each player's distinct seasons from `memberships` and writes them into the bag.
- *
- * Separate from `applyFameDetails` because the two have different sources: an import knows a
- * player's match and cap counts, but the season count belongs to the memberships table — the
- * very data the game's graph is built from, so deriving it here keeps the two from diverging.
- * Run it after memberships land.
- */
-export async function refreshFameSeasons(db: SupabaseClient, sport: SportId): Promise<number> {
-  const { data, error } = await db.rpc('refresh_fame_seasons', { p_sport: sport })
-  if (error) throw new Error(error.message)
-  return typeof data === 'number' ? data : 0
-}
-
 export type PlayerFame = {
   id: PlayerId
   name: string
-  fame: number | null
+  /** `player_fame.score`, NULL for every player until the formula step has run. */
+  score: number | null
   details: FameDetails
+  /** Sum of `memberships.games`; null when no membership of this player has a count. */
+  games: number | null
+  /** Distinct seasons across the player's memberships; 0 means unreachable in any puzzle. */
+  seasons: number
 }
 
 /**
- * The whole sport's scores, for the `fame:report` CLI.
+ * The whole sport's signals and scores, for the `fame:report` CLI.
  *
  * Server-side callers only, like `listBySport` — this is the one read path that exists for
  * fame, and it exists so the metric can be eyeballed before the game depends on it.
+ *
+ * Separate queries joined in memory rather than PostgREST embeds: the links to `players` are
+ * COMPOSITE foreign keys on (player_id, sport), which embedding can only follow with an
+ * explicit constraint hint and is easy to get subtly wrong. This runs from a CLI, a handful of
+ * times a year, so the extra round trips buy certainty cheaply.
+ *
+ * Games and seasons are aggregated here from `memberships`, the same way the score will read
+ * them — never from `details`, which does not carry them.
+ *
+ * Driven from `players`: a player with no signals row or no memberships is exactly what the
+ * report needs to count, and starting from either other table would hide them.
  */
 export async function listFameBySport(db: SupabaseClient, sport: SportId): Promise<PlayerFame[]> {
-  type Row = { id: string; name: string; fame: number | null; fame_details: unknown }
-  const rows = await fetchAllRows<Row>((from, to) =>
-    db.from('players').select('id, name, fame, fame_details').eq('sport', sport).order('id').range(from, to),
-  )
-  return rows.map((row) => ({
-    id: PlayerId(row.id),
-    name: row.name,
-    fame: row.fame,
-    details: parseFameDetails(row.fame_details),
-  }))
+  type PlayerRow = { id: string; name: string }
+  type FameRow = { player_id: string; score: number | null; details: unknown }
+  type MembershipRow = { player_id: string; season: string; games: number | null }
+
+  const [players, fame, memberships] = await Promise.all([
+    fetchAllRows<PlayerRow>((from, to) =>
+      db.from('players').select('id, name').eq('sport', sport).order('id').range(from, to),
+    ),
+    fetchAllRows<FameRow>((from, to) =>
+      db.from('player_fame').select('player_id, score, details').eq('sport', sport).order('player_id').range(from, to),
+    ),
+    fetchAllRows<MembershipRow>((from, to) =>
+      db
+        .from('memberships')
+        .select('player_id, season, games')
+        .eq('sport', sport)
+        .order('player_id')
+        .order('club_id')
+        .order('season')
+        .range(from, to),
+    ),
+  ])
+
+  const signalsByPlayerId = new Map(fame.map((row) => [row.player_id, row]))
+
+  const careerByPlayerId = new Map<string, { games: number | null; seasons: Set<string> }>()
+  for (const m of memberships) {
+    const career = careerByPlayerId.get(m.player_id) ?? { games: null, seasons: new Set<string>() }
+    if (m.games !== null) career.games = (career.games ?? 0) + m.games
+    career.seasons.add(m.season)
+    careerByPlayerId.set(m.player_id, career)
+  }
+
+  return players.map((row) => {
+    const signals = signalsByPlayerId.get(row.id)
+    const career = careerByPlayerId.get(row.id)
+    return {
+      id: PlayerId(row.id),
+      name: row.name,
+      score: signals?.score ?? null,
+      details: parseFameDetails(signals?.details),
+      games: career?.games ?? null,
+      seasons: career?.seasons.size ?? 0,
+    }
+  })
 }

@@ -50,12 +50,16 @@ function request(over: Partial<MoveRequest> & Pick<MoveRequest, 'move'>): MoveRe
 describe('applyMove — easy mode', () => {
   it('accepts a player sharing a club-season with someone already in the graph', async () => {
     // p01 and p02 both played Stade Toulousain 2022-2023.
-    const result = await applyMove(db, 'rugby', request({
-      playerAId: 'p01',
-      playerBId: 'p07',
-      graph: newGraph('p01', 'p07'),
-      move: { kind: 'easy', playerId: PlayerId('p02') },
-    }))
+    const result = await applyMove(
+      db,
+      'rugby',
+      request({
+        playerAId: 'p01',
+        playerBId: 'p07',
+        graph: newGraph('p01', 'p07'),
+        move: { kind: 'easy', playerId: PlayerId('p02') },
+      }),
+    )
 
     expect(result.ok).toBe(true)
     if (result.ok) {
@@ -74,21 +78,29 @@ describe('applyMove — easy mode', () => {
 
   it('rejects a player with no shared club-season', async () => {
     // p11 is Toulon only; p01 (Toulouse) and p07 (Bordeaux) never played there.
-    const result = await applyMove(db, 'rugby', request({
-      playerAId: 'p01',
-      playerBId: 'p07',
-      graph: newGraph('p01', 'p07'),
-      move: { kind: 'easy', playerId: PlayerId('p11') },
-    }))
+    const result = await applyMove(
+      db,
+      'rugby',
+      request({
+        playerAId: 'p01',
+        playerBId: 'p07',
+        graph: newGraph('p01', 'p07'),
+        move: { kind: 'easy', playerId: PlayerId('p11') },
+      }),
+    )
 
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.reason).toMatch(/ne partage aucun club/)
   })
 
   it('rejects a player already in the graph', async () => {
-    const result = await applyMove(db, 'rugby', request({
-      move: { kind: 'easy', playerId: PlayerId('p01') },
-    }))
+    const result = await applyMove(
+      db,
+      'rugby',
+      request({
+        move: { kind: 'easy', playerId: PlayerId('p01') },
+      }),
+    )
 
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.reason).toMatch(/déjà dans le graphe/)
@@ -96,12 +108,16 @@ describe('applyMove — easy mode', () => {
 
   it('reports victory and the path once A and B are connected', async () => {
     // p01 and p02 share Toulouse 2022-2023; p03 does too, bridging them.
-    const result = await applyMove(db, 'rugby', request({
-      playerAId: 'p01',
-      playerBId: 'p02',
-      graph: newGraph('p01', 'p02'),
-      move: { kind: 'easy', playerId: PlayerId('p03') },
-    }))
+    const result = await applyMove(
+      db,
+      'rugby',
+      request({
+        playerAId: 'p01',
+        playerBId: 'p02',
+        graph: newGraph('p01', 'p02'),
+        move: { kind: 'easy', playerId: PlayerId('p03') },
+      }),
+    )
 
     expect(result.ok).toBe(true)
     if (result.ok) {
@@ -114,13 +130,17 @@ describe('applyMove — easy mode', () => {
 
 describe('applyMove — hard mode', () => {
   it('accepts a club-season an existing player played at', async () => {
-    const result = await applyMove(db, 'rugby', request({
-      playerAId: 'p01',
-      playerBId: 'p07',
-      difficulty: 'hard',
-      graph: newGraph('p01', 'p07'),
-      move: { kind: 'hard-club', clubId: ClubId('stade-toulousain'), season: Season('2022-2023') },
-    }))
+    const result = await applyMove(
+      db,
+      'rugby',
+      request({
+        playerAId: 'p01',
+        playerBId: 'p07',
+        difficulty: 'hard',
+        graph: newGraph('p01', 'p07'),
+        move: { kind: 'hard-club', clubId: ClubId('stade-toulousain'), season: Season('2022-2023') },
+      }),
+    )
 
     expect(result.ok).toBe(true)
     if (result.ok) {
@@ -133,26 +153,34 @@ describe('applyMove — hard mode', () => {
   })
 
   it('rejects a club-season no player in the graph played at', async () => {
-    const result = await applyMove(db, 'rugby', request({
-      playerAId: 'p01',
-      playerBId: 'p07',
-      difficulty: 'hard',
-      graph: newGraph('p01', 'p07'),
-      move: { kind: 'hard-club', clubId: ClubId('vannes'), season: Season('2022-2023') },
-    }))
+    const result = await applyMove(
+      db,
+      'rugby',
+      request({
+        playerAId: 'p01',
+        playerBId: 'p07',
+        difficulty: 'hard',
+        graph: newGraph('p01', 'p07'),
+        move: { kind: 'hard-club', clubId: ClubId('vannes'), season: Season('2022-2023') },
+      }),
+    )
 
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.reason).toMatch(/Aucun joueur du graphe/)
   })
 
   it('rejects a player not attached to any club-season on the board', async () => {
-    const result = await applyMove(db, 'rugby', request({
-      playerAId: 'p01',
-      playerBId: 'p07',
-      difficulty: 'hard',
-      graph: newGraph('p01', 'p07'),
-      move: { kind: 'hard-player', playerId: PlayerId('p02') },
-    }))
+    const result = await applyMove(
+      db,
+      'rugby',
+      request({
+        playerAId: 'p01',
+        playerBId: 'p07',
+        difficulty: 'hard',
+        graph: newGraph('p01', 'p07'),
+        move: { kind: 'hard-player', playerId: PlayerId('p02') },
+      }),
+    )
 
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.reason).toMatch(/ne joue dans aucun club/)
@@ -170,30 +198,42 @@ describe('applyMove — the submitted graph is untrusted', () => {
     }
 
     await expect(
-      applyMove(db, 'rugby', request({
-        playerAId: 'p01',
-        playerBId: 'p07',
-        graph: forged,
-        move: { kind: 'easy', playerId: PlayerId('p02') },
-      })),
+      applyMove(
+        db,
+        'rugby',
+        request({
+          playerAId: 'p01',
+          playerBId: 'p07',
+          graph: forged,
+          move: { kind: 'easy', playerId: PlayerId('p02') },
+        }),
+      ),
     ).rejects.toThrow(/does not match any membership/)
   })
 
   it('rejects a graph missing playerA or playerB', async () => {
     await expect(
-      applyMove(db, 'rugby', request({
-        graph: { players: ['p01'], clubs: [], edges: [] },
-        move: { kind: 'easy', playerId: PlayerId('p02') },
-      })),
+      applyMove(
+        db,
+        'rugby',
+        request({
+          graph: { players: ['p01'], clubs: [], edges: [] },
+          move: { kind: 'easy', playerId: PlayerId('p02') },
+        }),
+      ),
     ).rejects.toThrow(/must contain both playerA and playerB/)
   })
 
   it('rejects a hard-mode move submitted into an easy game', async () => {
     // Easy mode's rule is stricter, so accepting a hard move here would sidestep it.
-    const result = await applyMove(db, 'rugby', request({
-      difficulty: 'easy',
-      move: { kind: 'hard-club', clubId: ClubId('stade-toulousain'), season: Season('2022-2023') },
-    }))
+    const result = await applyMove(
+      db,
+      'rugby',
+      request({
+        difficulty: 'easy',
+        move: { kind: 'hard-club', clubId: ClubId('stade-toulousain'), season: Season('2022-2023') },
+      }),
+    )
 
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.reason).toMatch(/réservé au mode difficile/)
@@ -210,12 +250,16 @@ describe('applyMove — the submitted graph is untrusted', () => {
       ],
     }
 
-    const result = await applyMove(db, 'rugby', request({
-      playerAId: 'p01',
-      playerBId: 'p02',
-      graph: won,
-      move: { kind: 'easy', playerId: PlayerId('p03') },
-    }))
+    const result = await applyMove(
+      db,
+      'rugby',
+      request({
+        playerAId: 'p01',
+        playerBId: 'p02',
+        graph: won,
+        move: { kind: 'easy', playerId: PlayerId('p03') },
+      }),
+    )
 
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.reason).toMatch(/déjà terminée/)
@@ -227,12 +271,16 @@ describe('applyMove — resolved node', () => {
     mockedPlayers.findById.mockResolvedValue({ ...playerById('p02'), sport: 'football' })
 
     await expect(
-      applyMove(db, 'rugby', request({
-        playerAId: 'p01',
-        playerBId: 'p07',
-        graph: newGraph('p01', 'p07'),
-        move: { kind: 'easy', playerId: PlayerId('p02') },
-      })),
+      applyMove(
+        db,
+        'rugby',
+        request({
+          playerAId: 'p01',
+          playerBId: 'p07',
+          graph: newGraph('p01', 'p07'),
+          move: { kind: 'easy', playerId: PlayerId('p02') },
+        }),
+      ),
     ).rejects.toThrow(/does not play rugby/)
   })
 })

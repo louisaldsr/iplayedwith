@@ -40,27 +40,33 @@ export default function ClubsPickerPage() {
 
       <div className="admin-form__body">
         <div className="form-field">
-          <label className="form-label" htmlFor="club-sport">Sport</label>
+          <label className="form-label" htmlFor="club-sport">
+            Sport
+          </label>
           <select
             id="club-sport"
             className="form-select"
             value={sport}
-            onChange={e => handleSportChange(e.target.value as SportId)}
+            onChange={(e) => handleSportChange(e.target.value as SportId)}
           >
-            {SPORTS.map(s => (
-              <option key={s} value={s}>{s}</option>
+            {SPORTS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
             ))}
           </select>
         </div>
 
         <div className="form-field">
-          <label className="form-label" htmlFor="club-query">Club name</label>
+          <label className="form-label" htmlFor="club-query">
+            Club name
+          </label>
           <input
             id="club-query"
             className="form-input"
             placeholder="Toulouse"
             value={query}
-            onChange={e => handleQueryChange(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
             autoFocus
           />
         </div>
@@ -70,7 +76,7 @@ export default function ClubsPickerPage() {
 
       {results.length > 0 && (
         <ul className="season-list">
-          {results.map(club => (
+          {results.map((club) => (
             <li key={club.id} className="season-item">
               <Link href={`/admin/clubs/${club.id}`}>{club.name}</Link>
             </li>

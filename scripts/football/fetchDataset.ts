@@ -28,7 +28,9 @@ async function main() {
 
   const missing = DATASET_FILES.filter((f) => !fs.existsSync(path.join(outDir, f)))
   if (missing.length === 0 && !force) {
-    console.log(`All ${DATASET_FILES.length} dataset files already present in ${outDir} — nothing to do (use --force to re-download).`)
+    console.log(
+      `All ${DATASET_FILES.length} dataset files already present in ${outDir} — nothing to do (use --force to re-download).`,
+    )
     return
   }
   console.log(`Missing ${missing.length}/${DATASET_FILES.length} dataset files — downloading.`)

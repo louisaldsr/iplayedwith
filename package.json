@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "type-check": "tsc --noEmit",
     "test": "jest",
     "test:unit": "jest --testPathPattern=tests/unit",
@@ -16,11 +18,14 @@
     "seed:map-players": "tsx --env-file=.env.local scripts/rugby/mapPlayers.ts",
     "seed:players": "tsx --env-file=.env.local scripts/rugby/seedPlayers.ts",
     "seed:memberships": "tsx --env-file=.env.local scripts/rugby/seedMemberships.ts",
+    "seed:fame": "tsx --env-file=.env.local scripts/rugby/seedFame.ts",
     "seed:football:fetch": "tsx scripts/football/fetchDataset.ts",
     "seed:football:build": "tsx scripts/football/buildDataset.ts",
     "seed:football:clubs": "tsx --env-file=.env.local scripts/football/seedClubs.ts",
     "seed:football:players": "tsx --env-file=.env.local scripts/football/seedPlayers.ts",
-    "seed:football:memberships": "tsx --env-file=.env.local scripts/football/seedMemberships.ts"
+    "seed:football:memberships": "tsx --env-file=.env.local scripts/football/seedMemberships.ts",
+    "seed:football:fame": "tsx --env-file=.env.local scripts/football/seedFame.ts",
+    "fame:report": "tsx --env-file=.env.local scripts/common/fameReport.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
@@ -44,6 +49,7 @@
     "eslint-config-next": "15.5.18",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "prettier": "3.9.8",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.12",
     "typescript": "^5.8.3"

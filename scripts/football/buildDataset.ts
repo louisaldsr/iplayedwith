@@ -1,13 +1,7 @@
 import path from 'node:path'
 import { saveJson } from '../common/json'
 import { outputPath } from '../common/paths'
-import {
-  BIG5_LEAGUES,
-  buildDataset,
-  createMembershipCollector,
-  indexGames,
-  type BuildWarning,
-} from './lib/dataset'
+import { BIG5_LEAGUES, buildDataset, createMembershipCollector, indexGames, type BuildWarning } from './lib/dataset'
 import {
   loadClubs,
   loadCompetitions,
@@ -51,6 +45,7 @@ async function main() {
       `${index.big5ClubIds.size} clubs with a Big-5 league game`,
   )
 
+  // One pass over the 1.9M appearance rows builds the memberships and counts their games.
   const collector = createMembershipCollector(index)
   let appearances = 0
   await streamAppearances((appearance) => {
@@ -66,6 +61,12 @@ async function main() {
 
   const { dataset, warnings } = buildDataset(memberships, clubsById, playersById)
   reportWarnings(warnings)
+
+  const withCaps = dataset.players.filter((p) => p.caps > 0).length
+  console.log(
+    `Fame signals: international caps for ${withCaps}/${dataset.players.length} players ` +
+      `(${((100 * withCaps) / dataset.players.length).toFixed(1)}%)`,
+  )
 
   const outPath = outputPath('football-dataset.json')
   saveJson(outPath, dataset)

@@ -1,4 +1,4 @@
-import { Season } from '@/domain/season'
+import { isAfterLatestSeason, LATEST_SEASON, Season } from '@/domain/season'
 
 describe('Season smart constructor', () => {
   describe('valid season', () => {
@@ -43,5 +43,25 @@ describe('Season smart constructor', () => {
     it('throws when end year is before start year', () => {
       expect(() => Season('2023-2022')).toThrow('Invalid season range: 2023-2022')
     })
+  })
+})
+
+describe('isAfterLatestSeason', () => {
+  // Relative to LATEST_SEASON, so moving the dataset forward does not break these.
+  const latestStart = Number(LATEST_SEASON.slice(0, 4))
+  const seasonStarting = (year: number) => Season(`${year}-${year + 1}`)
+
+  it('keeps the latest season itself', () => {
+    expect(isAfterLatestSeason(LATEST_SEASON)).toBe(false)
+  })
+
+  it('keeps every earlier season', () => {
+    expect(isAfterLatestSeason(seasonStarting(latestStart - 1))).toBe(false)
+    expect(isAfterLatestSeason(Season('1999-2000'))).toBe(false)
+  })
+
+  it('rejects the season in progress after it, and anything later', () => {
+    expect(isAfterLatestSeason(seasonStarting(latestStart + 1))).toBe(true)
+    expect(isAfterLatestSeason(seasonStarting(latestStart + 10))).toBe(true)
   })
 })

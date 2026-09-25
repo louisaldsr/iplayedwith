@@ -34,11 +34,7 @@ type Props = {
   clubs: Club[]
 }
 
-function findFreePosition(
-  existing: Map<string, Position>,
-  boardW: number,
-  boardH: number,
-): Position {
+function findFreePosition(existing: Map<string, Position>, boardW: number, boardH: number): Position {
   const cx = boardW / 2
   const cy = boardH / 2
   for (let r = 0; r <= Math.max(boardW, boardH); r += MIN_GAP / 2) {
@@ -88,9 +84,7 @@ function resolveOverlap(key: string, positions: Map<string, Position>): Map<stri
   return new Map(positions).set(key, { x: nx, y: ny })
 }
 
-function computePlayerPairEdges(
-  edges: { playerId: PlayerId; clubId: ClubId; season: Season }[],
-): PlayerPairEdge[] {
+function computePlayerPairEdges(edges: { playerId: PlayerId; clubId: ClubId; season: Season }[]): PlayerPairEdge[] {
   const grouped = new Map<string, { clubId: ClubId; season: Season; players: PlayerId[] }>()
   for (const e of edges) {
     const csKey = `${e.clubId}:${e.season}`
@@ -122,14 +116,16 @@ export function GameBoard({ game, players, clubs }: Props) {
   const [hoveredEdge, setHoveredEdge] = useState<string | null>(null)
   const [selectedEdge, setSelectedEdge] = useState<PlayerPairEdge | null>(null)
 
-  useEffect(() => { setSelectedEdge(null) }, [game.edges.length])
+  useEffect(() => {
+    setSelectedEdge(null)
+  }, [game.edges.length])
 
   useEffect(() => {
     const pAKey = playerKey(game.playerA.id)
     const pBKey = playerKey(game.playerB.id)
 
-    setPositions(prev => {
-      const newKeys = [...game.nodes.keys()].filter(k => !prev.has(k))
+    setPositions((prev) => {
+      const newKeys = [...game.nodes.keys()].filter((k) => !prev.has(k))
       if (newKeys.length === 0) return prev
 
       const boardW = boardRef.current?.clientWidth ?? 800
@@ -172,19 +168,19 @@ export function GameBoard({ game, players, clubs }: Props) {
     const boardH = boardRef.current?.clientHeight ?? 500
     const nx = Math.max(0, Math.min(dragging.originX + (e.clientX - dragging.startX), boardW - NODE_WIDTH))
     const ny = Math.max(0, Math.min(dragging.originY + (e.clientY - dragging.startY), boardH - NODE_HEIGHT))
-    setPositions(prev => new Map(prev).set(dragging.key, { x: nx, y: ny }))
+    setPositions((prev) => new Map(prev).set(dragging.key, { x: nx, y: ny }))
   }
 
   const handlePointerUp = () => {
     if (!dragging) return
-    setPositions(prev => resolveOverlap(dragging.key, prev))
+    setPositions((prev) => resolveOverlap(dragging.key, prev))
     setDragging(null)
   }
 
-  const playerMap = new Map(players.map(p => [p.id as string, p.name]))
-  const playerById = new Map(players.map(p => [p.id as string, p]))
-  const clubById = new Map(clubs.map(c => [c.id as string, c]))
-  const clubMap = new Map(clubs.map(c => [c.id as string, c.name]))
+  const playerMap = new Map(players.map((p) => [p.id as string, p.name]))
+  const playerById = new Map(players.map((p) => [p.id as string, p]))
+  const clubById = new Map(clubs.map((c) => [c.id as string, c]))
+  const clubMap = new Map(clubs.map((c) => [c.id as string, c.name]))
   const isTarget = (id: string) => id === game.playerA.id || id === game.playerB.id
 
   const center = (key: string): { x: number; y: number } | null => {
@@ -217,7 +213,7 @@ export function GameBoard({ game, players, clubs }: Props) {
         onPointerCancel={handlePointerUp}
       >
         <svg className="game-board-svg" aria-hidden="true">
-          {playerPairEdges.map(edge => {
+          {playerPairEdges.map((edge) => {
             const p1 = center(playerKey(edge.playerAId))
             const p2 = center(playerKey(edge.playerBId))
             if (!p1 || !p2) return null
@@ -229,16 +225,17 @@ export function GameBoard({ game, players, clubs }: Props) {
                 style={{ pointerEvents: 'all', cursor: 'pointer' }}
                 onPointerEnter={() => setHoveredEdge(edge.key)}
                 onPointerLeave={() => setHoveredEdge(null)}
-                onClick={() => setSelectedEdge(prev => prev?.key === edge.key ? null : edge)}
+                onClick={() => setSelectedEdge((prev) => (prev?.key === edge.key ? null : edge))}
               >
                 <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="transparent" strokeWidth={14} />
                 <line
-                  x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                  className={[
-                    'graph-edge',
-                    isOnPath ? 'graph-edge--path' : '',
-                    isHovered ? 'graph-edge--hovered' : '',
-                  ].filter(Boolean).join(' ')}
+                  x1={p1.x}
+                  y1={p1.y}
+                  x2={p2.x}
+                  y2={p2.y}
+                  className={['graph-edge', isOnPath ? 'graph-edge--path' : '', isHovered ? 'graph-edge--hovered' : '']
+                    .filter(Boolean)
+                    .join(' ')}
                 />
               </g>
             )
@@ -273,14 +270,16 @@ export function GameBoard({ game, players, clubs }: Props) {
               className="edge-popup__close"
               onClick={() => setSelectedEdge(null)}
               aria-label="Close"
-            >×</button>
+            >
+              ×
+            </button>
             <p className="edge-popup__players">
               {playerMap.get(selectedEdge.playerAId) ?? selectedEdge.playerAId}
               {' — '}
               {playerMap.get(selectedEdge.playerBId) ?? selectedEdge.playerBId}
             </p>
             <ul className="edge-popup__connections">
-              {selectedEdge.connections.map(c => (
+              {selectedEdge.connections.map((c) => (
                 <li key={`${c.clubId}:${c.season}`}>
                   {clubMap.get(c.clubId) ?? c.clubId} · {c.season}
                 </li>
@@ -302,9 +301,7 @@ export function GameBoard({ game, players, clubs }: Props) {
     for (let i = 0; i < game.path.length - 1; i++) {
       const pA = game.path[i]
       const pB = game.path[i + 1]
-      const membershipsA = new Set(
-        game.edges.filter(e => e.playerId === pA).map(e => `${e.clubId}:${e.season}`),
-      )
+      const membershipsA = new Set(game.edges.filter((e) => e.playerId === pA).map((e) => `${e.clubId}:${e.season}`))
       for (const e of game.edges) {
         if (e.playerId === pB && membershipsA.has(`${e.clubId}:${e.season}`)) {
           pathClubKeys.add(clubKey(e.clubId, e.season))
@@ -332,7 +329,10 @@ export function GameBoard({ game, players, clubs }: Props) {
           return (
             <line
               key={i}
-              x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+              x1={p1.x}
+              y1={p1.y}
+              x2={p2.x}
+              y2={p2.y}
               className={onPath ? 'graph-edge graph-edge--path' : 'graph-edge'}
             />
           )

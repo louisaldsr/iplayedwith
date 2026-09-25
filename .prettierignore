@@ -1,0 +1,19 @@
+# Build output and dependencies
+.next/
+node_modules/
+coverage/
+playwright-report/
+test-results/
+
+# Seed inputs and outputs: scraped HTML, vendor CSVs and generated JSON.
+# Gitignored already, but formatting a 7 MB dataset or 20k scraped pages is pure waste.
+scripts/input/
+scripts/output/
+
+# Prose keeps its hand-made line breaks — the French docs are written to wrap at ~95 chars
+# and reflowing them would churn every paragraph on every edit.
+*.md
+
+# SQL is not something Prettier formats without a plugin, and the migrations rely on
+# hand-aligned comment banners.
+*.sql

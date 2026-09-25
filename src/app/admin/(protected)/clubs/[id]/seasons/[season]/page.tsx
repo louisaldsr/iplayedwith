@@ -5,11 +5,7 @@ import { listRoster } from '@/services/membershipsService'
 import { NotFoundError, ValidationError } from '@/services/errors'
 import { SeasonRosterEditor } from '@/components/admin/SeasonRosterEditor'
 
-export default async function SeasonRosterPage({
-  params,
-}: {
-  params: Promise<{ id: string; season: string }>
-}) {
+export default async function SeasonRosterPage({ params }: { params: Promise<{ id: string; season: string }> }) {
   const { id, season } = await params
 
   try {

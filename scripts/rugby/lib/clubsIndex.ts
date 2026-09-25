@@ -1,25 +1,25 @@
-import fs from 'node:fs';
-import { normalize } from '../../common/textNormalize';
+import fs from 'node:fs'
+import { normalize } from '../../common/textNormalize'
 
 export type CsvClub = {
-  id: string;
-  name: string;
-  sport: string;
-  logoUrl: string;
-};
+  id: string
+  name: string
+  sport: string
+  logoUrl: string
+}
 
 export function parseClubsCsv(csvPath: string): CsvClub[] {
   const lines = fs
     .readFileSync(csvPath, 'utf8')
     .split('\n')
     .map((l) => l.trim())
-    .filter(Boolean);
+    .filter(Boolean)
 
-  const [, ...rows] = lines; // drop header
+  const [, ...rows] = lines // drop header
   return rows.map((line) => {
-    const [id, name, sport, logoUrl] = line.split(',');
-    return { id, name, sport, logoUrl };
-  });
+    const [id, name, sport, logoUrl] = line.split(',')
+    return { id, name, sport, logoUrl }
+  })
 }
 
 /**
@@ -61,76 +61,66 @@ export const ALIASES: Record<string, string> = {
   chiefs: 'Waikato Chiefs',
   trévise: 'Benetton Rugby Treviso',
   harlequins: 'Harlequin Football Club',
-};
+}
 
 function containsWhole(haystack: string, needle: string): boolean {
-  return new RegExp(
-    `\\b${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`,
-  ).test(haystack);
+  return new RegExp(`\\b${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(haystack)
 }
 
 export type ClubMatch =
   | { status: 'exact' | 'fuzzy'; clubId: string; clubName: string }
   | { status: 'ambiguous'; candidates: string[] }
-  | { status: 'none' };
+  | { status: 'none' }
 
-export type ClubMatcher = (displayName: string) => ClubMatch;
+export type ClubMatcher = (displayName: string) => ClubMatch
 
 export function buildClubMatcher(clubs: CsvClub[]): ClubMatcher {
-  const bySport = clubs.filter((c) => c.sport === 'rugby');
+  const bySport = clubs.filter((c) => c.sport === 'rugby')
   const normalizedIndex = bySport.map((c) => ({
     club: c,
     normalized: normalize(c.name),
-  }));
-  const normalizedAliases = Object.fromEntries(
-    Object.entries(ALIASES).map(([key, value]) => [normalize(key), value]),
-  );
+  }))
+  const normalizedAliases = Object.fromEntries(Object.entries(ALIASES).map(([key, value]) => [normalize(key), value]))
 
   return (displayName: string): ClubMatch => {
-    const normalizedDisplay = normalize(displayName);
+    const normalizedDisplay = normalize(displayName)
 
-    const alias = normalizedAliases[normalizedDisplay];
+    const alias = normalizedAliases[normalizedDisplay]
     if (alias) {
-      const aliased = normalizedIndex.find(
-        (c) => c.normalized === normalize(alias),
-      );
+      const aliased = normalizedIndex.find((c) => c.normalized === normalize(alias))
       if (aliased)
         return {
           status: 'exact',
           clubId: aliased.club.id,
           clubName: aliased.club.name,
-        };
+        }
     }
 
-    const exact = normalizedIndex.find(
-      (c) => c.normalized === normalizedDisplay,
-    );
+    const exact = normalizedIndex.find((c) => c.normalized === normalizedDisplay)
     if (exact)
       return {
         status: 'exact',
         clubId: exact.club.id,
         clubName: exact.club.name,
-      };
+      }
 
     const candidates = normalizedIndex.filter(
-      (c) =>
-        containsWhole(c.normalized, normalizedDisplay) ||
-        containsWhole(normalizedDisplay, c.normalized),
-    );
+      (c) => containsWhole(c.normalized, normalizedDisplay) || containsWhole(normalizedDisplay, c.normalized),
+    )
 
     if (candidates.length === 1) {
       return {
         status: 'fuzzy',
         clubId: candidates[0].club.id,
         clubName: candidates[0].club.name,
-      };
+      }
     }
     if (candidates.length > 1) {
       return {
         status: 'ambiguous',
         candidates: candidates.map((c) => c.club.name),
-      };
+      }
     }
-    return { status: 'none' };
-  };
+    return { status: 'none' }
+  }
 }

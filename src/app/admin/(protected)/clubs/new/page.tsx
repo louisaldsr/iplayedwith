@@ -40,38 +40,41 @@ export default function NewClubPage() {
       <h1 className="admin-form__title">Add club</h1>
       <form onSubmit={handleSubmit} className="admin-form__body">
         <div className="form-field">
-          <label className="form-label" htmlFor="club-name">Name</label>
+          <label className="form-label" htmlFor="club-name">
+            Name
+          </label>
           <input
             id="club-name"
             className="form-input"
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
             autoFocus
           />
         </div>
 
         <div className="form-field">
-          <label className="form-label" htmlFor="club-sport">Sport</label>
+          <label className="form-label" htmlFor="club-sport">
+            Sport
+          </label>
           <select
             id="club-sport"
             className="form-select"
             value={sport}
-            onChange={e => setSport(e.target.value as SportId)}
+            onChange={(e) => setSport(e.target.value as SportId)}
           >
-            {SPORTS.map(s => (
-              <option key={s} value={s}>{s}</option>
+            {SPORTS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
             ))}
           </select>
         </div>
 
         <div className="form-field">
-          <label className="form-label" htmlFor="club-logo">Logo URL (optional)</label>
-          <input
-            id="club-logo"
-            className="form-input"
-            value={logoUrl}
-            onChange={e => setLogoUrl(e.target.value)}
-          />
+          <label className="form-label" htmlFor="club-logo">
+            Logo URL (optional)
+          </label>
+          <input id="club-logo" className="form-input" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} />
         </div>
 
         {error && <div className="error-banner">{error}</div>}

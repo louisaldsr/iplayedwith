@@ -6,6 +6,7 @@ import {
   seasonFromDatasetYear,
 } from '../../../scripts/football/lib/dataset'
 import type { Appearance, Club, Game, Player } from '../../../scripts/football/lib/transfermarktDataset'
+import { LATEST_SEASON } from '@/domain/season'
 
 const game = (gameId: string, competitionId: string, season: string, homeClubId: string, awayClubId: string): Game => ({
   gameId,
@@ -47,6 +48,12 @@ describe('seasonFromDatasetYear', () => {
     expect(seasonFromDatasetYear('2000')).toBeNull()
   })
 
+  it('rejects seasons after the latest season covered, and keeps that season itself', () => {
+    const latestStart = Number(LATEST_SEASON.slice(0, 4))
+    expect(seasonFromDatasetYear(String(latestStart))).toBe(LATEST_SEASON)
+    expect(seasonFromDatasetYear(String(latestStart + 1))).toBeNull()
+  })
+
   it('rejects malformed years', () => {
     expect(seasonFromDatasetYear('')).toBeNull()
     expect(seasonFromDatasetYear('20/21')).toBeNull()
@@ -83,10 +90,17 @@ describe('createMembershipCollector', () => {
     return collector.result()
   }
 
-  it('folds repeated appearances for one club-season into a single membership', () => {
+  it('folds the appearances of one club-season into a single membership, counting them as games', () => {
+    // g1 twice: the source has one row per player per game, so a repeated row is two games.
     const rows = collect([appearance('p1', 'c1', 'g1'), appearance('p1', 'c1', 'g1'), appearance('p1', 'c1', 'g2')])
     expect(rows).toEqual([
-      { playerTransfermarktId: 'p1', clubTransfermarktId: 'c1', season: '2015-2016', competition: 'Premier League' },
+      {
+        playerTransfermarktId: 'p1',
+        clubTransfermarktId: 'c1',
+        season: '2015-2016',
+        competition: 'Premier League',
+        games: 3,
+      },
     ])
   })
 
@@ -98,22 +112,36 @@ describe('createMembershipCollector', () => {
   it('counts a cup-only appearance as a membership, labelled with the domestic league', () => {
     const rows = collect([appearance('p2', 'c1', 'g2')])
     expect(rows).toEqual([
-      { playerTransfermarktId: 'p2', clubTransfermarktId: 'c1', season: '2015-2016', competition: 'Premier League' },
+      {
+        playerTransfermarktId: 'p2',
+        clubTransfermarktId: 'c1',
+        season: '2015-2016',
+        competition: 'Premier League',
+        games: 1,
+      },
     ])
   })
 
   it('leaves the competition null when the club played no domestic league game that season', () => {
     const rows = collect([appearance('p7', 'c3', 'g8')])
     expect(rows).toEqual([
-      { playerTransfermarktId: 'p7', clubTransfermarktId: 'c3', season: '2015-2016', competition: null },
+      { playerTransfermarktId: 'p7', clubTransfermarktId: 'c3', season: '2015-2016', competition: null, games: 1 },
     ])
   })
 
-  it('keeps both clubs for a player who moved mid-season', () => {
-    const rows = collect([appearance('p4', 'c2', 'g1'), appearance('p4', 'c1', 'g7')])
-    expect(rows).toEqual([
-      { playerTransfermarktId: 'p4', clubTransfermarktId: 'c1', season: '2015-2016', competition: 'Premier League' },
-      { playerTransfermarktId: 'p4', clubTransfermarktId: 'c2', season: '2015-2016', competition: 'Premier League' },
+  it('keeps both clubs for a player who moved mid-season, each with its own games', () => {
+    const rows = collect([appearance('p4', 'c2', 'g1'), appearance('p4', 'c2', 'g1'), appearance('p4', 'c1', 'g7')])
+    expect(rows.map((r) => [r.clubTransfermarktId, r.season, r.games])).toEqual([
+      ['c1', '2015-2016', 1],
+      ['c2', '2015-2016', 2],
+    ])
+  })
+
+  it('counts games separately for each season at the same club', () => {
+    const rows = collect([appearance('p1', 'c1', 'g1'), appearance('p1', 'c1', 'g2'), appearance('p1', 'c1', 'g6')])
+    expect(rows.map((r) => [r.season, r.games])).toEqual([
+      ['2015-2016', 2],
+      ['2016-2017', 1],
     ])
   })
 
@@ -135,23 +163,30 @@ describe('buildDataset', () => {
     ['c1', { clubId: 'c1', name: 'Arsenal FC' }],
     ['c2', { clubId: 'c2', name: 'Chelsea FC' }],
   ])
+  const player = (playerId: string, name: string, countryOfCitizenship: string, caps = 0): Player => ({
+    playerId,
+    name,
+    countryOfCitizenship,
+    caps,
+  })
   const players = new Map<string, Player>([
-    ['p1', { playerId: 'p1', name: 'Alex Iwobi', countryOfCitizenship: 'Nigeria' }],
-    ['p2', { playerId: 'p2', name: 'Yannick Bolasie', countryOfCitizenship: 'DR Congo' }],
-    ['p3', { playerId: 'p3', name: 'No Nation', countryOfCitizenship: '' }],
-    ['p4', { playerId: 'p4', name: 'Unknown Land', countryOfCitizenship: 'Atlantis' }],
+    ['p1', player('p1', 'Alex Iwobi', 'Nigeria', 77)],
+    ['p2', player('p2', 'Yannick Bolasie', 'DR Congo')],
+    ['p3', player('p3', 'No Nation', '')],
+    ['p4', player('p4', 'Unknown Land', 'Atlantis')],
   ])
   const membership = (playerTransfermarktId: string, clubTransfermarktId: string) => ({
     playerTransfermarktId,
     clubTransfermarktId,
     season: '2015-2016' as never,
     competition: 'Premier League',
+    games: 1,
   })
 
   it('emits only the clubs and players its memberships reference, with crest urls', () => {
     const { dataset } = buildDataset([membership('p1', 'c1')], clubs, players)
     expect(dataset.clubs).toEqual([{ transfermarktId: 'c1', name: 'Arsenal FC', logoUrl: clubLogoUrl('c1') }])
-    expect(dataset.players).toEqual([{ transfermarktId: 'p1', name: 'Alex Iwobi', nationality: 'NG' }])
+    expect(dataset.players).toEqual([{ transfermarktId: 'p1', name: 'Alex Iwobi', nationality: 'NG', caps: 77 }])
   })
 
   it('maps Transfermarkt country spellings to alpha-2 codes', () => {

@@ -9,7 +9,8 @@ function parseRow(raw: unknown, i: number): MembershipRowInput {
   const clubId = typeof row?.clubId === 'string' ? row.clubId : ''
   if (!clubId) throw new ValidationError(`row ${i}: clubId is required`)
   const season = typeof row?.season === 'string' ? row.season : ''
-  const competition = typeof row?.competition === 'string' && row.competition.trim() ? row.competition.trim() : undefined
+  const competition =
+    typeof row?.competition === 'string' && row.competition.trim() ? row.competition.trim() : undefined
   return { clubId, season, competition }
 }
 

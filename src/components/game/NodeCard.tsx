@@ -43,7 +43,7 @@ export function NodeCard({
     <div
       className={classes}
       style={{ left: position.x, top: position.y }}
-      onPointerDown={e => onPointerDown(e, nodeKey)}
+      onPointerDown={(e) => onPointerDown(e, nodeKey)}
     >
       {kind === 'player' && nationality && (
         <span
@@ -54,12 +54,7 @@ export function NodeCard({
         />
       )}
       {src && (
-        <img
-          src={src}
-          alt=""
-          className={kind === 'club' ? 'node-card__logo' : 'node-card__avatar'}
-          draggable={false}
-        />
+        <img src={src} alt="" className={kind === 'club' ? 'node-card__logo' : 'node-card__avatar'} draggable={false} />
       )}
       <span className="node-card__label">{label}</span>
       {sublabel && <span className="node-card__sublabel">{sublabel}</span>}

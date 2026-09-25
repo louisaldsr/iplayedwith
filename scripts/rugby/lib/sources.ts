@@ -8,9 +8,11 @@ import {
 import {
   parsePlayerIdentity,
   parseCareerRows,
+  parseCareerStats,
   hasNoProfessionalCareer,
   type PlayerIdentity,
   type CareerRow,
+  type CareerStats,
 } from './playerProfileParser'
 import { alpha2ForFrenchCountryName, alpha2ForEnglishCountryName } from '../../common/nationalities'
 
@@ -23,6 +25,8 @@ export type SourceAdapter = {
   resolveProfileLink(href: string): { url: string; id: string } | null
   parseIdentity(html: string): PlayerIdentity | null
   parseCareerRows(html: string): CareerRow[]
+  /** Matches played and international caps, for the fame metric. */
+  parseCareerStats(html: string): CareerStats
   hasNoCareerRows(html: string): boolean
   nationalityToAlpha2(raw: string): string | null
   /**
@@ -66,6 +70,7 @@ export const SOURCES: Record<SourceId, SourceAdapter> = {
     resolveProfileLink: resolveAllrugbyComLink,
     parseIdentity: parsePlayerIdentity,
     parseCareerRows,
+    parseCareerStats,
     hasNoCareerRows: hasNoProfessionalCareer,
     nationalityToAlpha2: alpha2ForFrenchCountryName,
   },
@@ -79,6 +84,7 @@ export const SOURCES: Record<SourceId, SourceAdapter> = {
     // differs, so identity/career parsing is reused as-is.
     parseIdentity: parsePlayerIdentity,
     parseCareerRows,
+    parseCareerStats,
     hasNoCareerRows: hasNoProfessionalCareer,
     nationalityToAlpha2: alpha2ForEnglishCountryName,
     crosswalkToAllrugbyCom,

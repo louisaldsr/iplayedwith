@@ -1,4 +1,4 @@
-import { Season } from '@/domain/season'
+import { isAfterLatestSeason, Season } from '@/domain/season'
 import { alpha2ForEnglishCountryName } from '../../common/nationalities'
 import type { Appearance, Club, Game, Player } from './transfermarktDataset'
 
@@ -33,14 +33,18 @@ export function clubLogoUrl(clubId: string): string {
 
 /**
  * Dataset seasons are the starting year as a string ("2012" is the 2012/13 season);
- * the domain's `Season` is "YYYY-YYYY". Returns null for an unparseable year or one
- * before `FIRST_SEASON_YEAR`, which is how out-of-scope rows get filtered out.
+ * the domain's `Season` is "YYYY-YYYY". Returns null for an unparseable year, one before
+ * `FIRST_SEASON_YEAR`, or one after `LATEST_SEASON` — which is how out-of-scope rows get
+ * filtered out.
  */
 export function seasonFromDatasetYear(raw: string): Season | null {
   if (!/^\d{4}$/.test(raw)) return null
   const year = Number(raw)
   if (year < FIRST_SEASON_YEAR) return null
-  return Season(`${year}-${year + 1}`)
+  const season = Season(`${year}-${year + 1}`)
+  // Upper bound, shared by every sport: a season after it produces no membership, so no club
+  // or player is emitted for it either.
+  return isAfterLatestSeason(season) ? null : season
 }
 
 const clubSeasonKey = (clubId: string, season: string) => `${clubId}||${season}`
@@ -90,16 +94,21 @@ export type DerivedMembership = {
   clubTransfermarktId: string
   season: Season
   competition: string | null
+  /** Appearances for this club in this season — the `memberships.games` contract. */
+  games: number
 }
 
 /**
  * Folds appearances (one row per player per game played) into distinct
- * (player, club, season) memberships — the unit the game's graph is built from.
+ * (player, club, season) memberships — the unit the game's graph is built from — counting
+ * the appearances of each one as its `games`.
  *
  * A player who moved mid-season legitimately produces two memberships for that season,
- * one per club; the memberships primary key is (player_id, club_id, season), so both
- * are kept. Appearances for clubs outside the Big-5 scope are ignored, as are games in
- * seasons before `FIRST_SEASON_YEAR`.
+ * one per club, each with its own count; the memberships primary key is
+ * (player_id, club_id, season), so both are kept. Appearances for clubs outside the Big-5
+ * scope are ignored, as are games in seasons before `FIRST_SEASON_YEAR` — the same filter
+ * decides both whether a membership exists and what its games are, so the two can never
+ * describe different scopes.
  */
 export function createMembershipCollector(index: GameIndex) {
   const seen = new Map<string, DerivedMembership>()
@@ -111,13 +120,18 @@ export function createMembershipCollector(index: GameIndex) {
       if (!season) return
 
       const key = `${appearance.playerId}||${appearance.playerClubId}||${season}`
-      if (seen.has(key)) return
+      const existing = seen.get(key)
+      if (existing) {
+        existing.games++
+        return
+      }
 
       seen.set(key, {
         playerTransfermarktId: appearance.playerId,
         clubTransfermarktId: appearance.playerClubId,
         season,
         competition: index.domesticLeagueByClubSeason.get(clubSeasonKey(appearance.playerClubId, season)) ?? null,
+        games: 1,
       })
     },
     /** Distinct memberships, ordered for a stable, diffable output file. */
@@ -133,7 +147,13 @@ export function createMembershipCollector(index: GameIndex) {
 }
 
 export type DatasetClub = { transfermarktId: string; name: string; logoUrl: string }
-export type DatasetPlayer = { transfermarktId: string; name: string; nationality: string | null }
+export type DatasetPlayer = {
+  transfermarktId: string
+  name: string
+  nationality: string | null
+  /** Fame signal memberships cannot carry — see src/domain/fame.ts. */
+  caps: number
+}
 export type FootballDataset = {
   generatedAt: string
   clubs: DatasetClub[]
@@ -188,7 +208,12 @@ export function buildDataset(
       const seen = unmappedNationalities.get(raw)
       unmappedNationalities.set(raw, { count: (seen?.count ?? 0) + 1, example: seen?.example ?? player.name })
     }
-    players.push({ transfermarktId: playerId, name: player.name, nationality })
+    players.push({
+      transfermarktId: playerId,
+      name: player.name,
+      nationality,
+      caps: player.caps,
+    })
   }
 
   for (const [country, { count, example }] of [...unmappedNationalities].sort()) {

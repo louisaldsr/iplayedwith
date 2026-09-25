@@ -15,7 +15,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="admin-shell">
       <header className="admin-nav">
-        <Link href="/admin" className="admin-nav__title">iplayedwith admin</Link>
+        <Link href="/admin" className="admin-nav__title">
+          iplayedwith admin
+        </Link>
         <nav className="admin-nav__links">
           <Link href="/admin/clubs/new">Add club</Link>
           <Link href="/admin/players/new">Add player</Link>

@@ -75,9 +75,14 @@ export default function NewPlayerPage() {
     }
     try {
       const season = Season(seasonInput)
-      setStaged(rows => [
+      setStaged((rows) => [
         ...rows,
-        { key: `${selectedClub.id}-${season}-${rows.length}`, clubId: selectedClub.id, clubName: selectedClub.name, season },
+        {
+          key: `${selectedClub.id}-${season}-${rows.length}`,
+          clubId: selectedClub.id,
+          clubName: selectedClub.name,
+          season,
+        },
       ])
       setSelectedClub(null)
       setClubQuery('')
@@ -88,7 +93,7 @@ export default function NewPlayerPage() {
   }
 
   function handleRemoveStaged(key: string) {
-    setStaged(rows => rows.filter(r => r.key !== key))
+    setStaged((rows) => rows.filter((r) => r.key !== key))
   }
 
   async function handleSaveCareer() {
@@ -101,7 +106,7 @@ export default function NewPlayerPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         playerId: player.id,
-        memberships: staged.map(r => ({ clubId: r.clubId, season: r.season })),
+        memberships: staged.map((r) => ({ clubId: r.clubId, season: r.season })),
       }),
     })
     const body = await res.json()
@@ -112,7 +117,7 @@ export default function NewPlayerPage() {
       return
     }
 
-    setSaved(rows => [...rows, ...staged.map(({ clubId, clubName, season }) => ({ clubId, clubName, season }))])
+    setSaved((rows) => [...rows, ...staged.map(({ clubId, clubName, season }) => ({ clubId, clubName, season }))])
     setStaged([])
   }
 
@@ -122,7 +127,7 @@ export default function NewPlayerPage() {
       `/api/admin/memberships?playerId=${encodeURIComponent(player.id)}&clubId=${encodeURIComponent(row.clubId)}&season=${encodeURIComponent(row.season)}`,
       { method: 'DELETE' },
     )
-    setSaved(rows => rows.filter(r => !(r.clubId === row.clubId && r.season === row.season)))
+    setSaved((rows) => rows.filter((r) => !(r.clubId === row.clubId && r.season === row.season)))
   }
 
   function handleDone() {
@@ -142,39 +147,47 @@ export default function NewPlayerPage() {
         <h1 className="admin-form__title">Add player</h1>
         <form onSubmit={handleCreatePlayer} className="admin-form__body">
           <div className="form-field">
-            <label className="form-label" htmlFor="player-name">Name</label>
+            <label className="form-label" htmlFor="player-name">
+              Name
+            </label>
             <input
               id="player-name"
               className="form-input"
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
               autoFocus
             />
           </div>
 
           <div className="form-field">
-            <label className="form-label" htmlFor="player-sport">Sport</label>
+            <label className="form-label" htmlFor="player-sport">
+              Sport
+            </label>
             <select
               id="player-sport"
               className="form-select"
               value={sport}
-              onChange={e => setSport(e.target.value as SportId)}
+              onChange={(e) => setSport(e.target.value as SportId)}
             >
-              {SPORTS.map(s => (
-                <option key={s} value={s}>{s}</option>
+              {SPORTS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
               ))}
             </select>
           </div>
 
           <div className="form-field">
-            <label className="form-label" htmlFor="player-nationality">Nationality (optional)</label>
+            <label className="form-label" htmlFor="player-nationality">
+              Nationality (optional)
+            </label>
             <input
               id="player-nationality"
               className="form-input"
               placeholder="FR or GB-ENG"
               maxLength={6}
               value={nationality}
-              onChange={e => setNationality(e.target.value.toUpperCase())}
+              onChange={(e) => setNationality(e.target.value.toUpperCase())}
             />
           </div>
 
@@ -195,7 +208,7 @@ export default function NewPlayerPage() {
 
       {saved.length > 0 && (
         <ul className="membership-list">
-          {saved.map(row => (
+          {saved.map((row) => (
             <li key={`${row.clubId}-${row.season}`} className="input-chip">
               {row.clubName} — {row.season}
               <button
@@ -217,12 +230,12 @@ export default function NewPlayerPage() {
             className="autocomplete-input"
             placeholder="Club"
             value={clubQuery}
-            onChange={e => handleClubQueryChange(e.target.value)}
+            onChange={(e) => handleClubQueryChange(e.target.value)}
             autoComplete="off"
           />
           {clubSuggestions.length > 0 && (
             <ul className="autocomplete-dropdown">
-              {clubSuggestions.map(c => (
+              {clubSuggestions.map((c) => (
                 <li key={c.id} className="autocomplete-item" onMouseDown={() => handleSelectClub(c)}>
                   {c.name}
                 </li>
@@ -234,7 +247,7 @@ export default function NewPlayerPage() {
           className="form-input"
           placeholder="2022-2023"
           value={seasonInput}
-          onChange={e => setSeasonInput(e.target.value)}
+          onChange={(e) => setSeasonInput(e.target.value)}
         />
         <button type="button" className="btn btn--ghost btn--sm" onClick={handleAddRow}>
           + Add
@@ -244,7 +257,7 @@ export default function NewPlayerPage() {
 
       {staged.length > 0 && (
         <ul className="membership-list">
-          {staged.map(row => (
+          {staged.map((row) => (
             <li key={row.key} className="input-chip">
               {row.clubName} — {row.season}
               <button

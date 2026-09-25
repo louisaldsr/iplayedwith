@@ -7,7 +7,7 @@ type Props = {
 }
 
 export function generateStaticParams() {
-  return SPORTS.map(sport => ({ sport }))
+  return SPORTS.map((sport) => ({ sport }))
 }
 
 export default async function SportPage({ params }: Props) {

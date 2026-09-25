@@ -1,6 +1,9 @@
 /** Base class for errors that should be translated to a specific HTTP status. */
 export class ServiceError extends Error {
-  constructor(message: string, readonly status: number) {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
     super(message)
     this.name = new.target.name
   }

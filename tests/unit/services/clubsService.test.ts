@@ -12,9 +12,7 @@ afterEach(() => jest.clearAllMocks())
 
 describe('listClubs', () => {
   it('searches when given a query, carrying the matched alias through', async () => {
-    const clubs = [
-      { id: ClubId('c1'), name: 'Stade Rochelais', sport: 'rugby' as const, matchedAlias: 'La Rochelle' },
-    ]
+    const clubs = [{ id: ClubId('c1'), name: 'Stade Rochelais', sport: 'rugby' as const, matchedAlias: 'La Rochelle' }]
     mockedRepo.searchBySport.mockResolvedValue(clubs)
 
     const result = await listClubs(db, 'rugby', 'la roch')

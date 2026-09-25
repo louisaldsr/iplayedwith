@@ -1,12 +1,12 @@
 /** Test fixture — rugby sample data, not used by the app at runtime. */
-import { Club } from '@/domain/club';
-import { ClubId, PlayerId } from '@/domain/ids';
-import { Membership } from '@/domain/membership';
-import { Nationality } from '@/domain/nationality';
-import { Player } from '@/domain/player';
-import { Season } from '@/domain/season';
+import { Club } from '@/domain/club'
+import { ClubId, PlayerId } from '@/domain/ids'
+import { Membership } from '@/domain/membership'
+import { Nationality } from '@/domain/nationality'
+import { Player } from '@/domain/player'
+import { Season } from '@/domain/season'
 
-// ─── Clubs (Top 14 saison 2024-2025) ───────────────────────────────────────
+// ─── Clubs (Top 14, 2024-2025 season) ───────────────────────────────────────
 
 export const clubs: Club[] = [
   { id: ClubId('stade-toulousain'), name: 'Stade Toulousain', sport: 'rugby' },
@@ -23,7 +23,7 @@ export const clubs: Club[] = [
   { id: ClubId('stade-francais'), name: 'Stade Français Paris', sport: 'rugby' },
   { id: ClubId('perpignan'), name: 'USA Perpignan', sport: 'rugby' },
   { id: ClubId('vannes'), name: 'RC Vannes', sport: 'rugby' },
-];
+]
 
 // ─── Players ────────────────────────────────────────────────────────────────
 
@@ -113,7 +113,7 @@ export const players: Player[] = [
   { id: PlayerId('p56'), name: 'Théo Hannoyer', sport: 'rugby', nationality: Nationality('FR') },
   { id: PlayerId('p57'), name: 'Tristan Peculis', sport: 'rugby', nationality: Nationality('FR') },
   { id: PlayerId('p58'), name: 'Killian Geraci', sport: 'rugby', nationality: Nationality('FR') },
-];
+]
 
 // ─── Memberships ────────────────────────────────────────────────────────────
 
@@ -168,12 +168,12 @@ export const memberships: Membership[] = [
     playerId: PlayerId('p53'),
     clubId: ClubId('stade-toulousain'),
     season: Season('2021-2022'),
-  }, // Jaminet à Toulouse avant Perpignan
+  }, // Jaminet at Toulouse before Perpignan
   {
     playerId: PlayerId('p55'),
     clubId: ClubId('stade-toulousain'),
     season: Season('2020-2021'),
-  }, // Tolofua à Toulouse
+  }, // Tolofua at Toulouse
 
   // ── Bordeaux-Bègles ─────────────────────────────────────────────────────
   {
@@ -452,7 +452,7 @@ export const memberships: Membership[] = [
     playerId: PlayerId('p31'),
     clubId: ClubId('pau'),
     season: Season('2021-2022'),
-  }, // Hastoy à Pau avant La Rochelle
+  }, // Hastoy at Pau before La Rochelle
 
   // ── Montpellier ─────────────────────────────────────────────────────────
   {
@@ -531,7 +531,7 @@ export const memberships: Membership[] = [
     playerId: PlayerId('p14'),
     clubId: ClubId('racing-92'),
     season: Season('2021-2022'),
-  }, // Fickou à Racing avant Toulouse
+  }, // Fickou at Racing before Toulouse
 
   // ── LOU Rugby ───────────────────────────────────────────────────────────
   {
@@ -665,7 +665,7 @@ export const memberships: Membership[] = [
     clubId: ClubId('vannes'),
     season: Season('2023-2024'),
   },
-];
+]
 
 /*
   Chemins de connexion illustratifs :
@@ -687,7 +687,7 @@ export const memberships: Membership[] = [
     p01 → p05 → p11 (Toulon) → p39 (Toulon 2021-22) → p37 (Montpellier)
     p45 → p27 (Lyon 2022-23) → p25 (Castres 2022-23) → p24
 
-  Cross-club chains couverts :
+  Cross-club chains covered:
     Toulouse ↔ Toulon (via p05)
     Toulon ↔ Montpellier (via p39 Guirado)
     Racing ↔ Bordeaux (via p10 Ben Lam)

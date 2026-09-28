@@ -28,6 +28,13 @@
   --target-tint: #1c355a;
   --target-border: #b0925a;
   --target-glow: rgba(176, 146, 90, 0.22);
+  --floor-famous: #5d6486;
+  --floor-famous-text: #b9bdd4;
+  --floor-known: #2f8f88;
+  --floor-known-tint: #182a2e;
+  --floor-known-text: #7fe0d6;
+  --floor-unsung-tint: #251b33;
+  --floor-unsung-glow: rgba(255, 95, 162, 0.25);
   --error: #f87171;
   --error-bg: rgba(248, 113, 113, 0.1);
   --success: #4ade80;
@@ -592,6 +599,93 @@ body {
   z-index: 5;
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+/* ─── Fame floors ───────────────────────────────────────────
+   Rarity reads inverted from fame: the less known a player, the more points the find is worth,
+   so the card gets MORE special as fame goes down. Famous stays plain steel, known turns teal,
+   unsung gets a moving holographic border. Border colours are set here and the highlighted
+   state only adds a ring (box-shadow), so a card on the path keeps its floor identity. */
+.node-card__floor {
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  border: 1px solid;
+  z-index: 2;
+}
+
+.node-card--famous {
+  border-color: var(--floor-famous);
+}
+.node-card--famous .node-card__floor {
+  color: var(--floor-famous-text);
+  background: var(--bg-elevated);
+  border-color: var(--floor-famous);
+}
+
+/* No tint on the card itself: a teal background would read as a club card in hard mode. */
+.node-card--known {
+  border-color: var(--floor-known);
+}
+.node-card--known .node-card__floor {
+  color: var(--floor-known-text);
+  background: var(--floor-known-tint);
+  border-color: var(--floor-known);
+}
+
+.node-card--unsung {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--floor-unsung-tint), var(--floor-unsung-tint)) padding-box,
+    linear-gradient(120deg, #ff5fa2, #ffb547, #5fe3d0, #9d7bff, #ff5fa2) border-box;
+  background-size:
+    100% 100%,
+    300% 300%;
+  box-shadow: 0 0 18px var(--floor-unsung-glow);
+  animation: unsung-shimmer 6s linear infinite;
+}
+.node-card--unsung .node-card__floor {
+  color: #1a1320;
+  border-color: transparent;
+  background: linear-gradient(120deg, #ff8fbf, #ffc977, #8ff0e2);
+}
+.node-card--unsung .node-card__floor::before {
+  content: '✦ ';
+}
+.node-card--famous.node-card--highlighted,
+.node-card--known.node-card--highlighted {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.node-card--unsung.node-card--highlighted {
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 0 18px var(--floor-unsung-glow);
+}
+
+@keyframes unsung-shimmer {
+  from {
+    background-position:
+      0 0,
+      0% 50%;
+  }
+  to {
+    background-position:
+      0 0,
+      300% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node-card--unsung {
+    animation: none;
+  }
 }
 
 .node-card__avatar {

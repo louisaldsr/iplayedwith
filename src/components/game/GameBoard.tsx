@@ -259,6 +259,7 @@ export function GameBoard({ game, players, clubs }: Props) {
               isDragging={dragging?.key === key}
               highlighted={game.path.includes(node.id)}
               target={isTarget(node.id)}
+              fameFloor={isTarget(node.id) ? undefined : p?.fameFloor}
             />
           )
         })}
@@ -349,6 +350,7 @@ export function GameBoard({ game, players, clubs }: Props) {
         let highlighted: boolean
         let imageUrl: string | undefined
         let nationality: Player['nationality']
+        let fameFloor: Player['fameFloor']
 
         if (node.kind === 'player') {
           label = playerMap.get(node.id) ?? node.id
@@ -356,6 +358,7 @@ export function GameBoard({ game, players, clubs }: Props) {
           highlighted = pathPlayerKeys.has(key)
           const p = playerById.get(node.id)
           nationality = p?.nationality ? nationalTeamFor(p.nationality, p.sport) : undefined
+          fameFloor = isTarget(node.id) ? undefined : p?.fameFloor
         } else {
           label = clubMap.get(node.id) ?? node.id
           sublabel = node.season
@@ -378,6 +381,7 @@ export function GameBoard({ game, players, clubs }: Props) {
             isDragging={dragging?.key === key}
             highlighted={highlighted}
             target={node.kind === 'player' && isTarget(node.id)}
+            fameFloor={fameFloor}
           />
         )
       })}

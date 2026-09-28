@@ -36,7 +36,7 @@ async function main() {
   console.log(`\n=== ${sportArg} — ${players.length} players ===\n`)
 
   // Coverage first: a clean-looking distribution over signals nobody wrote is the trap to catch.
-  // Games and seasons come from memberships, exactly as the score will read them.
+  // Games come from memberships, exactly as the score reads them.
   const withGames = players.filter((p) => (p.games ?? 0) > 0).length
   const gamesUnknown = players.filter((p) => p.seasons > 0 && p.games === null).length
   const withCaps = players.filter((p) => (p.details.caps ?? 0) > 0).length
@@ -51,7 +51,7 @@ async function main() {
 
   console.log('Coverage')
   console.log(`  scored (fame not null)      : ${scored.length} (${pct(scored.length)})`)
-  console.log(`  never imported              : ${unscored} (${pct(unscored)})`)
+  console.log(`  not scored                  : ${unscored} (${pct(unscored)})`)
   console.log(`  games > 0                   : ${withGames} (${pct(withGames)})`)
   // Memberships exist but no import has said how many games — the membership import predates
   // `memberships.games`, or the source has no count. Re-running that import fixes the former.
@@ -63,8 +63,19 @@ async function main() {
   console.log(`  not refreshed by last import: ${stale} (${pct(stale)})${latest ? `  [latest ${latest}]` : ''}`)
 
   if (scored.length === 0) {
-    console.error(`\nNothing scored yet — run the sport's seedFame step first.`)
+    console.error(`\nNothing scored yet — run "npm run fame:compute -- --sport=${sportArg}".`)
     process.exit(1)
+  }
+
+  // One recompute rewrites the whole sport, so more than one revision means a formula or a
+  // constant changed and nobody recomputed since. Scores from two formulas do not compare.
+  const byRevision = new Map<number, number>()
+  for (const p of scored) byRevision.set(p.revision ?? 0, (byRevision.get(p.revision ?? 0) ?? 0) + 1)
+  const currentRevision = Math.max(...byRevision.keys())
+  const behind = scored.length - (byRevision.get(currentRevision) ?? 0)
+  console.log(`\nRevision ${currentRevision}${behind > 0 ? `  ⚠ ${behind} row(s) on an older revision` : ''}`)
+  if (unscored > 0 || behind > 0) {
+    console.log(`  → run "npm run fame:compute -- --sport=${sportArg}"`)
   }
 
   const sorted = [...scored].sort((a, b) => (b.score ?? 0) - (a.score ?? 0))

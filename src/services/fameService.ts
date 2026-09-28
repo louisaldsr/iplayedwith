@@ -25,8 +25,8 @@ const MAX_PLAUSIBLE_CAPS = 700
  * Validation runs over every row before the first write, so a bad batch fails the call instead
  * of landing half of itself — the same stance as `upsertMembershipsBulk`.
  *
- * No score is computed here, and nothing derived from memberships is written: games and
- * seasons are read from `memberships` when the score is computed.
+ * No score is computed here (see `computeFameScores`), and nothing derived from memberships
+ * is written: games are read from `memberships` when the score is computed.
  */
 export async function importFameDetails(
   db: SupabaseClient,
@@ -54,6 +54,16 @@ function checkCaps(value: number, label: string): number {
     throw new ValidationError(`${label}: ${value} is implausibly high — check the source column`)
   }
   return value
+}
+
+/**
+ * Recomputes the score of every player of the sport from the signals already stored — caps in
+ * `player_fame.details`, games in `memberships`. Run after an import, or alone after the
+ * formula or a constant changed.
+ */
+export async function computeFameScores(db: SupabaseClient, sport: SportId): Promise<{ scored: number }> {
+  const scored = await playersRepo.computeFameScores(db, sport)
+  return { scored }
 }
 
 export async function listFame(db: SupabaseClient, sport: SportId): Promise<playersRepo.PlayerFame[]> {

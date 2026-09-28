@@ -147,8 +147,8 @@ export type FameDetailsRow = { playerId: PlayerId; details: ImportedFameDetails 
  * `upsert`, and an upsert here would have to restate `name` and `sport` on every row — so a
  * stale import would silently overwrite a player's identity with what it happens to believe.
  *
- * Note what is NOT here: nothing computes the score afterwards. `player_fame.score` is written
- * by a separate step and stays NULL until it runs — the signals land first.
+ * Note what is NOT here: nothing computes the score. That is `computeFameScores`, a separate
+ * call — the score also reads `memberships`, which this write knows nothing about.
  * See supabase/migrations/010_player_fame.sql.
  */
 export async function applyFameDetails(db: SupabaseClient, sport: SportId, rows: FameDetailsRow[]): Promise<number> {
@@ -165,11 +165,27 @@ export async function applyFameDetails(db: SupabaseClient, sport: SportId, rows:
   return updated
 }
 
+/**
+ * Recomputes `player_fame.score` for every player of the sport, from `details.caps` and the
+ * games summed over `memberships`. Returns the number of rows scored.
+ *
+ * The formula and its per-sport constants live only in SQL — see
+ * supabase/migrations/012_fame_score.sql. One call rewrites the whole sport, so a partial run
+ * cannot leave it on two revisions.
+ */
+export async function computeFameScores(db: SupabaseClient, sport: SportId): Promise<number> {
+  const { data, error } = await db.rpc('compute_fame_scores', { p_sport: sport })
+  if (error) throw new Error(error.message)
+  return typeof data === 'number' ? data : 0
+}
+
 export type PlayerFame = {
   id: PlayerId
   name: string
-  /** `player_fame.score`, NULL for every player until the formula step has run. */
+  /** `player_fame.score`, NULL until `compute_fame_scores` has run for the sport. */
   score: number | null
+  /** Formula revision the score was computed with; NULL exactly when `score` is. */
+  revision: number | null
   details: FameDetails
   /** Sum of `memberships.games`; null when no membership of this player has a count. */
   games: number | null
@@ -196,7 +212,7 @@ export type PlayerFame = {
  */
 export async function listFameBySport(db: SupabaseClient, sport: SportId): Promise<PlayerFame[]> {
   type PlayerRow = { id: string; name: string }
-  type FameRow = { player_id: string; score: number | null; details: unknown }
+  type FameRow = { player_id: string; score: number | null; revision: number | null; details: unknown }
   type MembershipRow = { player_id: string; season: string; games: number | null }
 
   const [players, fame, memberships] = await Promise.all([
@@ -204,7 +220,12 @@ export async function listFameBySport(db: SupabaseClient, sport: SportId): Promi
       db.from('players').select('id, name').eq('sport', sport).order('id').range(from, to),
     ),
     fetchAllRows<FameRow>((from, to) =>
-      db.from('player_fame').select('player_id, score, details').eq('sport', sport).order('player_id').range(from, to),
+      db
+        .from('player_fame')
+        .select('player_id, score, revision, details')
+        .eq('sport', sport)
+        .order('player_id')
+        .range(from, to),
     ),
     fetchAllRows<MembershipRow>((from, to) =>
       db
@@ -235,6 +256,7 @@ export async function listFameBySport(db: SupabaseClient, sport: SportId): Promi
       id: PlayerId(row.id),
       name: row.name,
       score: signals?.score ?? null,
+      revision: signals?.revision ?? null,
       details: parseFameDetails(signals?.details),
       games: career?.games ?? null,
       seasons: career?.seasons.size ?? 0,

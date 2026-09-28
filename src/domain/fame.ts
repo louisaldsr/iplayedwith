@@ -9,9 +9,9 @@
  *
  * The bag is open: a new imported signal is added here and in the formula, with no migration.
  *
- * The score that comes out is `player_fame.score` (integer 0..100), written by a separate step
- * and NULL until it runs. It is not modelled here: nothing in `src/` reads it yet, and the only
- * writer is SQL.
+ * The score that comes out is `player_fame.score` (integer 0..100), written by the SQL function
+ * `compute_fame_scores` (supabase/migrations/012_fame_score.sql) and NULL until it runs. It is
+ * not modelled here: nothing in the game reads it yet.
  *
  * The formula lives only in SQL. This is the opposite choice to `search_normalize`, which is
  * written twice — in SQL and in `src/lib/searchNormalize.ts` — because the browser has to

@@ -1,4 +1,4 @@
-import { importFameDetails } from '@/services/fameService'
+import { computeFameScores, importFameDetails } from '@/services/fameService'
 import * as playersRepo from '@/repositories/playersRepository'
 import { ValidationError } from '@/services/errors'
 
@@ -69,5 +69,20 @@ describe('importFameDetails', () => {
 
     const [, , rows] = mockedRepo.applyFameDetails.mock.calls[0]
     expect(rows[0].details).toMatchObject({ caps: 0 })
+  })
+})
+
+describe('computeFameScores', () => {
+  it('scores the requested sport and reports how many rows were scored', async () => {
+    mockedRepo.computeFameScores.mockResolvedValue(7_529)
+
+    await expect(computeFameScores(db, 'rugby')).resolves.toEqual({ scored: 7_529 })
+    expect(mockedRepo.computeFameScores).toHaveBeenCalledWith(db, 'rugby')
+  })
+
+  it('surfaces a failure, e.g. a sport with no calibration row', async () => {
+    mockedRepo.computeFameScores.mockRejectedValue(new Error('no fame_calibration row for sport rugby'))
+
+    await expect(computeFameScores(db, 'rugby')).rejects.toThrow(/fame_calibration/)
   })
 })

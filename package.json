@@ -25,6 +25,7 @@
     "seed:football:players": "tsx --env-file=.env.local scripts/football/seedPlayers.ts",
     "seed:football:memberships": "tsx --env-file=.env.local scripts/football/seedMemberships.ts",
     "seed:football:fame": "tsx --env-file=.env.local scripts/football/seedFame.ts",
+    "fame:compute": "tsx --env-file=.env.local scripts/common/computeFame.ts",
     "fame:report": "tsx --env-file=.env.local scripts/common/fameReport.ts"
   },
   "dependencies": {

@@ -3,6 +3,7 @@ import { ClubSearchResult } from '@/domain/club'
 import { PlayerId } from '@/domain/ids'
 import { Season } from '@/domain/season'
 import { SportId } from '@/domain/sport'
+import { DailyChallenge } from '@/domain/dailyChallenge'
 
 /**
  * Browser-side calls the game makes.
@@ -28,6 +29,11 @@ export function searchClubs(sport: SportId, q: string, signal?: AbortSignal): Pr
 
 export function listClubSeasons(clubId: string, signal?: AbortSignal): Promise<Season[]> {
   return getJson<Season[]>(`/api/clubs/${encodeURIComponent(clubId)}/seasons`, signal)
+}
+
+/** Today's pair for the sport — the same for every visitor. */
+export function getDailyChallenge(sport: SportId, signal?: AbortSignal): Promise<DailyChallenge> {
+  return getJson<DailyChallenge>(`/api/${sport}/daily`, signal)
 }
 
 export async function randomPlayer(sport: SportId, excludeId?: PlayerId): Promise<Player | null> {

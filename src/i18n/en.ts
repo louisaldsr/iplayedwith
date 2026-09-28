@@ -12,6 +12,17 @@ const en = {
     loading: 'Loading…',
     loadError: 'Something went wrong loading the data. Please try again.',
   },
+  daily: {
+    title: 'Daily Challenge',
+    intro: 'Connect these two players through teammates. Same pair for everyone, new one every day.',
+    versus: 'vs',
+    bestPossible: 'Best possible',
+    links: 'links',
+    start: 'Start',
+    freePlayLink: 'Or pick your own players in free play',
+    freePlay: 'Free play',
+    yourChain: 'Your chain',
+  },
   setup: {
     title: 'Choose Your Players',
     playerA: 'Player A',

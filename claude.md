@@ -214,6 +214,71 @@ du repo sont à p99=110).
 
 ---
 
+## ✅ Bloc 6 terminé — Daily Challenge
+
+Le jeu change d'entrée : `/[sport]` ouvre le **défi du jour** — une paire par sport et par jour,
+la même pour tout le monde. La partie libre (choisir A et B) passe en secondaire sur `/[sport]/free`.
+Classement du jour et stats perso viendront ensuite ; ce bloc ne fait que créer le défi.
+
+### Règles du tirage
+
+- **Uniforme** parmi les joueurs du sport ayant au moins un membership (sans membership, un
+  joueur n'est relié à personne). Pas encore de bande de fame : le score v1 existe
+  (`012_fame_score.sql`) mais le tirage ne le lit pas — voir l'étape 18.
+- **Résoluble** et à **au moins 2 liens** : à 1 lien, le mode facile résout la paire tout seul.
+  Pas de borne haute sur la distance — le plus court chemin est calculé et stocké
+  (`optimal_links`), c'est le « par » du futur classement.
+- **Mode facile uniquement** : une seule règle pour tout le monde, donc un seul classement.
+- **Un jour = Europe/Paris**, calculé par le serveur (`challengeDayOf`, `src/domain/dailyChallenge.ts`).
+  La base ne décide jamais de la date.
+
+### Stockage — `013_daily_challenges.sql`
+
+Table `daily_challenges`, PK `(sport, day)`, la paire est **figée** une fois tirée (un tirage
+recalculé depuis une graine bougerait au premier import). `solution` (un plus court chemin) est
+gardée pour plus tard mais **ne sort jamais** : RLS sans policy, lue et écrite uniquement par
+`service_role`. La route utilise donc `supabaseAdmin()`.
+
+- `player_shortest_path(sport, from, to)` — BFS SQL sur le graphe biparti joueur → (club, saison)
+  → joueur ; chaque club-saison n'est développé **qu'une fois**, donc chaque membership est lu au
+  plus deux fois. Mesuré sur un graphe synthétique de 8 000 joueurs / 40 000 memberships : 7 à
+  155 ms pour une paire reliée, 175 ms pour une paire non reliée (le pire cas : toute la
+  composante est parcourue). La première version, qui redéveloppait un effectif par joueur, prenait 1,2 s.
+- `generate_daily_challenge(sport, day)` — get-or-create d'un jour, sous un verrou consultatif
+  par sport : deux tirages simultanés du même jour convergent sur la même paire (testé à 6 en
+  parallèle). Jusqu'à 20 tirages.
+- `ensure_daily_challenges(today)` — tire tout jour manquant depuis le lancement de chaque sport
+  jusqu'à **demain** inclus. Lancé **toutes les heures** par pg_cron (`ensure-daily-challenges`,
+  `5 * * * *`) : le défi est publié **chaque jour, visiteurs ou non**, celui du lendemain existe
+  avant minuit, et une panne du job est rattrapée au passage suivant. Horaire plutôt qu'à minuit :
+  pg_cron compte en UTC, et minuit à Paris tombe à 22 h ou 23 h UTC selon l'heure d'été.
+  L'API garde un repli à la demande pour le jour courant.
+
+### Numéro du défi — à la Wordle
+
+`number = day − jour de lancement + 1`, par sport. Le jour de lancement est celui du **premier
+défi** du sport : rien à configurer, et un sport ajouté plus tard démarre à son propre #1. Le
+numéro suit le calendrier, jamais les visites : un jour rattrapé en retard reçoit le numéro qu'il
+aurait eu à l'heure. Affiché « Défi du jour #N ».
+
+⚠️ **Appliquer `013` lance la série** : le premier passage du job fixe le #1 au jour même (heure
+de Paris). Un tirage de test sur la base de prod avant le lancement décalerait toute la série —
+pour relancer, vider la table. Un jour antérieur au lancement est refusé.
+
+⚠️ Le fuseau `Europe/Paris` est écrit **deux fois** : `CHALLENGE_TIME_ZONE` (API) et la commande
+du job pg_cron. Les changer ensemble.
+
+### Endpoint
+
+| Route | Rôle |
+|---|---|
+| `GET /api/:sport/daily` | paire du jour `{ sport, day, number, playerA, playerB, optimalLinks }`, sans solution |
+
+Les coups passent toujours par `POST /api/:sport/move` en `easy` : rien ne lie encore un coup au
+défi — c'est le travail de l'étape classement (résultats vérifiés côté serveur).
+
+---
+
 ## Flux de validation
 
 ```
@@ -247,3 +312,11 @@ Saisie user
     d'envoyer l'utilisateur vers la fiche d'origine du joueur depuis le jeu
 14. Le signal `appearance` (combien de fois un joueur est cherché), quand le jeu produira des
     parties — c'est lui qui donnera enfin des étiquettes pour ajuster les poids de la fame
+15. ~~Daily Challenge : une paire par sport et par jour~~
+16. Appliquer `013_daily_challenges.sql` **le jour du lancement voulu** (il fixe le #1), puis les
+    contrôles en bas du fichier (job planifié, pas de jour manquant, numéros, solution valide,
+    fermé à anon) — et noter le temps réel du BFS sur les vraies données
+17. Identité du joueur (anonyme d'abord), résultats du défi vérifiés côté serveur, puis
+    classement du jour et stats perso ; empêcher de rejouer le défi
+18. Tirage du défi pondéré par la fame (`player_fame.score`, v1), une fois `012` appliqué et le
+    top/bottom 30 validé

@@ -5,11 +5,13 @@ import { Game, DifficultyLevel } from '../game/game'
 import { Player } from '../domain/player'
 import { Club } from '../domain/club'
 import { SportId } from '../domain/sport'
+import { DailyChallenge } from '../domain/dailyChallenge'
 import { RemoteEngine, RemoteInputResult, createRemoteEngine } from '../game/remoteEngine'
 import { UserInput } from '../game/userInput'
 import { SetupScreen } from './setup/SetupScreen'
 import { GameScreen } from './game/GameScreen'
 import { VictoryScreen } from './victory/VictoryScreen'
+import { DailyIntro } from './daily/DailyIntro'
 
 type Phase = 'setup' | 'playing' | 'victory'
 
@@ -106,8 +108,15 @@ function reducer(state: UIState, action: Action): UIState {
   }
 }
 
+/**
+ * Free play: the user picks the pair and the difficulty.
+ * Daily: the pair is the day's challenge, always in easy mode — one set of rules for everyone.
+ */
+export type GameMode = { kind: 'free' } | { kind: 'daily'; challenge: DailyChallenge }
+
 type Props = {
   sport: SportId
+  mode?: GameMode
 }
 
 /**
@@ -117,19 +126,24 @@ type Props = {
  * (player search, randomize, the direct-connection check, each move) is a bounded request
  * made on demand. The graph and its rules live on the server — see `remoteEngine`.
  */
-export function GamePage({ sport }: Props) {
+export function GamePage({ sport, mode = { kind: 'free' } }: Props) {
   const [state, dispatch] = useReducer(reducer, undefined, initState)
   const engineRef = useRef<RemoteEngine | null>(null)
 
+  const daily = mode.kind === 'daily' ? mode.challenge : null
+
   const handleStart = useCallback(() => {
-    if (!state.playerA || !state.playerB) return
-    engineRef.current = createRemoteEngine(sport, state.playerA, state.playerB, state.difficulty)
+    const playerA = daily ? daily.playerA : state.playerA
+    const playerB = daily ? daily.playerB : state.playerB
+    const difficulty = daily ? 'easy' : state.difficulty
+    if (!playerA || !playerB) return
+    engineRef.current = createRemoteEngine(sport, playerA, playerB, difficulty)
     dispatch({
       type: 'START_GAME',
       game: engineRef.current.game,
-      players: [state.playerA, state.playerB],
+      players: [playerA, playerB],
     })
-  }, [sport, state.playerA, state.playerB, state.difficulty])
+  }, [sport, daily, state.playerA, state.playerB, state.difficulty])
 
   const handleSubmit = useCallback(async (input: UserInput) => {
     const engine = engineRef.current
@@ -146,7 +160,9 @@ export function GamePage({ sport }: Props) {
 
   return (
     <div className="game-page">
-      {state.phase === 'setup' && (
+      {state.phase === 'setup' && daily && <DailyIntro challenge={daily} onStart={handleStart} />}
+
+      {state.phase === 'setup' && !daily && (
         <SetupScreen
           sport={sport}
           playerA={state.playerA}
@@ -177,7 +193,9 @@ export function GamePage({ sport }: Props) {
           game={state.game}
           players={state.players}
           moveCount={state.moveCount}
-          onPlayAgain={handlePlayAgain}
+          optimalLinks={daily?.optimalLinks}
+          onPlayAgain={daily ? undefined : handlePlayAgain}
+          freePlayHref={daily ? `/${sport}/free` : undefined}
         />
       )}
     </div>

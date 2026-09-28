@@ -203,10 +203,39 @@ requires `DROP COLUMN fame` first. That is written at the bottom of `010_player_
 
 ## What's left
 
-1. Wire fame up: band the random draw in `findRandom`, then the daily challenge, then points.
-2. Decide the fame floors (3, 4 or 5 tiers) — the score supports coarse grouping better than
-   fine ordering, so the floors are what the game should actually read.
+1. Wire the floors up: draw by floor in `findRandom`, then the daily challenge, then points.
+2. ~~Decide the fame floors~~ — done, see "Floors" below.
 3. Club fame, as its own task.
 4. The `appearance` signal, once the game produces games.
 5. Players with no memberships (a real career, but club matching failed at import) are scored
    and will stay unreachable in a puzzle. Counted by `fame:report`.
+
+## Floors
+
+*Settled September 2026 — `src/domain/fameFloor.ts`.*
+
+The game never shows or scores the raw number: nobody can tell a 47 from a 52, and the score
+orders the top imprecisely anyway. It reads one of three floors:
+
+| floor | key | label | score | rugby | football |
+|---|---|---|---|---|---|
+| 1 | `famous` | Famous / Célèbre | 70–100 | 186 (2.7%) | 173 (1.5%) |
+| 2 | `known` | Known / Connu | 30–69 | 2,272 (33.1%) | 2,143 (18.7%) |
+| 3 | `unsung` | Unsung / Méconnu | 0–29 | 4,397 (64.1%) | 9,139 (79.8%) |
+
+**Absolute thresholds, not percentiles** — the reasons the score dropped percentiles apply again:
+a player's floor, and so their point value, must not move because other players were imported,
+and the top floor should be as small as stardom actually is.
+
+**One set for every sport.** `fame_calibration` already normalises the sports onto one scale;
+the floors do not branch on the sport.
+
+**Derived, not stored.** A floor is read from `player_fame.score`, so changing a threshold needs
+no migration and no recompute. `fame:report` prints the floor sizes and the named players either
+side of each threshold — the check that matters, as with the top/bottom 30.
+
+A NULL score has no floor: an unscored player is not an unknown one. "Unsung" is shown in public,
+so the name has to stay kind to the players themselves.
+
+Known edge at the top boundary: Dembélé and Havertz sit at 69, one point under `famous` — the
+longevity bias of the score, not a threshold problem.

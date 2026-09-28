@@ -55,6 +55,13 @@ const en = {
     addPlayer: 'Player',
     addClub: 'Club',
   },
+  fame: {
+    floors: {
+      famous: 'Famous',
+      known: 'Known',
+      unsung: 'Unsung',
+    },
+  },
   victory: {
     heading: 'Congratulations!',
     moves: 'Moves',

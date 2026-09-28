@@ -1,4 +1,6 @@
 import { Nationality } from '../../domain/nationality'
+import { FameFloor, fameFloorKey } from '../../domain/fameFloor'
+import { useTranslations } from '../../i18n'
 
 type Props = {
   nodeKey: string
@@ -12,6 +14,8 @@ type Props = {
   isDragging?: boolean
   highlighted?: boolean
   target?: boolean
+  /** Styles the card by fame floor. The board leaves it unset for players A and B. */
+  fameFloor?: FameFloor
 }
 
 export function NodeCard({
@@ -26,11 +30,15 @@ export function NodeCard({
   isDragging,
   highlighted,
   target,
+  fameFloor,
 }: Props) {
+  const t = useTranslations()
+  const floorKey = fameFloor ? fameFloorKey(fameFloor) : undefined
   const classes = [
     'node-card',
     `node-card--${kind}`,
     target ? 'node-card--target' : '',
+    floorKey ? `node-card--${floorKey}` : '',
     isDragging ? 'node-card--dragging' : '',
     highlighted ? 'node-card--highlighted' : '',
   ]
@@ -53,6 +61,7 @@ export function NodeCard({
           aria-label={nationality}
         />
       )}
+      {floorKey && <span className="node-card__floor">{t.fame.floors[floorKey]}</span>}
       {src && (
         <img src={src} alt="" className={kind === 'club' ? 'node-card__logo' : 'node-card__avatar'} draggable={false} />
       )}

@@ -74,6 +74,7 @@ body {
     transform 0.1s;
   padding: 10px 20px;
   white-space: nowrap;
+  text-decoration: none;
 }
 
 .btn:active:not(:disabled) {
@@ -231,6 +232,47 @@ body {
   color: var(--text-muted);
   text-align: center;
   max-width: 420px;
+}
+
+/* ─── Daily challenge intro ─────────────────────────────── */
+.daily-intro__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.daily-intro__date {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.daily-intro__players {
+  align-items: center;
+}
+
+.daily-intro__versus {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.daily-intro__unit {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.daily-intro__free-play {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.daily-intro__free-play:hover {
+  color: var(--accent-hover);
 }
 
 /* ─── Data fetch status (loading/error) ─────────────────── */
@@ -998,6 +1040,8 @@ body {
 
 .victory-stats {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 40px;
 }
 

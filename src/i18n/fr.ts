@@ -14,6 +14,17 @@ const fr: Translations = {
     loading: 'Chargement…',
     loadError: 'Une erreur est survenue lors du chargement des données. Veuillez réessayer.',
   },
+  daily: {
+    title: 'Défi du jour',
+    intro: 'Reliez ces deux joueurs par leurs coéquipiers. La même paire pour tout le monde, une nouvelle chaque jour.',
+    versus: 'contre',
+    bestPossible: 'Meilleur possible',
+    links: 'liens',
+    start: 'Commencer',
+    freePlayLink: 'Ou choisissez vos joueurs en partie libre',
+    freePlay: 'Partie libre',
+    yourChain: 'Votre chaîne',
+  },
   setup: {
     title: 'Choisissez vos joueurs',
     playerA: 'Joueur A',

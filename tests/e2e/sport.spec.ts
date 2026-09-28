@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test'
 // migration to be applied and the seed scripts (`npm run seed:*`) to have run against the
 // target Supabase instance first.
 
-test.describe('sport setup screen', () => {
+test.describe('free-play setup screen', () => {
   for (const sport of ['rugby', 'football'] as const) {
     test(`${sport} setup screen renders without loading a dataset`, async ({ page }) => {
       const dataRequests: string[] = []
@@ -12,7 +12,7 @@ test.describe('sport setup screen', () => {
         if (req.url().includes('/api/')) dataRequests.push(req.url())
       })
 
-      await page.goto(`/${sport}`)
+      await page.goto(`/${sport}/free`)
       await expect(page.getByPlaceholder('Search a player…').first()).toBeVisible()
 
       // The point of the server-side engine: the setup screen needs no data at all.
@@ -27,7 +27,7 @@ test.describe('sport setup screen', () => {
   })
 
   test('player search is server-side and bounded', async ({ page }) => {
-    await page.goto('/rugby')
+    await page.goto('/rugby/free')
 
     const search = page.waitForResponse((r) => r.url().includes('/api/players?') && r.ok())
     await page.getByPlaceholder('Search a player…').first().fill('dup')
@@ -45,6 +45,38 @@ test.describe('sport setup screen', () => {
 
 // Requires 008_search_normalization.sql and 009_seed_club_aliases.sql on top of the
 // migrations above.
+test.describe('daily challenge', () => {
+  // Needs `013_daily_challenges.sql` applied and SUPABASE_SERVICE_ROLE_KEY set for the server.
+  test('the same pair for every request of the day, without its solution', async ({ request }) => {
+    const first = await request.get('/api/rugby/daily')
+    expect(first.ok()).toBe(true)
+    const a = await first.json()
+    const b = await (await request.get('/api/rugby/daily')).json()
+
+    expect(b).toEqual(a)
+    expect(a.playerA.id).not.toBe(a.playerB.id)
+    expect(a.optimalLinks).toBeGreaterThanOrEqual(2)
+    expect(Number.isInteger(a.number) && a.number >= 1).toBe(true)
+    expect(a).not.toHaveProperty('solution')
+  })
+
+  test('an unknown sport is refused', async ({ request }) => {
+    const res = await request.get('/api/basketball/daily')
+    expect(res.status()).toBe(404)
+  })
+
+  test("the sport page opens on the day's pair and links to free play", async ({ page }) => {
+    const daily = page.waitForResponse((r) => r.url().includes('/api/rugby/daily') && r.ok())
+    await page.goto('/rugby')
+    const challenge = await (await daily).json()
+
+    await expect(page.getByText(`#${challenge.number}`)).toBeVisible()
+    await expect(page.getByText(challenge.playerA.name)).toBeVisible()
+    await expect(page.getByText(challenge.playerB.name)).toBeVisible()
+    await expect(page.locator('a[href="/rugby/free"]')).toBeVisible()
+  })
+})
+
 test.describe('forgiving search', () => {
   type ApiPlayer = { id: string; name: string }
   type ApiClub = { id: string; name: string; matchedAlias?: string }

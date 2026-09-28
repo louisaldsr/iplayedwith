@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Player } from '../../domain/player'
 import { Game } from '../../game/game'
 import { useTranslations } from '../../i18n'
@@ -6,7 +7,11 @@ type Props = {
   game: Game
   players: Player[]
   moveCount: number
-  onPlayAgain: () => void
+  /** Daily only: the shortest chain possible, shown next to the one the user found. */
+  optimalLinks?: number
+  /** Free play restarts in place; the daily has one pair a day, so it offers free play instead. */
+  onPlayAgain?: () => void
+  freePlayHref?: string
 }
 
 function formatTime(ms: number): string {
@@ -16,7 +21,7 @@ function formatTime(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
-export function VictoryScreen({ game, players, moveCount, onPlayAgain }: Props) {
+export function VictoryScreen({ game, players, moveCount, optimalLinks, onPlayAgain, freePlayHref }: Props) {
   const t = useTranslations()
   const playerMap = new Map(players.map((p) => [p.id as string, p.name]))
   const elapsedMs = Date.now() - game.startedAt.getTime()
@@ -36,6 +41,18 @@ export function VictoryScreen({ game, players, moveCount, onPlayAgain }: Props) 
       </div>
 
       <div className="victory-stats">
+        {optimalLinks !== undefined && (
+          <div className="victory-stat">
+            <span className="stat-label">{t.daily.yourChain}</span>
+            <span className="stat-value">{game.path.length - 1}</span>
+          </div>
+        )}
+        {optimalLinks !== undefined && (
+          <div className="victory-stat">
+            <span className="stat-label">{t.daily.bestPossible}</span>
+            <span className="stat-value">{optimalLinks}</span>
+          </div>
+        )}
         <div className="victory-stat">
           <span className="stat-label">{t.victory.moves}</span>
           <span className="stat-value">{moveCount}</span>
@@ -46,9 +63,16 @@ export function VictoryScreen({ game, players, moveCount, onPlayAgain }: Props) 
         </div>
       </div>
 
-      <button type="button" className="btn btn--primary btn--lg" onClick={onPlayAgain}>
-        {t.victory.playAgain}
-      </button>
+      {onPlayAgain && (
+        <button type="button" className="btn btn--primary btn--lg" onClick={onPlayAgain}>
+          {t.victory.playAgain}
+        </button>
+      )}
+      {freePlayHref && (
+        <Link href={freePlayHref} className="btn btn--primary btn--lg">
+          {t.daily.freePlay}
+        </Link>
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { importFameDetails, type FameRowInput } from '@/services/fameService'
+import { computeFameScores, importFameDetails, type FameRowInput } from '@/services/fameService'
 import { ServiceError } from '@/services/errors'
 import { getDb } from '../common/env'
 import { loadJson } from '../common/json'
@@ -13,7 +13,7 @@ import { SOURCES } from './lib/sources'
  * writes them as fame signals.
  *
  * Only caps: games played live on `memberships` (written by `seedMemberships`), where the score
- * reads them alongside the seasons they are divided by.
+ * reads them.
  *
  * Reads the cache directly instead of going through `fetchWithCache`, so a missing profile is
  * reported rather than silently refetched: this step must never put ~15k requests on
@@ -21,8 +21,7 @@ import { SOURCES } from './lib/sources'
  *
  *
  * No progress file: re-running rewrites the same values, which is the point. This step writes
- * `player_fame.details` only; the score is derived from it separately and stays NULL until
- * that runs.
+ * `player_fame.details`, then recomputes every score of the sport.
  */
 async function main() {
   const dryRun = process.argv.includes('--dry-run')
@@ -76,8 +75,11 @@ async function main() {
   }
 
   try {
-    const { written } = await importFameDetails(getDb(), 'rugby', rows)
-    console.log(`Done. details written=${written}`)
+    const db = getDb()
+    const { written } = await importFameDetails(db, 'rugby', rows)
+    // Scored right away: the signals just moved, so every stored score is now stale.
+    const { scored } = await computeFameScores(db, 'rugby')
+    console.log(`Done. details written=${written}, scored=${scored}`)
   } catch (err) {
     throw new Error(`Failed to import fame: ${err instanceof ServiceError ? err.message : String(err)}`)
   }

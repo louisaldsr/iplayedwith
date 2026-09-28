@@ -3,6 +3,29 @@
 *September 2026. Shipped: the metric is computed and stored. Nothing reads it yet — not the
 random draw, not the points. That is deliberate, and it is the subject of this note.*
 
+## What actually shipped — v1 (revision 1)
+
+The research below explored a three-term formula stored in a generated column. What shipped is
+a simpler first draft, meant to be iterated on:
+
+```
+score = round(100 × [ 0.55·s(caps, k_caps) + 0.45·s(games, k_games) ])
+s(x, K) = min(1, √(x / K))
+```
+
+- **Two signals.** `caps` from `player_fame.details`, and `games` summed from `memberships.games`,
+  so the total always covers the same clubs and seasons as the game graph. The weights are the
+  spike's caps/games priors (0.45 / 0.35) rescaled to sum to 1.
+- **No intensity term yet.** `games / seasons` is a real signal (see below), but it is left for
+  a later revision. It is the obvious first thing to add back.
+- **No generated column.** It cannot read `memberships`. `compute_fame_scores(sport)` rewrites
+  the whole sport and stamps a `revision`. `fame:report` flags any row left on an older one.
+- **K is data.** `fame_calibration` holds one row per sport (rugby 300 / 100, football 600 / 180,
+  the ceilings below). The formula never branches on the sport.
+
+See `supabase/migrations/012_fame_score.sql`. Sections below that mention `fame_details`, a
+generated column or `DROP COLUMN fame` describe the earlier design and are superseded.
+
 ## The problem
 
 `findRandom` drew uniformly across the whole table, so a game could pit two unknowns against

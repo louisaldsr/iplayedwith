@@ -46,6 +46,13 @@ const fr: Translations = {
     addPlayer: 'Joueur',
     addClub: 'Club',
   },
+  fame: {
+    floors: {
+      famous: 'Célèbre',
+      known: 'Connu',
+      unsung: 'Méconnu',
+    },
+  },
   victory: {
     heading: 'Félicitations !',
     moves: 'Coups',

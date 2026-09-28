@@ -214,6 +214,34 @@ du repo sont à p99=110).
 
 ---
 
+## ✅ Bloc 6 terminé — Paliers de fame
+
+Afficher le score brut (0..100) et donner un nombre de points différent par joueur serait
+illisible : personne ne distingue un 47 d'un 52, et le score lui-même ordonne mal le haut du
+classement. Le jeu lit donc un **palier**, jamais le score — `src/domain/fameFloor.ts`.
+
+| palier | clé | EN / FR | score | rugby | football |
+|---|---|---|---|---|---|
+| 1 | `famous` | Famous / Célèbre | 70–100 | 186 (2,7 %) | 173 (1,5 %) |
+| 2 | `known` | Known / Connu | 30–69 | 2 272 (33,1 %) | 2 143 (18,7 %) |
+| 3 | `unsung` | Unsung / Méconnu | 0–29 | 4 397 (64,1 %) | 9 139 (79,8 %) |
+
+- **Seuils absolus, pas des centiles** : le palier d'un joueur ne dépend que de sa carrière ;
+  importer d'autres joueurs ne le déplace jamais (même raisonnement que pour le score).
+- **Communs à tous les sports** : `fame_calibration` met déjà les sports sur la même échelle.
+- **Rien n'est stocké** : dérivé de `player_fame.score` à la lecture. Changer un seuil = modifier
+  `FAME_FLOORS` et ses tests, puis relire `fame:report` (section *Floors* : effectifs et joueurs
+  nommés de part et d'autre de chaque seuil).
+- Score NULL → **pas de palier** (`null`) : un joueur non calculé n'est pas un inconnu.
+- `fameFloorRange(palier)` donne la plage de scores à filtrer : le SQL n'a pas à connaître les
+  paliers (futur tirage par palier).
+- « Unsung » (*unsung hero*) / « Méconnu » : affiché publiquement, le nom doit rester bienveillant
+  envers les joueurs eux-mêmes. Libellés dans `src/i18n` (`fame.floors`).
+
+Rien ne compte encore de points : un palier plus haut vaudra plus de points, plus tard.
+
+---
+
 ## Flux de validation
 
 ```
@@ -242,8 +270,9 @@ Saisie user
 10. ~~Métrique de fame — signaux, `player_fame`, `memberships.games`, formule v1 (caps + matchs)~~
 11. Appliquer `010` → `011` → `012_fame_score.sql`, relancer `:memberships` puis `:fame` des deux
     sports — et **lire le top/bottom 30** ; ajuster les K dans `fame_calibration` si besoin
-12. Brancher la fame : bande de tirage sur `findRandom`, puis daily challenge, puis points
-13. Remonter `source` / `sourceUrl` dans `Player` (retirés du sac de fame) — permettrait aussi
+12. ~~Paliers de fame (`famous` / `known` / `unsung`)~~
+13. Brancher les paliers : tirage par palier sur `findRandom`, puis daily challenge, puis points par palier
+14. Remonter `source` / `sourceUrl` dans `Player` (retirés du sac de fame) — permettrait aussi
     d'envoyer l'utilisateur vers la fiche d'origine du joueur depuis le jeu
-14. Le signal `appearance` (combien de fois un joueur est cherché), quand le jeu produira des
+15. Le signal `appearance` (combien de fois un joueur est cherché), quand le jeu produira des
     parties — c'est lui qui donnera enfin des étiquettes pour ajuster les poids de la fame

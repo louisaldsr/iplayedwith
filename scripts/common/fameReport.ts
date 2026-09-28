@@ -1,3 +1,4 @@
+import { FAME_FLOORS, fameFloorOf, fameFloorRange } from '@/domain/fameFloor'
 import { isSportId, SPORTS } from '@/domain/sport'
 import { listFame } from '@/services/fameService'
 import { getDb } from './env'
@@ -12,6 +13,7 @@ import { getDb } from './env'
  * how the histogram looks.
  */
 const TOP_N = 30
+const BOUNDARY_N = 5
 
 function bar(count: number, max: number, width = 32): string {
   return '█'.repeat(Math.max(1, Math.round((count / Math.max(max, 1)) * width)))
@@ -98,6 +100,30 @@ async function main() {
     `  ${String(rank).padStart(5)}. ${String(p.score).padStart(3)}  ${p.name.padEnd(28).slice(0, 28)} ` +
     `games=${String(p.games ?? '-').padStart(4)} caps=${String(p.details.caps ?? 0).padStart(3)} ` +
     `seasons=${String(p.seasons).padStart(2)}`
+
+  // What the game actually reads. Sizes alone say little; the names either side of each
+  // threshold are what tell whether it sits in the right place.
+  const perFloor = FAME_FLOORS.map((f) => scored.filter((p) => fameFloorOf(p.score) === f.floor).length)
+  const maxFloor = Math.max(...perFloor)
+  console.log('\nFloors')
+  FAME_FLOORS.forEach((f, i) => {
+    const { min, max } = fameFloorRange(f.floor)
+    console.log(
+      `  ${f.floor} ${f.key.padEnd(7)} ${String(min).padStart(3)}-${String(max).padEnd(3)} ` +
+        `${String(perFloor[i]).padStart(6)} (${((100 * perFloor[i]) / scored.length).toFixed(1).padStart(4)}%)  ` +
+        bar(perFloor[i], maxFloor),
+    )
+  })
+  for (const f of FAME_FLOORS.slice(0, -1)) {
+    const firstBelow = sorted.findIndex((p) => (p.score ?? 0) < f.minScore)
+    if (firstBelow <= 0) continue
+    console.log(`\n  Around ${f.minScore} — last of "${f.key}" above, first of the next floor below`)
+    sorted.slice(Math.max(0, firstBelow - BOUNDARY_N), firstBelow).forEach((p, i, a) => {
+      console.log(line(p, firstBelow - a.length + i + 1))
+    })
+    console.log('  ' + '-'.repeat(60))
+    sorted.slice(firstBelow, firstBelow + BOUNDARY_N).forEach((p, i) => console.log(line(p, firstBelow + i + 1)))
+  }
 
   console.log(`\nTop ${TOP_N} — these should be household names`)
   sorted.slice(0, TOP_N).forEach((p, i) => console.log(line(p, i + 1)))

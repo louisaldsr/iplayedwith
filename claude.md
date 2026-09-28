@@ -240,6 +240,12 @@ classement. Le jeu lit donc un **palier**, jamais le score — `src/domain/fameF
 
 Rien ne compte encore de points : un palier plus haut vaudra plus de points, plus tard.
 
+**Dans l'UI** : `POST /api/:sport/move` renvoie le palier (`Player.fameFloor`, jamais le score)
+du joueur ajouté ; la carte du graphe est stylée par palier, sauf pour A et B. Rareté inversée :
+moins un joueur est connu, plus sa carte est spéciale — `famous` sobre, `known` teal, `unsung`
+bordure holographique animée. La lecture de la fame est décorative : si elle échoue, le coup
+passe quand même, sans palier.
+
 ---
 
 ## Flux de validation

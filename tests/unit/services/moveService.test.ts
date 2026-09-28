@@ -128,6 +128,34 @@ describe('applyMove — easy mode', () => {
   })
 })
 
+describe('applyMove — fame floor of the added player', () => {
+  const move = request({ move: { kind: 'easy', playerId: PlayerId('p02') } })
+
+  it('attaches the floor, never the raw score', async () => {
+    mockedPlayers.findFameScore.mockResolvedValue(18)
+    const result = await applyMove(db, 'rugby', move)
+
+    expect(result.ok && result.node).toEqual({ kind: 'player', player: { ...playerById('p02'), fameFloor: 3 } })
+    expect(JSON.stringify(result)).not.toContain('18')
+  })
+
+  it('leaves the floor out when the score is not computed yet', async () => {
+    mockedPlayers.findFameScore.mockResolvedValue(null)
+    const result = await applyMove(db, 'rugby', move)
+
+    expect(result.ok && result.node).toEqual({ kind: 'player', player: playerById('p02') })
+  })
+
+  it('still plays the move when the fame read fails — the floor is decoration, not a rule', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    mockedPlayers.findFameScore.mockRejectedValue(new Error('relation "player_fame" does not exist'))
+    const result = await applyMove(db, 'rugby', move)
+
+    expect(result.ok && result.node).toEqual({ kind: 'player', player: playerById('p02') })
+    warn.mockRestore()
+  })
+})
+
 describe('applyMove — hard mode', () => {
   it('accepts a club-season an existing player played at', async () => {
     const result = await applyMove(

@@ -7,6 +7,7 @@ import { Season } from '@/domain/season'
 import { SportId } from '@/domain/sport'
 import { Player } from '@/domain/player'
 import { Club } from '@/domain/club'
+import { FameFloor, fameFloorOf } from '@/domain/fameFloor'
 import { Membership } from '@/domain/membership'
 import { DifficultyLevel } from '@/game/game'
 import { UserInput } from '@/game/userInput'
@@ -143,13 +144,31 @@ async function resolveEdgeClubs(db: SupabaseClient, edges: GameEdge[]): Promise<
   return clubsRepo.findManyByIds(db, ids)
 }
 
+/**
+ * The floor the board styles the added player's card with.
+ *
+ * Decoration, not a rule: a failed read degrades to "no floor" rather than failing a move the
+ * rules accepted — a database without the fame migrations must still play.
+ */
+async function resolveFameFloor(db: SupabaseClient, sport: SportId, id: PlayerId): Promise<FameFloor | null> {
+  try {
+    return fameFloorOf(await playersRepo.findFameScore(db, sport, id))
+  } catch (err) {
+    console.warn(`fame floor unavailable for player "${id}":`, err)
+    return null
+  }
+}
+
 /** Loads the name/nationality/logo the board needs for the node just added. */
 async function resolveNode(db: SupabaseClient, sport: SportId, move: UserInput): Promise<ResolvedNode> {
   if (move.kind === 'easy' || move.kind === 'hard-player') {
-    const player = await playersRepo.findById(db, move.playerId)
+    const [player, fameFloor] = await Promise.all([
+      playersRepo.findById(db, move.playerId),
+      resolveFameFloor(db, sport, move.playerId),
+    ])
     if (!player) throw new NotFoundError(`player "${move.playerId}" not found`)
     if (player.sport !== sport) throw new ValidationError(`player "${move.playerId}" does not play ${sport}`)
-    return { kind: 'player', player }
+    return { kind: 'player', player: fameFloor === null ? player : { ...player, fameFloor } }
   }
 
   const club = await clubsRepo.findById(db, move.clubId)

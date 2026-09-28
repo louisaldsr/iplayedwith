@@ -179,6 +179,21 @@ export async function computeFameScores(db: SupabaseClient, sport: SportId): Pro
   return typeof data === 'number' ? data : 0
 }
 
+/**
+ * One player's `player_fame.score`, or null when it is not computed yet (or the player has no
+ * fame row at all). Read by a move to give the added node its floor.
+ */
+export async function findFameScore(db: SupabaseClient, sport: SportId, id: PlayerId): Promise<number | null> {
+  const { data, error } = await db
+    .from('player_fame')
+    .select('score')
+    .eq('sport', sport)
+    .eq('player_id', id)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  return data?.score ?? null
+}
+
 export type PlayerFame = {
   id: PlayerId
   name: string

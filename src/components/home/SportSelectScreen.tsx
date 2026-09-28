@@ -3,14 +3,21 @@
 import Link from 'next/link'
 import { SPORTS } from '../../domain/sport'
 import { useTranslations } from '../../i18n'
+import { useRules } from '../rules/RulesProvider'
 
 export function SportSelectScreen() {
   const t = useTranslations()
+  const { openRules, visitor } = useRules()
 
   return (
     <div className="home-screen">
       <h1 className="home-screen__title">{t.home.title}</h1>
       <p className="home-screen__tagline">{t.home.tagline}</p>
+
+      {/* Nothing until mounted: the server cannot know, and guessing would flash the wrong line. */}
+      {visitor && (
+        <p className="home-screen__welcome">{visitor.isFirstVisit ? t.home.welcomeNew : t.home.welcomeBack}</p>
+      )}
 
       <p className="home-screen__prompt">{t.home.chooseSportPrompt}</p>
 
@@ -21,6 +28,10 @@ export function SportSelectScreen() {
           </Link>
         ))}
       </div>
+
+      <button type="button" className="btn btn--ghost" onClick={openRules}>
+        {t.rules.openLabel}
+      </button>
     </div>
   )
 }

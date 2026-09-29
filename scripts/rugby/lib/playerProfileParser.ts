@@ -182,12 +182,29 @@ export function parseCareerRows(html: string): CareerRow[] {
   return rows
 }
 
+/**
+ * The career table lists every national side a player turned out for, not only the senior one:
+ * "France U20", "Angleterre A", "All Blacks XV", "France Développement", the Barbarians, the
+ * Māori All Blacks. None of those are caps. Counting them handed youngsters a senior-looking
+ * record — measured over the whole rugby roster: ~6,500 of ~42,700 counted "caps", mostly U20.
+ *
+ * Suffix rules rather than a list of countries: the senior team is the country's bare name
+ * ("France", "Géorgie", "Nouvelle-Zélande"), so anything qualified is a second side. The
+ * British & Irish Lions stay: their Tests are caps.
+ */
+const NON_SENIOR_SIDE = /(\sU\d{2}|\sA|\sXV|\sDéveloppement)$|Barbarians|Māori/i
+
+export function isSeniorNationalTeam(label: string): boolean {
+  return !NON_SENIOR_SIDE.test(label.trim())
+}
+
 /** Raw fame signals read off a profile that memberships cannot carry — see src/domain/fame.ts. */
 export type CareerStats = { caps: number }
 
 /**
- * Counts international caps: the national-team lines of the career table ("Géorgie · Test
- * Matchs · 2"), which `parseCareerRows` drops because a country is not a club.
+ * Counts senior international caps: the national-team lines of the career table ("Géorgie · Test
+ * Matchs · 2"), which `parseCareerRows` drops because a country is not a club. Youth, A and
+ * invitational sides are skipped — see `isSeniorNationalTeam`.
  *
  * Club games are not counted here: they belong to each membership (`parseCareerRows`), so the
  * fame score reads them from the same rows as the seasons they are divided by.
@@ -196,7 +213,7 @@ export function parseCareerStats(html: string): CareerStats {
   let caps = 0
 
   for (const row of walkCareerTable(html)) {
-    if (row.isInternational && row.matches !== null) caps += row.matches
+    if (row.isInternational && row.matches !== null && isSeniorNationalTeam(row.clubName)) caps += row.matches
   }
 
   return { caps }

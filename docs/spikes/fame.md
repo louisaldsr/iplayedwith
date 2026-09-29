@@ -239,3 +239,56 @@ so the name has to stay kind to the players themselves.
 
 Known edge at the top boundary: Dembélé and Havertz sit at 69, one point under `famous` — the
 longevity bias of the score, not a threshold problem.
+
+## Revision 2 — senior caps, and caps per season
+
+*September 2026 — `supabase/migrations/014_fame_rate.sql`.*
+
+Checked on the 2025-2026 Stade Toulousain squad. Two causes put known players in the wrong
+floor.
+
+**Youth caps counted as caps.** The allrugby career table lists every national side, and the
+parser summed them all: U20 (5,619 "caps" across the roster), A (344), Barbarians (279), XV
+(202), Māori All Blacks, France Développement — about 15% of every counted cap, landing on
+youngsters (Rapetti 23 → 7 senior, Martin-Bonnard 11 → 0, Castro-Ferreira 16 → 0). Fixed in the
+parser (`isSeniorNationalTeam`). The Lions stay: their Tests are caps. Football caps come from
+Transfermarkt, which counts senior caps only.
+
+**Only cumulative signals.** Revision 2 adds `rate = caps / greatest(seasons, 3)`, the
+"intensity" term the first spike wanted, now in caps rather than games:
+
+```
+score = round(100 × [ 0.40·s(caps, k_caps) + 0.25·s(games, k_games) + 0.35·s(rate, k_rate) ])
+```
+
+Rate also answers the data window: caps and seasons both start in 2012-2013, so their ratio
+survives the cut where totals do not. Dusautoir, whose career straddles it (18 caps over the 4
+seasons we see), goes 47 → 60. Only importing older seasons fixes him fully.
+
+Simulated on live data, then checked in a local Postgres against the SQL itself:
+
+| | rev 1 | rev 2 |
+|---|---|---|
+| Romain Ntamack | 70 | 78 |
+| Thibaud Flament | 64 | 74 |
+| Dorian Aldegheri | 70 | 65 |
+| Alexandre Roumat | 61 | 50 |
+| Vinicius Junior | 63 | 75 |
+| Jude Bellingham | 60 | 74 |
+| Lamine Yamal | 45 | 64 |
+| Dani Parejo | 53 | 38 |
+
+### Measured and rejected
+
+- **Share of the team's games** (games ÷ the most games anyone played in that club-season). It
+  crowns regular club players — Neti 0.94, Graou 0.93 — and penalises internationals, who miss
+  club games on Test duty (Dupont 0.77). It measures being dependable at a club, not being known.
+- **Club prestige from the squad's caps.** Its top is Jaguares, Fijian Drua, Benetton, Zebre:
+  national-team pools of smaller unions, not prestigious clubs. A prestige signal needs another
+  source (results, titles).
+
+### Still missing
+
+Media and generation fame. Kinghorn stays ahead of Dupont on every signal we hold. Next step: a
+Wikidata sitelinks spike (how many Wikipedia editions have an article on the player). It is
+stable, unlike the pageviews rejected earlier, and football can match on the Transfermarkt ID.

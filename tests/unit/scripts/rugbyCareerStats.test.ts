@@ -5,7 +5,7 @@
  * to its ESM browser build and cannot parse it. These parsers only ever run in a seed script,
  * so node is also the honest environment for them.
  */
-import { parseCareerRows, parseCareerStats } from '../../../scripts/rugby/lib/playerProfileParser'
+import { isSeniorNationalTeam, parseCareerRows, parseCareerStats } from '../../../scripts/rugby/lib/playerProfileParser'
 
 /**
  * Faithful but reduced copies of an allrugby.com profile's `#saison_ov` table.
@@ -80,8 +80,42 @@ describe('parseCareerStats', () => {
     expect(parseCareerStats(html)).toEqual({ caps: 0 })
   })
 
+  it('skips youth, A and invitational sides — only senior Tests are caps', () => {
+    const html = profile(
+      seasonRow('24/25', 'Toulouse', 'Top 14', '12') +
+        clubRow('France U20', 'Championnat du Monde U20', '5', 'international sepClub') +
+        clubRow('France', 'Tournoi des 6 Nations', '3', 'international sepClub') +
+        seasonRow('23/24', 'Toulouse', 'Top 14', '20') +
+        clubRow('Barbarians FR', 'Test Matchs', '1', 'international sepClub'),
+    )
+    expect(parseCareerStats(html)).toEqual({ caps: 3 })
+  })
+
   it('returns zero caps for a profile with no season table', () => {
     expect(parseCareerStats('<html><body>no career here</body></html>')).toEqual({ caps: 0 })
+  })
+})
+
+describe('isSeniorNationalTeam', () => {
+  it.each(['France', 'Nouvelle-Zélande', 'Afrique du Sud', 'Géorgie', 'USA', 'Lions'])(
+    '%s is a senior side',
+    (label) => {
+      expect(isSeniorNationalTeam(label)).toBe(true)
+    },
+  )
+
+  it.each([
+    'France U20',
+    'Nouvelle-Zélande U20',
+    'Angleterre A',
+    'Afrique du Sud A',
+    'All Blacks XV',
+    'France Développement',
+    'Barbarians',
+    'Barbarians FR',
+    'Māori All Blacks',
+  ])('%s is not', (label) => {
+    expect(isSeniorNationalTeam(label)).toBe(false)
   })
 })
 

@@ -51,15 +51,54 @@ export async function asReturningVisitor(page: Page): Promise<void> {
 // Invented players: the tests must not depend on anything a re-seed could change.
 
 export const samplePlayers = [
-  { id: 'p-alpha', name: 'Alpha Testeur', sport: 'rugby' },
+  { id: 'p-alpha', name: 'Alpha Testeur', sport: 'rugby', nationality: 'FR' },
   { id: 'p-bravo', name: 'Bravo Éssai', sport: 'rugby' },
 ]
 
+/** Today in Paris, as the server would date the challenge — winning it must count as "today". */
+export const parisToday = () =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Paris',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+
 export const sampleDailyChallenge = {
   sport: 'rugby',
-  day: '2026-10-01',
+  day: parisToday(),
   number: 7,
   playerA: samplePlayers[0],
   playerB: samplePlayers[1],
   optimalLinks: 3,
+}
+
+export const sampleCareer = {
+  player: samplePlayers[0],
+  stints: [
+    {
+      club: { id: 'c-one', name: 'Club Un', sport: 'rugby' },
+      from: '2015-2016',
+      to: '2018-2019',
+      games: 64,
+    },
+    { club: { id: 'c-two', name: 'Club Deux', sport: 'rugby' }, from: '2019-2020', to: '2019-2020', games: null },
+  ],
+}
+
+/** A player linking Alpha and Bravo: the one move that wins the sample challenge. */
+export const linkingPlayer = { id: 'p-charlie', name: 'Charlie Lien', sport: 'rugby' }
+
+export const winningMove = {
+  ok: true,
+  node: { kind: 'player', player: linkingPlayer },
+  edges: [
+    { playerId: 'p-charlie', clubId: 'c-one', season: '2016-2017' },
+    { playerId: 'p-alpha', clubId: 'c-one', season: '2016-2017' },
+    { playerId: 'p-charlie', clubId: 'c-two', season: '2019-2020' },
+    { playerId: 'p-bravo', clubId: 'c-two', season: '2019-2020' },
+  ],
+  clubs: [sampleCareer.stints[0].club, sampleCareer.stints[1].club],
+  victory: true,
+  path: ['p-alpha', 'p-charlie', 'p-bravo'],
 }

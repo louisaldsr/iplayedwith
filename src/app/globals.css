@@ -58,19 +58,65 @@ body {
 }
 
 /* ─── Rules pop-up ──────────────────────────────────────── */
-/* Centred in the game top bar's 52px, which reserves room for it (see .game-topbar). */
-.rules-button {
+/* Back to the main menu, mirroring the rules button on the left. Both are 44px — a comfortable
+   touch target — 12px from the top and from their side, centred in the game top bar's 68px. */
+.menu-button {
   position: fixed;
-  top: 8px;
-  right: 12px;
+  top: 12px;
+  left: 12px;
   z-index: 50;
-  width: 36px;
-  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-subtle);
   background: var(--bg-surface);
   color: var(--text-muted);
-  font-size: 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.menu-button__icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.menu-button:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+/* Icon only on phones: the game top bar has the players, the timer and the badge to fit. */
+@media (max-width: 640px) {
+  .menu-button {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .menu-button__label {
+    display: none;
+  }
+}
+
+.rules-button {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 50;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 1.3rem;
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -83,11 +129,14 @@ body {
   color: var(--text-primary);
 }
 
+/* ─── Modal (shared by the rules and the career pop-ups) ─── */
 /* No padding on the <dialog> itself: the body fills it, so a click that reaches the dialog
-   element landed on the backdrop — see RulesDialog. */
-.rules-dialog {
+   element landed on the backdrop — see Modal. */
+.modal {
   margin: auto;
   padding: 0;
+  /* Opened from centred screens (the daily intro): reset, the content reads left-aligned. */
+  text-align: left;
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   border: 1px solid var(--border-subtle);
@@ -96,19 +145,19 @@ body {
   color: var(--text-primary);
 }
 
-.rules-dialog::backdrop {
+.modal::backdrop {
   background: rgba(8, 9, 14, 0.7);
   backdrop-filter: blur(2px);
 }
 
-.rules-dialog__body {
+.modal__body {
   display: flex;
   flex-direction: column;
   gap: 20px;
   padding: 28px 24px;
 }
 
-.rules-dialog__body > .btn {
+.modal__body > .btn {
   align-self: center;
 }
 
@@ -235,18 +284,28 @@ body {
 }
 
 /* ─── Home screen ───────────────────────────────────────── */
+/* Three bands: the title high, the sports filling the middle, everything else at the bottom. */
 .home-screen {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 32px;
-  padding: 48px 24px;
+  gap: 28px;
+  width: 100%;
+  min-height: 100vh;
+  padding: max(64px, 8vh) 16px 32px;
   text-align: center;
 }
 
+.home-screen__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
 .home-screen__title {
-  font-size: 3rem;
+  font-size: clamp(2.4rem, 7vw, 3.4rem);
   font-weight: 800;
   letter-spacing: -0.03em;
   background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent));
@@ -261,47 +320,216 @@ body {
   max-width: 340px;
 }
 
-.home-screen__welcome {
-  font-size: 0.95rem;
-  color: var(--text-primary);
-  max-width: 420px;
-}
-
-.home-screen__prompt {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 .home-screen__sports {
   display: flex;
-  gap: 16px;
+  flex: 1;
+  gap: 24px;
   flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
   justify-content: center;
+  width: 100%;
 }
 
 .home-screen__sport-card {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 140px;
-  padding: 20px 28px;
-  border-radius: 12px;
-  border: 1px solid var(--border-subtle);
-  font-weight: 700;
-  font-size: 1.1rem;
+  gap: 10px;
+  width: 280px;
+  max-width: 100%;
+  padding: 48px 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-active);
+  background: linear-gradient(160deg, var(--bg-elevated), var(--bg-surface));
   color: var(--text-primary);
   text-decoration: none;
   transition:
     border-color 0.15s ease,
-    transform 0.15s ease;
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .home-screen__sport-card:hover {
   border-color: var(--accent);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px var(--accent-dim);
+}
+
+/* Today's challenge already won: green, so the eye moves on to the sports still to play. */
+.home-screen__sport-card--done {
+  border-color: var(--success);
+  background: linear-gradient(160deg, rgba(74, 222, 128, 0.14), var(--bg-surface));
+}
+
+.home-screen__sport-card--done:hover {
+  border-color: var(--success);
+  box-shadow: 0 10px 28px rgba(74, 222, 128, 0.15);
+}
+
+.home-screen__sport-done {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  background: var(--success);
+  color: var(--bg-base);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.home-screen__sport-icon {
+  font-size: 3.4rem;
+  line-height: 1;
+}
+
+.home-screen__sport-name {
+  font-size: 1.7rem;
+  font-weight: 800;
+}
+
+/* Two cards side by side still fit a phone, just smaller. */
+@media (max-width: 640px) {
+  .home-screen__sports {
+    gap: 12px;
+  }
+
+  .home-screen__sport-card {
+    width: calc(50% - 6px);
+    padding: 40px 12px;
+  }
+
+  .home-screen__sport-icon {
+    font-size: 2.8rem;
+  }
+
+  .home-screen__sport-name {
+    font-size: 1.3rem;
+  }
+}
+
+/* ─── Home menu ─────────────────────────────────────────── */
+.home-menu__footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.home-menu__free-play {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.home-menu__free-play a {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.home-menu__free-play a:hover {
+  color: var(--accent-hover);
+}
+
+.home-menu__links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.home-menu__soon {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  list-style: none;
+}
+
+.home-menu__links .btn {
+  font-size: 0.95rem;
+  padding: 11px 22px;
+}
+
+.home-menu__soon li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.home-menu__soon-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-hover);
+}
+
+/* ─── About page ────────────────────────────────────────── */
+.about-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 28px;
+  width: 100%;
+  max-width: 640px;
+  padding: 72px 16px 48px;
+  /* Top-anchored, not centred like the other .game-page screens: an auto margin wins over the
+     parent's justify-content. */
+  margin-bottom: auto;
+}
+
+.about-screen__title {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.about-screen__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.about-screen__section h2 {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-hover);
+}
+
+.about-screen__section ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 18px;
+}
+
+.about-screen__section strong {
+  color: var(--text-primary);
+}
+
+.about-screen__section a {
+  color: var(--text-primary);
+}
+
+.about-screen__section a:hover {
+  color: var(--accent-hover);
 }
 
 /* ─── Setup screen ──────────────────────────────────────── */
@@ -348,6 +576,19 @@ body {
 }
 
 /* ─── Daily challenge intro ─────────────────────────────── */
+/* Anchored to the top like the menu: the number and the date lead, the pair follows. */
+.daily-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  width: 100%;
+  max-width: 720px;
+  padding: 88px 16px 48px;
+  margin-bottom: auto;
+  text-align: center;
+}
+
 .daily-intro__header {
   display: flex;
   flex-direction: column;
@@ -355,14 +596,28 @@ body {
   gap: 6px;
 }
 
+.daily-intro__title {
+  font-size: clamp(1.8rem, 6vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.daily-intro__number {
+  color: var(--accent-hover);
+}
+
 .daily-intro__date {
-  font-size: 0.85rem;
+  font-size: 1.1rem;
   color: var(--text-muted);
   text-transform: capitalize;
 }
 
 .daily-intro__players {
+  display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
 }
 
 .daily-intro__versus {
@@ -373,10 +628,57 @@ body {
   color: var(--text-muted);
 }
 
-.daily-intro__unit {
-  font-size: 0.9rem;
-  font-weight: 600;
+/* A player of the pair — a button: it opens the career. */
+.daily-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  max-width: 260px;
+  padding: 20px 16px;
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    transform 0.15s;
+}
+
+.daily-player:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.daily-player__flag {
+  font-size: 1.3rem;
+  border-radius: 2px;
+}
+
+.daily-player__name {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.daily-player__hint {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-hover);
+}
+
+.daily-intro__best {
+  font-size: 0.95rem;
   color: var(--text-muted);
+}
+
+.daily-intro__best strong {
+  font-size: 1.4rem;
+  color: var(--accent);
 }
 
 .daily-intro__free-play {
@@ -386,6 +688,74 @@ body {
 
 .daily-intro__free-play:hover {
   color: var(--accent-hover);
+}
+
+@media (max-width: 640px) {
+  .daily-intro {
+    padding-top: 80px;
+    gap: 24px;
+  }
+
+  .daily-intro__players {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .daily-player {
+    width: 100%;
+    max-width: 320px;
+  }
+}
+
+/* ─── Career pop-up ─────────────────────────────────────── */
+.career-dialog__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.career-dialog__status {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.career-dialog__stints {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.career-dialog__stint {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr auto;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.9rem;
+}
+
+.career-dialog__stint:last-child {
+  border-bottom: none;
+}
+
+.career-dialog__years {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.career-dialog__club {
+  font-weight: 600;
+}
+
+.career-dialog__games {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 /* ─── Data fetch status (loading/error) ─────────────────── */
@@ -541,11 +911,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* Right padding leaves room for the fixed rules button. */
-  padding: 12px 60px 12px 20px;
+  /* Side padding leaves room for the fixed menu (left) and rules (right) buttons. */
+  padding: 12px 72px 12px 140px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
-  height: 52px;
+  height: 68px;
+}
+
+/* The menu button is icon-only there (see .menu-button), so it needs less room. */
+@media (max-width: 640px) {
+  .game-topbar {
+    padding-left: 72px;
+  }
 }
 
 .game-topbar__players {

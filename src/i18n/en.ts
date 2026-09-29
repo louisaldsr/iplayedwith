@@ -2,9 +2,6 @@ const en = {
   home: {
     title: 'I Played With',
     tagline: 'Find Teammate connections',
-    chooseSportPrompt: 'Choose a sport',
-    welcomeNew: 'Welcome! New here? The rules take a minute to read.',
-    welcomeBack: 'Welcome back — a new daily challenge is waiting.',
     sports: {
       rugby: 'Rugby',
       football: 'Football',
@@ -13,6 +10,27 @@ const en = {
   common: {
     loading: 'Loading…',
     loadError: 'Something went wrong loading the data. Please try again.',
+  },
+  menu: {
+    label: 'Main menu',
+    button: 'Menu',
+    daily: 'Daily challenge',
+    freePlay: 'Or free play:',
+    about: 'About',
+    ranking: 'Ranking',
+    stats: 'My stats',
+    logIn: 'Log in',
+    doneToday: 'done today',
+    soon: 'Soon',
+  },
+  about: {
+    title: 'About',
+    dataTitle: 'Data',
+    and: 'and',
+    dataCaveat: 'An independent fan project. Records may be incomplete.',
+    madeByTitle: 'Made by',
+    contactSoon: 'contact form coming soon.',
+    back: 'Back to the menu',
   },
   rules: {
     openLabel: 'How to play',
@@ -33,7 +51,11 @@ const en = {
   },
   daily: {
     title: 'Daily Challenge',
-    intro: 'Connect these two players through teammates. Same pair for everyone, new one every day.',
+    viewCareer: 'View career',
+    games: 'games',
+    close: 'Close',
+    careerEmpty: 'No career recorded for this player.',
+    careerError: 'Could not load the career — try again.',
     versus: 'vs',
     bestPossible: 'Best possible',
     links: 'links',

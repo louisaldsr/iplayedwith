@@ -6,13 +6,12 @@ test('a first visit opens the rules, once', async ({ page }) => {
   await page.goto('/')
   const rules = page.getByRole('dialog', { name: 'How to play' })
   await expect(rules).toBeVisible()
-  await expect(page.getByText('Welcome! New here?')).toBeVisible()
 
   await rules.getByRole('button', { name: "Let's play" }).click()
   await expect(rules).toBeHidden()
 
   await page.reload()
-  await expect(page.getByText('Welcome back')).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   await expect(rules).toBeHidden()
 })
 

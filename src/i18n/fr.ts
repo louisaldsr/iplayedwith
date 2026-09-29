@@ -4,9 +4,6 @@ const fr: Translations = {
   home: {
     title: 'I Played With',
     tagline: 'Trouvez les liens entre coéquipiers',
-    chooseSportPrompt: 'Choisissez un sport',
-    welcomeNew: 'Bienvenue ! Première fois ? Les règles se lisent en une minute.',
-    welcomeBack: 'Bon retour — un nouveau défi du jour vous attend.',
     sports: {
       rugby: 'Rugby',
       football: 'Football',
@@ -15,6 +12,27 @@ const fr: Translations = {
   common: {
     loading: 'Chargement…',
     loadError: 'Une erreur est survenue lors du chargement des données. Veuillez réessayer.',
+  },
+  menu: {
+    label: 'Menu principal',
+    button: 'Menu',
+    daily: 'Défi du jour',
+    freePlay: 'Ou en partie libre :',
+    about: 'À propos',
+    ranking: 'Classement',
+    stats: 'Mes stats',
+    logIn: 'Connexion',
+    doneToday: 'fait aujourd’hui',
+    soon: 'Bientôt',
+  },
+  about: {
+    title: 'À propos',
+    dataTitle: 'Données',
+    and: 'et',
+    dataCaveat: 'Un projet indépendant de fan. Les fiches peuvent être incomplètes.',
+    madeByTitle: 'Réalisé par',
+    contactSoon: 'formulaire de contact bientôt.',
+    back: 'Retour au menu',
   },
   rules: {
     openLabel: 'Comment jouer',
@@ -36,7 +54,11 @@ const fr: Translations = {
   },
   daily: {
     title: 'Défi du jour',
-    intro: 'Reliez ces deux joueurs par leurs coéquipiers. La même paire pour tout le monde, une nouvelle chaque jour.',
+    viewCareer: 'Voir la carrière',
+    games: 'matchs',
+    close: 'Fermer',
+    careerEmpty: 'Aucune carrière enregistrée pour ce joueur.',
+    careerError: 'Impossible de charger la carrière — réessayez.',
     versus: 'contre',
     bestPossible: 'Meilleur possible',
     links: 'liens',

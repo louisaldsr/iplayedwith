@@ -147,6 +147,21 @@ export async function listByPlayer(
   return (data ?? []).map((m) => ({ clubId: ClubId(m.club_id), season: m.season as Season }))
 }
 
+/**
+ * A player's memberships with their games, for the career view.
+ *
+ * Separate from `listByPlayer`, whose callers (the easy-mode guard) only compare club-seasons and
+ * have no use for the games column.
+ */
+export async function listCareerRows(
+  db: SupabaseClient,
+  playerId: PlayerId,
+): Promise<Pick<Membership, 'clubId' | 'season' | 'games'>[]> {
+  const { data, error } = await db.from('memberships').select('club_id, season, games').eq('player_id', playerId)
+  if (error) throw new Error(error.message)
+  return (data ?? []).map((m) => ({ clubId: ClubId(m.club_id), season: m.season as Season, games: m.games }))
+}
+
 /** All (player, season) rows for a club, with player names joined in — used to list seasons already entered. */
 export async function listByClub(
   db: SupabaseClient,

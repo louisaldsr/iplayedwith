@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { RulesProvider, useRules } from '@/components/rules/RulesProvider'
+import { RulesProvider } from '@/components/rules/RulesProvider'
 import { markRulesSeen } from '@/lib/visitor'
 
 const mockPathname = jest.fn(() => '/')
@@ -21,23 +21,14 @@ beforeEach(() => {
   mockPathname.mockReturnValue('/')
 })
 
-function WelcomeProbe() {
-  const { visitor } = useRules()
-  return <p>{visitor === null ? 'unknown' : visitor.isFirstVisit ? 'first' : 'returning'}</p>
-}
-
 const dialog = () => document.querySelector('dialog') as HTMLDialogElement | null
 
 describe('RulesProvider', () => {
   it('opens the rules on a first visit, and records them as seen once closed', () => {
-    render(
-      <RulesProvider>
-        <WelcomeProbe />
-      </RulesProvider>,
-    )
+    render(<RulesProvider>page</RulesProvider>)
 
     expect(dialog()?.open).toBe(true)
-    expect(screen.getByText('first')).toBeInTheDocument()
+    expect(window.localStorage.getItem('ipw.playerId')).not.toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: "Let's play" }))
 

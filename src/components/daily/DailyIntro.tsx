@@ -1,7 +1,11 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import { DailyChallenge } from '../../domain/dailyChallenge'
 import { Player } from '../../domain/player'
 import { useTranslations } from '../../i18n'
+import { PlayerCareerDialog } from './PlayerCareerDialog'
 
 type Props = {
   challenge: DailyChallenge
@@ -18,44 +22,43 @@ function formatDay(day: string): string {
   })
 }
 
-function PlayerCard({ player }: { player: Player }) {
+/** A player of the pair: opens their career, for anyone who does not know them. */
+function PlayerButton({ player, onOpen }: { player: Player; onOpen: (p: Player) => void }) {
+  const t = useTranslations()
   return (
-    <div className="player-picker player-picker--selected">
-      <div className="player-picker__selected">
-        <img src="/dummy.svg" alt={player.name} className="player-picker__avatar" />
-        <span className="player-picker__name">{player.name}</span>
-      </div>
-    </div>
+    <button type="button" className="daily-player" onClick={() => onOpen(player)}>
+      {player.nationality && (
+        <span className={`fi fi-${player.nationality.toLowerCase()} daily-player__flag`} aria-hidden="true" />
+      )}
+      <span className="daily-player__name">{player.name}</span>
+      <span className="daily-player__hint">{t.daily.viewCareer}</span>
+    </button>
   )
 }
 
 /** The daily's setup phase: nothing to choose, only the pair to discover before starting. */
 export function DailyIntro({ challenge, onStart }: Props) {
   const t = useTranslations()
+  const [careerOf, setCareerOf] = useState<Player | null>(null)
 
   return (
-    <div className="setup-screen daily-intro">
-      <div className="daily-intro__header">
-        <h2 className="setup-screen__title">
-          {t.daily.title} #{challenge.number}
-        </h2>
+    <div className="daily-intro">
+      <header className="daily-intro__header">
+        <h1 className="daily-intro__title">
+          {t.daily.title} <span className="daily-intro__number">#{challenge.number}</span>
+        </h1>
         <p className="daily-intro__date">{formatDay(challenge.day)}</p>
-      </div>
+      </header>
 
-      <p className="setup-screen__empty">{t.daily.intro}</p>
-
-      <div className="setup-screen__players daily-intro__players">
-        <PlayerCard player={challenge.playerA} />
+      <div className="daily-intro__players">
+        <PlayerButton player={challenge.playerA} onOpen={setCareerOf} />
         <span className="daily-intro__versus">{t.daily.versus}</span>
-        <PlayerCard player={challenge.playerB} />
+        <PlayerButton player={challenge.playerB} onOpen={setCareerOf} />
       </div>
 
-      <div className="victory-stat">
-        <span className="stat-label">{t.daily.bestPossible}</span>
-        <span className="stat-value">
-          {challenge.optimalLinks} <span className="daily-intro__unit">{t.daily.links}</span>
-        </span>
-      </div>
+      <p className="daily-intro__best">
+        {t.daily.bestPossible} <strong>{challenge.optimalLinks}</strong> {t.daily.links}
+      </p>
 
       <button type="button" className="btn btn--primary btn--lg" onClick={onStart}>
         {t.daily.start}
@@ -64,6 +67,8 @@ export function DailyIntro({ challenge, onStart }: Props) {
       <Link href={`/${challenge.sport}/free`} className="daily-intro__free-play">
         {t.daily.freePlayLink}
       </Link>
+
+      <PlayerCareerDialog player={careerOf} onClose={() => setCareerOf(null)} />
     </div>
   )
 }

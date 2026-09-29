@@ -57,6 +57,113 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ─── Rules pop-up ──────────────────────────────────────── */
+/* Centred in the game top bar's 52px, which reserves room for it (see .game-topbar). */
+.rules-button {
+  position: fixed;
+  top: 8px;
+  right: 12px;
+  z-index: 50;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.rules-button:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+/* No padding on the <dialog> itself: the body fills it, so a click that reaches the dialog
+   element landed on the backdrop — see RulesDialog. */
+.rules-dialog {
+  margin: auto;
+  padding: 0;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.rules-dialog::backdrop {
+  background: rgba(8, 9, 14, 0.7);
+  backdrop-filter: blur(2px);
+}
+
+.rules-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 24px;
+}
+
+.rules-dialog__body > .btn {
+  align-self: center;
+}
+
+.rules-dialog__title {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.rules-dialog__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.rules-dialog__section h3 {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-hover);
+}
+
+.rules-dialog__section ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 18px;
+}
+
+.rules-dialog__section strong {
+  color: var(--text-primary);
+}
+
+.rules-dialog__floors {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* The board's floor badge, out of its card: same colours (shared selectors under "Fame floors"),
+   static instead of pinned to a card corner. */
+.fame-badge {
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  border: 1px solid;
+}
+
 /* ─── Shared button ─────────────────────────────────────── */
 .btn {
   display: inline-flex;
@@ -152,6 +259,12 @@ body {
   font-size: 1rem;
   color: var(--text-muted);
   max-width: 340px;
+}
+
+.home-screen__welcome {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  max-width: 420px;
 }
 
 .home-screen__prompt {
@@ -428,7 +541,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
+  /* Right padding leaves room for the fixed rules button. */
+  padding: 12px 60px 12px 20px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
   height: 52px;
@@ -666,7 +780,8 @@ body {
 .node-card--famous {
   border-color: var(--floor-famous);
 }
-.node-card--famous .node-card__floor {
+.node-card--famous .node-card__floor,
+.fame-badge--famous {
   color: var(--floor-famous-text);
   background: var(--bg-elevated);
   border-color: var(--floor-famous);
@@ -676,7 +791,8 @@ body {
 .node-card--known {
   border-color: var(--floor-known);
 }
-.node-card--known .node-card__floor {
+.node-card--known .node-card__floor,
+.fame-badge--known {
   color: var(--floor-known-text);
   background: var(--floor-known-tint);
   border-color: var(--floor-known);
@@ -693,12 +809,14 @@ body {
   box-shadow: 0 0 18px var(--floor-unsung-glow);
   animation: unsung-shimmer 6s linear infinite;
 }
-.node-card--unsung .node-card__floor {
+.node-card--unsung .node-card__floor,
+.fame-badge--unsung {
   color: #1a1320;
   border-color: transparent;
   background: linear-gradient(120deg, #ff8fbf, #ffc977, #8ff0e2);
 }
-.node-card--unsung .node-card__floor::before {
+.node-card--unsung .node-card__floor::before,
+.fame-badge--unsung::before {
   content: '✦ ';
 }
 .node-card--famous.node-card--highlighted,

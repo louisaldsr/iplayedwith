@@ -5,6 +5,8 @@ const fr: Translations = {
     title: 'I Played With',
     tagline: 'Trouvez les liens entre coéquipiers',
     chooseSportPrompt: 'Choisissez un sport',
+    welcomeNew: 'Bienvenue ! Première fois ? Les règles se lisent en une minute.',
+    welcomeBack: 'Bon retour — un nouveau défi du jour vous attend.',
     sports: {
       rugby: 'Rugby',
       football: 'Football',
@@ -13,6 +15,24 @@ const fr: Translations = {
   common: {
     loading: 'Chargement…',
     loadError: 'Une erreur est survenue lors du chargement des données. Veuillez réessayer.',
+  },
+  rules: {
+    openLabel: 'Comment jouer',
+    title: 'Comment jouer',
+    goalTitle: 'Le but',
+    goal: 'Reliez le joueur A au joueur B par leurs coéquipiers. Deux joueurs sont liés s’ils ont joué dans le même club, la même saison.',
+    howTitle: 'À chaque coup',
+    how: 'Ajoutez les joueurs un par un. Chaque nouveau joueur doit avoir partagé un club et une saison avec un joueur déjà sur le plateau. La partie est gagnée dès qu’une chaîne relie A à B.',
+    easy: 'saisissez un joueur ; le club et la saison en commun sont trouvés pour vous.',
+    hard: 'indiquez vous-même le joueur, le club et la saison.',
+    dailyTitle: 'Défi du jour',
+    daily:
+      'Chaque jour, chaque sport a sa paire — la même pour tout le monde, renouvelée à minuit (heure de Paris). « Meilleur possible » est la longueur de la chaîne la plus courte.',
+    freePlay: 'En partie libre, vous choisissez les deux joueurs et la difficulté.',
+    cardsTitle: 'Cartes joueurs',
+    cards:
+      'Le badge d’une carte indique à quel point le joueur est connu. Moins il l’est, plus la trouvaille est rare.',
+    cta: 'C’est parti',
   },
   daily: {
     title: 'Défi du jour',

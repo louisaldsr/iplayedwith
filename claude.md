@@ -313,6 +313,55 @@ défi — c'est le travail de l'étape classement (résultats vérifiés côté 
 
 ---
 
+## ✅ Bloc 7 terminé — Accueil : première visite + règles du jeu
+
+### Reconnaître une première visite, sans compte
+
+Par **navigateur**, via `localStorage` (`src/lib/visitor.ts`) — pas par personne : un autre
+appareil, une fenêtre privée ou des données effacées comptent comme une première visite, et rien
+ne reconnaît la même personne d'un appareil à l'autre. Pas d'empreinte navigateur (fingerprinting) :
+c'est du pistage au sens du RGPD. Rien n'est envoyé au serveur.
+
+| Clé | Contenu |
+|---|---|
+| `ipw.playerId` | UUID anonyme, créé à la première visite. **Lu par rien encore** : c'est l'amorce des résultats du défi et du classement (étape 17) |
+| `ipw.rulesSeen` | version des règles lue et fermée |
+
+`RULES_VERSION` : l'incrémenter quand les règles changent assez pour que tout le monde les relise.
+Stockage indisponible (Safari privé, données bloquées) → lu comme « visiteur connu, règles vues » :
+mieux vaut sauter la pop-up que la rouvrir à chaque page. `crypto.randomUUID` n'existe qu'en
+contexte sécurisé (HTTPS/localhost) — repli sur `getRandomValues`.
+
+### La pop-up « Comment jouer »
+
+`RulesProvider` (layout racine) : s'ouvre **une fois, sur la première page atteinte**, quelle
+qu'elle soit (un lien partagé arrive directement sur `/rugby`). Le bouton « ? » fixe la rouvre
+partout ; l'accueil a aussi un bouton « Comment jouer » et une ligne de bienvenue (nouveau / de
+retour). `<dialog>` natif avec `showModal()` : focus piégé, Échap, fond — aucune dépendance.
+Exclue de `/admin`. Les badges de fame réutilisent les couleurs des cartes du plateau
+(sélecteurs partagés `.fame-badge--*`).
+
+---
+
+## Tests e2e — jamais la vraie base
+
+Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
+
+- **Côté serveur** — Playwright lance **son propre** serveur de dev (port 3100, dossier de build
+  `.next-e2e`, jamais un serveur déjà lancé), avec Supabase pointé sur `127.0.0.1:9` : une requête
+  qui atteindrait la base échoue tout de suite au lieu de lire la prod — ou d'y tirer un défi du jour.
+  Les variables de `playwright.config.ts` priment sur `.env.local`.
+- **Côté navigateur** — `tests/e2e/fixtures.ts` intercepte tout `/api/**` : chaque test mocke les
+  endpoints attendus (`mockApi`), et un appel non mocké **fait échouer le test**.
+- Via `request`, seules les réponses données **avant** la base : routes inconnues, validation.
+- Ce que la base calcule (classement de recherche, accents, tirage du défi) relève des tests
+  unitaires et des contrôles post-application de chaque migration.
+
+`tsconfig.json` inclut `.next-e2e/types/**/*.ts` : sans cette ligne, Next la rajoute et reformate
+le fichier à chaque passage e2e.
+
+---
+
 ## Flux de validation
 
 ```
@@ -357,3 +406,4 @@ Saisie user
     classement du jour et stats perso ; empêcher de rejouer le défi
 20. Tirage du défi pondéré par la fame (`player_fame.score`, v1), une fois `012` appliqué et le
     top/bottom 30 validé
+19. ~~Accueil : détection de première visite + pop-up des règles~~

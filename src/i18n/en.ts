@@ -3,6 +3,8 @@ const en = {
     title: 'I Played With',
     tagline: 'Find Teammate connections',
     chooseSportPrompt: 'Choose a sport',
+    welcomeNew: 'Welcome! New here? The rules take a minute to read.',
+    welcomeBack: 'Welcome back — a new daily challenge is waiting.',
     sports: {
       rugby: 'Rugby',
       football: 'Football',
@@ -11,6 +13,23 @@ const en = {
   common: {
     loading: 'Loading…',
     loadError: 'Something went wrong loading the data. Please try again.',
+  },
+  rules: {
+    openLabel: 'How to play',
+    title: 'How to play',
+    goalTitle: 'The goal',
+    goal: 'Connect player A to player B through teammates. Two players are linked when they played for the same club in the same season.',
+    howTitle: 'Each move',
+    how: 'Add players one at a time. Each new player must have shared a club and a season with a player already on the board. The game is won as soon as a chain links A to B.',
+    easy: 'type a player; the club and season you share are found for you.',
+    hard: 'give the player, the club and the season yourself.',
+    dailyTitle: 'Daily challenge',
+    daily:
+      'Every day, each sport gets one pair — the same for everyone, new at midnight (Paris time). "Best possible" is the length of the shortest chain.',
+    freePlay: 'In free play, you pick both players and the difficulty.',
+    cardsTitle: 'Player cards',
+    cards: 'The badge on a card shows how well known the player is. The less known, the rarer the find.',
+    cta: "Let's play",
   },
   daily: {
     title: 'Daily Challenge',

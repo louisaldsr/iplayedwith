@@ -4,6 +4,7 @@ import { PlayerId } from '@/domain/ids'
 import { Season } from '@/domain/season'
 import { SportId } from '@/domain/sport'
 import { DailyChallenge } from '@/domain/dailyChallenge'
+import { CareerStint } from '@/domain/career'
 
 /**
  * Browser-side calls the game makes.
@@ -34,6 +35,14 @@ export function listClubSeasons(clubId: string, signal?: AbortSignal): Promise<S
 /** Today's pair for the sport — the same for every visitor. */
 export function getDailyChallenge(sport: SportId, signal?: AbortSignal): Promise<DailyChallenge> {
   return getJson<DailyChallenge>(`/api/${sport}/daily`, signal)
+}
+
+/** A player's clubs, season runs oldest first — shown when a player card is opened. */
+export function getPlayerCareer(
+  playerId: PlayerId,
+  signal?: AbortSignal,
+): Promise<{ player: Player; stints: CareerStint[] }> {
+  return getJson(`/api/players/${encodeURIComponent(playerId)}/career`, signal)
 }
 
 export async function randomPlayer(sport: SportId, excludeId?: PlayerId): Promise<Player | null> {

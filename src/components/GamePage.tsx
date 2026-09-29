@@ -1,6 +1,6 @@
 'use client'
 
-import { useReducer, useRef, useCallback } from 'react'
+import { useReducer, useRef, useCallback, useEffect } from 'react'
 import { Game, DifficultyLevel } from '../game/game'
 import { Player } from '../domain/player'
 import { Club } from '../domain/club'
@@ -12,6 +12,7 @@ import { SetupScreen } from './setup/SetupScreen'
 import { GameScreen } from './game/GameScreen'
 import { VictoryScreen } from './victory/VictoryScreen'
 import { DailyIntro } from './daily/DailyIntro'
+import { markDailyDone } from '../lib/dailyProgress'
 
 type Phase = 'setup' | 'playing' | 'victory'
 
@@ -131,6 +132,11 @@ export function GamePage({ sport, mode = { kind: 'free' } }: Props) {
   const engineRef = useRef<RemoteEngine | null>(null)
 
   const daily = mode.kind === 'daily' ? mode.challenge : null
+
+  // A won daily is remembered for the menu, which marks the sport as done for the day.
+  useEffect(() => {
+    if (daily && state.phase === 'victory') markDailyDone(daily.sport, daily.day)
+  }, [daily, state.phase])
 
   const handleStart = useCallback(() => {
     const playerA = daily ? daily.playerA : state.playerA

@@ -1,9 +1,9 @@
-import { SportSelectScreen } from '@/components/home/SportSelectScreen'
+import { HomeMenu } from '@/components/home/HomeMenu'
 
 export default function Home() {
   return (
     <div className="game-page">
-      <SportSelectScreen />
+      <HomeMenu />
     </div>
   )
 }

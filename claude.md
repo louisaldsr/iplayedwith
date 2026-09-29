@@ -326,6 +326,7 @@ c'est du pistage au sens du RGPD. Rien n'est envoyé au serveur.
 |---|---|
 | `ipw.playerId` | UUID anonyme, créé à la première visite. **Lu par rien encore** : c'est l'amorce des résultats du défi et du classement (étape 17) |
 | `ipw.rulesSeen` | version des règles lue et fermée |
+| `ipw.dailyDone.<sport>` | jour du dernier défi gagné dans ce sport (`src/lib/dailyProgress.ts`) — le menu le colore en vert tant que c'est aujourd'hui (Paris) ; périme seul à minuit |
 
 `RULES_VERSION` : l'incrémenter quand les règles changent assez pour que tout le monde les relise.
 Stockage indisponible (Safari privé, données bloquées) → lu comme « visiteur connu, règles vues » :
@@ -336,10 +337,46 @@ contexte sécurisé (HTTPS/localhost) — repli sur `getRandomValues`.
 
 `RulesProvider` (layout racine) : s'ouvre **une fois, sur la première page atteinte**, quelle
 qu'elle soit (un lien partagé arrive directement sur `/rugby`). Le bouton « ? » fixe la rouvre
-partout ; l'accueil a aussi un bouton « Comment jouer » et une ligne de bienvenue (nouveau / de
-retour). `<dialog>` natif avec `showModal()` : focus piégé, Échap, fond — aucune dépendance.
+partout ; l'accueil a aussi un bouton « Comment jouer ». `<dialog>` natif avec `showModal()` : focus piégé, Échap, fond — aucune dépendance.
 Exclue de `/admin`. Les badges de fame réutilisent les couleurs des cartes du plateau
 (sélecteurs partagés `.fame-badge--*`).
+
+---
+
+## ✅ Bloc 8 terminé — Menu principal + À propos
+
+L'accueil devient le **menu principal** (`src/components/home/HomeMenu.tsx`), en trois bandes : le
+titre en haut, **les sports au centre** (grandes cartes, une par sport, qui ouvrent son défi du
+jour ; **vertes avec ✓** quand le défi du jour est déjà gagné, pour pousser vers les autres
+sports), et tout le reste en bas :
+
+- **partie libre** par sport en lien secondaire ;
+- **Comment jouer** (ouvre la pop-up des règles) et **À propos**.
+- **Bientôt** : Classement, Mes stats, Connexion — affichés désactivés pour que le menu ait déjà sa
+  forme finale ; ils arriveront avec l'identité (étape 17).
+- Pendant une partie le menu est **caché** : un bouton « ☰ Menu » fixe en haut à gauche
+  (`MenuButton`, pendant du « ? » à droite, 44 px tous les deux, à 12 px du haut et du bord)
+  ramène à l'accueil — icône seule sur mobile. La barre du jeu fait 68 px pour les contenir. Absent de
+  l'accueil et de `/admin`. La barre du jeu réserve la place des deux boutons.
+
+**Partie libre ouverte à tous**, ni compte ni don : c'est ce qui fait revenir une fois le défi du
+jour résolu, et les données rugby sont extraites de allrugby.com / all.rugby — les faire payer,
+même via un don, est juridiquement plus risqué qu'un jeu gratuit avec une cagnotte facultative. Les
+comptes et donateurs gagneront des **bonus** (historique, stats, badge), jamais un accès.
+
+**Écran du défi** (`DailyIntro`) : « Défi du jour #N » et la date en grand en haut, puis les deux
+joueurs en boutons — un clic ouvre leur **carrière** (`PlayerCareerDialog`), club par club, pour
+qui ne les connaît pas. Même fenêtre que les règles : `<dialog>` factorisé dans
+`src/components/shared/Modal.tsx`. La carrière servira aussi au futur « joker » sur les cartes du
+plateau.
+
+`GET /api/players/:id/career` → `{ player, stints }` : les memberships groupés en **passages**
+(saisons consécutives dans un même club, `toCareerStints` dans `src/domain/career.ts`), du plus
+ancien au plus récent, matchs additionnés (null si aucune saison n'en donne).
+
+`/about`, volontairement court : origine des données (rugby : allrugby.com + all.rugby ; football :
+Transfermarkt via `dcaribou/transfermarkt-datasets`, CC0), auteur (`louisaldsr` → GitHub),
+formulaire de contact « bientôt ». Pas de dons pour l'instant.
 
 ---
 
@@ -407,3 +444,6 @@ Saisie user
 20. Tirage du défi pondéré par la fame (`player_fame.score`, v1), une fois `012` appliqué et le
     top/bottom 30 validé
 19. ~~Accueil : détection de première visite + pop-up des règles~~
+20. ~~Menu principal + page À propos~~
+21. Formulaire de contact ; dons (plateforme à choisir) ; plateau lisible sur mobile (A et B se
+    chevauchent à 390 px)

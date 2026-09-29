@@ -2,15 +2,13 @@
 
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { markRulesSeen, readVisitor, Visitor } from '../../lib/visitor'
+import { markRulesSeen, readVisitor } from '../../lib/visitor'
 import { useTranslations } from '../../i18n'
 import { RulesDialog } from './RulesDialog'
 
 type RulesContextValue = {
   /** Opens the rules pop-up. */
   openRules: () => void
-  /** Null until mounted: storage only exists in the browser, never during server rendering. */
-  visitor: Omit<Visitor, 'rulesSeen'> | null
 }
 
 const RulesContext = createContext<RulesContextValue | null>(null)
@@ -27,7 +25,6 @@ const RulesContext = createContext<RulesContextValue | null>(null)
 export function RulesProvider({ children }: { children: ReactNode }) {
   const t = useTranslations()
   const [open, setOpen] = useState(false)
-  const [visitor, setVisitor] = useState<RulesContextValue['visitor']>(null)
   const isAdmin = usePathname()?.startsWith('/admin') ?? false
 
   // Read after mount, never during render: the server has no storage, so reading it while
@@ -37,9 +34,8 @@ export function RulesProvider({ children }: { children: ReactNode }) {
   // shown the rules, so the pop-up still opens when the game is reached.
   useEffect(() => {
     if (isAdmin) return
-    const { rulesSeen, ...rest } = readVisitor()
-    setVisitor(rest)
-    if (!rulesSeen) setOpen(true)
+    // Reading also mints the anonymous id on a first visit (see src/lib/visitor.ts).
+    if (!readVisitor().rulesSeen) setOpen(true)
   }, [isAdmin])
 
   const openRules = useCallback(() => setOpen(true), [])
@@ -49,7 +45,7 @@ export function RulesProvider({ children }: { children: ReactNode }) {
     setOpen(false)
   }, [])
 
-  const value = useMemo(() => ({ openRules, visitor }), [openRules, visitor])
+  const value = useMemo(() => ({ openRules }), [openRules])
 
   return (
     <RulesContext.Provider value={value}>

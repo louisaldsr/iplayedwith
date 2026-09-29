@@ -1,4 +1,14 @@
-import { test, expect, mockApi, asReturningVisitor, samplePlayers, sampleDailyChallenge } from './fixtures'
+import {
+  test,
+  expect,
+  mockApi,
+  asReturningVisitor,
+  samplePlayers,
+  sampleDailyChallenge,
+  sampleCareer,
+  linkingPlayer,
+  winningMove,
+} from './fixtures'
 
 // No database behind any of these: page requests are mocked (see fixtures.ts), and the `request`
 // calls only reach answers the server gives before touching the database — unknown routes and
@@ -49,11 +59,47 @@ test.describe('daily challenge', () => {
     await mockApi(page, '/api/rugby/daily', sampleDailyChallenge)
     await page.goto('/rugby')
 
-    await expect(page.getByText('#7')).toBeVisible()
-    await expect(page.getByText('Alpha Testeur')).toBeVisible()
-    await expect(page.getByText('Bravo Éssai')).toBeVisible()
-    await expect(page.getByText('3 links')).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('#7')
+    await expect(page.getByRole('button', { name: /Alpha Testeur/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Bravo Éssai/ })).toBeVisible()
+    await expect(page.getByText('Best possible 3 links')).toBeVisible()
     await expect(page.locator('a[href="/rugby/free"]')).toBeVisible()
+  })
+
+  test('a player of the pair opens their career, club by club', async ({ page }) => {
+    await mockApi(page, '/api/rugby/daily', sampleDailyChallenge)
+    const calls = await mockApi(page, '/api/players/p-alpha/career', sampleCareer)
+    await page.goto('/rugby')
+
+    await page.getByRole('button', { name: /Alpha Testeur/ }).click()
+
+    const career = page.getByRole('dialog', { name: 'Alpha Testeur' })
+    await expect(career).toBeVisible()
+    await expect(career.getByText('2015 – 2019')).toBeVisible()
+    await expect(career.getByText('Club Un')).toBeVisible()
+    await expect(career.getByText('64 games')).toBeVisible()
+    await expect(career.getByText('Club Deux')).toBeVisible()
+    expect(calls).toHaveLength(1)
+
+    await career.getByRole('button', { name: 'Close' }).click()
+    await expect(career).toBeHidden()
+  })
+
+  test('winning the daily marks the sport as done in the menu', async ({ page }) => {
+    await mockApi(page, '/api/rugby/daily', sampleDailyChallenge)
+    await mockApi(page, '/api/players', [linkingPlayer])
+    await mockApi(page, '/api/rugby/move', winningMove)
+    await page.goto('/rugby')
+
+    await page.getByRole('button', { name: 'Start' }).click()
+    await page.getByPlaceholder('Player…').fill('cha')
+    await page.getByText('Charlie Lien').click()
+    await page.getByRole('button', { name: 'Submit' }).click()
+    await expect(page.getByRole('heading', { name: 'Congratulations!' })).toBeVisible()
+
+    await page.getByRole('link', { name: 'Menu' }).click()
+    await expect(page.getByRole('link', { name: 'Rugby — Daily challenge (done today)' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Football — Daily challenge', exact: true })).toBeVisible()
   })
 
   test('a failed load shows an error instead of an empty board', async ({ page }) => {

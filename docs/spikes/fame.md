@@ -292,3 +292,98 @@ Simulated on live data, then checked in a local Postgres against the SQL itself:
 Media and generation fame. Kinghorn stays ahead of Dupont on every signal we hold. Next step: a
 Wikidata sitelinks spike (how many Wikipedia editions have an article on the player). It is
 stable, unlike the pageviews rejected earlier, and football can match on the Transfermarkt ID.
+
+## Revision 3 — season prestige, and the stage a player played on
+
+*September 2026 — `supabase/migrations/023_season_prestige.sql`, `024_seed_rugby_titles.sql`,
+`025_fame_stage.sql`.*
+
+Revision 2 still reads a career and not where it was played. Revision 3 scores the stage: every
+**club-season** gets a prestige score, and a player's `stage` is the games-weighted average of the
+prestige of their memberships.
+
+### Why club-seasons
+
+People remember a season: its big European nights, its title, and the squad that played them. A
+title stays attached to its own season. The squads before and after it do not get it, and an old
+title needs no decay because it still belongs to the players who won it. The value is the same
+for every player of a squad, so it lives on the club-season (`club_season_prestige`), not on
+`memberships`.
+
+### Signals measured
+
+| Signal | Verdict |
+|---|---|
+| Continental games (UCL/EL, Champions/Challenge Cup) | Best source held, but see "games → wins" below. Summed 2012-2025: Real 170, Bayern 160, PSG 148 / Leinster 97, Toulouse 81, Munster 81 |
+| Titles, from Wikidata (`P3450` season → `P1346` winner) | Covers the southern hemisphere, but **incomplete**: the Crusaders show 7 Super Rugby titles, not 11+. Titles are curated for rugby and derived from the results for football |
+| Wikipedia editions per club | **Rejected**: flat in rugby (Toulouse = Leinster = Crusaders = 21, Zebre 15); inflated for English football (Luton 56) |
+| Attendance, stadium size | **Rejected**: football only |
+| Squad caps | Already rejected in revision 2 |
+
+### Games → wins
+
+The first version counted continental **games**, and on a local copy of both sports it rewarded
+taking part. Zebre 2016-17 (6 Champions Cup games, 0 wins) scored 48, next to Munster. Every Super
+Rugby franchise sat at 35-46 for playing its ~15 league games, so the Sunwolves ranked above Pau and
+Bayonne. **Wins** tell these squads apart:
+
+| | games | wins |
+|---|---|---|
+| Zebre 2016-17, Champions Cup | 6 | 0 |
+| Toulouse 2023-24, Champions Cup | 8 | 8 |
+| Sunwolves 2018, Super Rugby | 12 | 2 |
+| Crusaders 2017, Super Rugby | 19 | 17 |
+
+Average Super Rugby wins per season rank the franchises in their real order (Crusaders 12.1,
+Hurricanes 10.8, Chiefs 10.3 … Waratahs 6.5), where games are flat at ~15. After the switch: Zebre
+2016-17 scores 4, the Sunwolves 18, Moana Pasifika 22, Pau 25.
+
+### Brand
+
+A season alone is not enough. Man Utd 2014-15, Chelsea 2016-17 (league champions) and AC Milan
+2014 to 2016 played no European game. So 30% of a club-season's prestige is the club's average over
+the window, and Chelsea 2016-17 scores 29, not 0. This stays absolute: the average reads only the
+club's own seasons.
+
+### Stage, and its ceiling
+
+`stage` is a career average, so it never reaches 1: Modrić, twelve seasons at Real, reads 0.71.
+Read raw at a weight of 0.25, it topped out near 0.18 for the best-placed players, while taking
+that weight from terms they had already saturated. The `famous` floor fell from 297 to 121
+(rugby) and from 426 to 117 (football). So `stage` saturates at `k_stage`, the observed p99
+(rugby 0.65, football 0.70).
+
+The shape below the ceiling is **linear**. A √ lifted mid-table careers too far (Parejo 38 → 44,
+rugby `known` 1,279 → 1,927): prestige already has its own diminishing returns.
+
+### What it produces
+
+Measured on a local Postgres loaded with both sports (rugby rebuilt from the profile cache,
+football from the dataset), through the migrations themselves:
+
+| | rev 2 | rev 3 |
+|---|---|---|
+| `famous` / `known` / `unsung`, rugby | 297 / 1,279 / 5,279 | 205 / 1,565 / 5,085 |
+| `famous` / `known` / `unsung`, football | 426 / 2,507 / 8,522 | 189 / 2,358 / 8,908 |
+| Antoine Dupont / Blair Kinghorn | 86 / 89 | 84 / 83 |
+| Lamine Yamal | 64 | 71 |
+| Vinícius Júnior | 75 | 81 |
+| Antoine Griezmann | 95 | 87 |
+| Gaël Fickou | 97 | 87 |
+| Guillermo Ochoa | 85 | 63 |
+| Celso Borges | 84 | 62 |
+
+- The biggest falls are internationals from smaller football nations at modest clubs. Celso Borges
+  was already flagged as an anomaly in revision 1. They land in `known`, not at the bottom: the
+  term is added, not multiplied.
+- The biggest rises are regulars of the great squads (Kroos, Marcelo, Saracens' Jackson Wray).
+- The top-30 lists are household names only, in both sports.
+
+### Still open
+
+- The top of the rugby ranking now carries the role players of the dominant squads (Leinster:
+  Toner 88, McGrath 85, ahead of Dupont 84). That is the intended effect of the stage. Media fame is
+  still missing: see the Wikidata spike and the `appearance` signal.
+- The 2025-26 titles are not in `024`, and the cached Transfermarkt download stops at the 2025-26
+  European semi-finals. `prestige:report` lists every missing title by season.
+- The 70 / 30 floor thresholds get their one review on the live data (CLAUDE.md, step 35).

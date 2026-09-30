@@ -166,11 +166,12 @@ export async function applyFameDetails(db: SupabaseClient, sport: SportId, rows:
 }
 
 /**
- * Recomputes `player_fame.score` for every player of the sport, from `details.caps` and the
- * games summed over `memberships`. Returns the number of rows scored.
+ * Recomputes `player_fame.score` for every player of the sport, from `details.caps`, the games
+ * summed over `memberships` and the season prestige of those memberships — which the SQL
+ * function rescores first. Returns the number of players scored.
  *
  * The formula and its per-sport constants live only in SQL — see
- * supabase/migrations/012_fame_score.sql. One call rewrites the whole sport, so a partial run
+ * supabase/migrations/020_fame_stage.sql. One call rewrites the whole sport, so a partial run
  * cannot leave it on two revisions.
  */
 export async function computeFameScores(db: SupabaseClient, sport: SportId): Promise<number> {
@@ -206,6 +207,13 @@ export type PlayerFame = {
   games: number | null
   /** Distinct seasons across the player's memberships; 0 means unreachable in any puzzle. */
   seasons: number
+  /**
+   * The fame term `stage` (revision 3), 0..1: the season prestige of the player's memberships,
+   * averaged by games — each membership equally when none has a count. Null without memberships.
+   * Recomputed here the way compute_fame_scores does (supabase/migrations/020_fame_stage.sql),
+   * for display only.
+   */
+  stage: number | null
 }
 
 /**
@@ -228,9 +236,10 @@ export type PlayerFame = {
 export async function listFameBySport(db: SupabaseClient, sport: SportId): Promise<PlayerFame[]> {
   type PlayerRow = { id: string; name: string }
   type FameRow = { player_id: string; score: number | null; revision: number | null; details: unknown }
-  type MembershipRow = { player_id: string; season: string; games: number | null }
+  type MembershipRow = { player_id: string; club_id: string; season: string; games: number | null }
+  type PrestigeRow = { club_id: string; season: string; score: number | null }
 
-  const [players, fame, memberships] = await Promise.all([
+  const [players, fame, memberships, prestige] = await Promise.all([
     fetchAllRows<PlayerRow>((from, to) =>
       db.from('players').select('id, name').eq('sport', sport).order('id').range(from, to),
     ),
@@ -245,9 +254,18 @@ export async function listFameBySport(db: SupabaseClient, sport: SportId): Promi
     fetchAllRows<MembershipRow>((from, to) =>
       db
         .from('memberships')
-        .select('player_id, season, games')
+        .select('player_id, club_id, season, games')
         .eq('sport', sport)
         .order('player_id')
+        .order('club_id')
+        .order('season')
+        .range(from, to),
+    ),
+    fetchAllRows<PrestigeRow>((from, to) =>
+      db
+        .from('club_season_prestige')
+        .select('club_id, season, score')
+        .eq('sport', sport)
         .order('club_id')
         .order('season')
         .range(from, to),
@@ -256,12 +274,38 @@ export async function listFameBySport(db: SupabaseClient, sport: SportId): Promi
 
   const signalsByPlayerId = new Map(fame.map((row) => [row.player_id, row]))
 
-  const careerByPlayerId = new Map<string, { games: number | null; seasons: Set<string> }>()
+  const prestigeByClubSeason = new Map(prestige.map((row) => [`${row.club_id}||${row.season}`, row.score ?? 0]))
+
+  type Career = {
+    games: number | null
+    seasons: Set<string>
+    weighted: number
+    weight: number
+    sum: number
+    count: number
+  }
+  const careerByPlayerId = new Map<string, Career>()
   for (const m of memberships) {
-    const career = careerByPlayerId.get(m.player_id) ?? { games: null, seasons: new Set<string>() }
+    const career = careerByPlayerId.get(m.player_id) ?? {
+      games: null,
+      seasons: new Set<string>(),
+      weighted: 0,
+      weight: 0,
+      sum: 0,
+      count: 0,
+    }
     if (m.games !== null) career.games = (career.games ?? 0) + m.games
     career.seasons.add(m.season)
+    const score = prestigeByClubSeason.get(`${m.club_id}||${m.season}`) ?? 0
+    career.weighted += score * (m.games ?? 0)
+    career.weight += m.games ?? 0
+    career.sum += score
+    career.count++
     careerByPlayerId.set(m.player_id, career)
+  }
+  const stageOf = (career: Career | undefined): number | null => {
+    if (!career) return null
+    return (career.weight > 0 ? career.weighted / career.weight : career.sum / career.count) / 100
   }
 
   return players.map((row) => {
@@ -275,6 +319,7 @@ export async function listFameBySport(db: SupabaseClient, sport: SportId): Promi
       details: parseFameDetails(signals?.details),
       games: career?.games ?? null,
       seasons: career?.seasons.size ?? 0,
+      stage: stageOf(career),
     }
   })
 }

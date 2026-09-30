@@ -204,25 +204,84 @@ rate  = caps / greatest(seasons, 3)        k_rate : rugby 6, football 8
   en tête des viviers nationaux : Jaguares, Drua, franchises italiennes).
 - La notoriété médiatique (Dupont derrière Kinghorn) n'est dans aucune donnée : spike Wikidata.
 
+### La formule v3 — revision 3 : le prestige des saisons (`018` → `020`)
+
+La fame v2 mesurait une carrière, pas **où** elle s'est jouée. La v3 ajoute `stage` : le prestige
+des effectifs dans lesquels le joueur a joué.
+
+**Le prestige se note par club-SAISON, pas par club** (`club_season_prestige`, `018`) : on se
+souvient d'une saison, de ses grands soirs européens et de son titre, et de l'effectif qui l'a
+jouée. Un titre reste attaché à sa saison — pas de décroissance dans le temps à inventer.
+
+```
+run(c,t)  = 0.65·s(continental, k_continental) + 0.35·min(1, titres)
+brand(c)  = moyenne des run(c,·) du club sur la fenêtre
+prestige  = round(100 × [ 0.70·run(c,t) + 0.30·brand(c) ])
+continental = Σ VICTOIRES continentales × wins_weight      titres = Σ title_weight
+k_continental : rugby 8, football 10
+```
+
+- **Des victoires, pas des matchs** : compter les matchs récompensait la simple participation
+  (Zebre 2016-17 : 6 matchs de Champions Cup, 0 victoire → 48, au niveau du Munster ; toutes les
+  franchises de Super Rugby entre 35 et 46, au-dessus de Pau et Bayonne). En victoires : Zebre 4,
+  Sunwolves 18, Toulouse 2023-24 87. Rugby : W/N/D de chaque ligne de profil, max sur l'effectif ;
+  football : les résultats de `games.csv`.
+- **`brand`** (30 %) : Man Utd 2014-15 ou Chelsea 2016-17 (champion, aucun match européen) ne
+  tombent pas à 0. Absolu : la moyenne ne lit que les saisons du club lui-même.
+- **Pondérations en données** (`prestige_competitions`) : Champions Cup / Champions League 1,
+  Challenge Cup / Europa League 0,5, Conference League 0,25 ; titres de championnat 0,6. Le Super
+  Rugby : titre 1 (rien au-dessus), victoires 0,25 (ce sont celles d'un championnat) — sans lui,
+  l'hémisphère sud n'aurait rien sur ce terme.
+- **Titres** (`club_titles`, un vainqueur par compétition-saison) depuis 2012-13 comme les joueurs.
+  Rugby : **curés** dans `019` (75 titres ; Wikidata mesuré incomplet — 7 titres de Super Rugby
+  pour les Crusaders au lieu de 11+). Football : **dérivés** des finales et du 1ᵉʳ de chaque
+  championnat terminé (une saison en cours ne couronne pas son leader ; Ligue 1 2019-20 arrêtée :
+  pas de champion). ⚠️ **2025-26 n'est pas rempli** dans `019`, et le cache Transfermarkt s'arrête
+  aux demi-finales européennes 2025-26.
+
+Côté joueur (`020`) :
+
+```
+score = round(100 × [ 0.30·s(caps) + 0.20·s(games) + 0.25·s(rate) + 0.25·min(1, stage / k_stage) ])
+stage = moyenne des prestiges de ses memberships, pondérée par ses matchs      k_stage : rugby 0,65, football 0,70
+```
+
+- **Moyenne de carrière** : un remplaçant de passage au Real ne bouge presque pas ; une fin de
+  carrière dans un petit championnat tire la moyenne vers le bas (coût accepté).
+- **Additionné, pas multiplié** : un multiplicateur écraserait les internationaux des petites
+  nations dans des clubs modestes.
+- **`k_stage`** : une moyenne n'atteint jamais 1 (Modrić : 0,71). Lue brute, elle dégonflait tout
+  le haut (`famous` 297 → 121 en rugby). Saturée au p99 observé, **linéaire** (le prestige porte
+  déjà le √).
+- `compute_fame_scores` **appelle `compute_season_prestige` d'abord** : la fame ne lit jamais un
+  prestige périmé, et `fame:compute` reste la seule commande après tout changement.
+
+Mesuré sur une copie locale des deux sports : `famous` 205 rugby / 189 football (proche des
+effectifs du Bloc 6) ; Dupont 84 passe Kinghorn 83 ; Yamal 64 → 71, Vinícius 75 → 81 ; les
+internationaux de clubs modestes descendent vers `known` (Ochoa 85 → 63, Celso Borges 84 → 62).
+
 ### Limite connue
 
-Deux signaux cumulatifs : la fame suit la **longévité**, pas la célébrité (Atonio devant
-Dupont, Mbappé 61ᵉ). Accepté pour un premier jet. Pistes : club fame, signal `appearance`.
+La fame suit encore la **longévité** plus que la célébrité, et le prestige des clubs porte
+désormais ses joueurs de rôle (Toner 88, McGrath 85 devant Dupont 84 : Leinster). La notoriété
+médiatique reste hors des données : spike Wikidata, signal `appearance`.
 Détail : [docs/spikes/fame.md](docs/spikes/fame.md).
 
 ### Ordre d'import
 
-La fame vient **en dernier** : le score lit `memberships.games`.
+La fame vient **en dernier** : le score lit `memberships.games` et le prestige des saisons.
 
 ```
-rugby    : seed:map-players → seed:players → seed:memberships → seed:fame
-football : seed:football:fetch → :build → :clubs → :players → :memberships → :fame
+rugby    : seed:map-players → seed:players → seed:memberships → seed:fame → seed:prestige
+football : seed:football:fetch → :build → :clubs → :players → :memberships → :fame → :prestige
 ```
 
-Les étapes `:fame` écrivent les caps **puis calculent les scores**. Après un changement de
-formule seul : `npm run fame:compute -- --sport=rugby`. Contrôle :
-`npm run fame:report -- --sport=rugby` — couverture, révision, déciles, top/bottom 30
-**nominatif** (les déciles seuls ne distinguent pas un bon classement d'un mauvais).
+Les étapes `:fame` écrivent les caps, les étapes `:prestige` les victoires continentales (et les
+titres football), **puis chacune recalcule** prestige et fame. Après un changement de formule ou
+de pondération seul : `npm run fame:compute -- --sport=rugby`. Contrôles :
+`npm run prestige:report -- --sport=rugby` — club-saisons et clubs nommés, titres manquants par
+saison — puis `npm run fame:report -- --sport=rugby` — couverture, révision, déciles, top/bottom 30
+**nominatif**, colonne `stage` (les déciles seuls ne distinguent pas un bon classement d'un mauvais).
 
 ### Formatage
 
@@ -644,7 +703,7 @@ Saisie user
 26. `014_fame_rate.sql` appliqué — reste à relancer, depuis le checkout qui a le cache des
     profils, `npm run seed:fame` (re-parse les caps rugby) et
     `npm run fame:compute -- --sport=football`, puis lire le top/bottom 30 et la section *Floors*
-27. Prestige de club (revision 3), puis trancher les seuils 70 / 30 une seule fois
+27. ~~Prestige de club (revision 3)~~ — reste à trancher les seuils 70 / 30 une seule fois (étape 35)
 28. Spike **Wikidata sitelinks** (nombre d'éditions Wikipédia d'un joueur) : le signal de
     notoriété médiatique qui manque (Dupont derrière Kinghorn) — football via l'ID Transfermarkt,
     rugby par rapprochement de noms
@@ -659,3 +718,8 @@ Saisie user
 33. Comptes (lien magique Supabase) : réclamer le visiteur, pseudo libre + sa modération
 34. Carte de partage par défi (`/[sport]/opengraph-image`, « Défi du jour #N · Rugby ») ;
     `metadataBase` si le site sort de Vercel
+35. Fame v3 : compléter les vainqueurs 2025-26 dans `019`, appliquer `018` → `019` → `020`
+    (contrôles en bas de chaque fichier), relancer `seed:football:fetch -- --force` (finales
+    2025-26), puis `npm run seed:prestige` (depuis le checkout qui a le cache des profils) et
+    `npm run seed:football:prestige` ; lire `prestige:report` puis `fame:report` des deux sports,
+    et trancher les seuils 70 / 30

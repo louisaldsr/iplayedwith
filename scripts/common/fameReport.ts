@@ -16,8 +16,8 @@ const TOP_N = 30
 const BOUNDARY_N = 5
 
 /**
- * Caps per season as revision 2 reads it — mirrors MIN_RATE_SEASONS in compute_fame_scores
- * (supabase/migrations/014_fame_rate.sql). Display only: the score is computed in SQL.
+ * Caps per season as revisions 2 and 3 read it — mirrors MIN_RATE_SEASONS in compute_fame_scores
+ * (supabase/migrations/020_fame_stage.sql). Display only: the score is computed in SQL.
  */
 const MIN_RATE_SEASONS = 3
 const capsRate = (p: { details: { caps?: number }; seasons: number }) =>
@@ -107,7 +107,8 @@ async function main() {
   const line = (p: (typeof sorted)[number], rank: number) =>
     `  ${String(rank).padStart(5)}. ${String(p.score).padStart(3)}  ${p.name.padEnd(28).slice(0, 28)} ` +
     `games=${String(p.games ?? '-').padStart(4)} caps=${String(p.details.caps ?? 0).padStart(3)} ` +
-    `seasons=${String(p.seasons).padStart(2)} rate=${capsRate(p).toFixed(1).padStart(4)}`
+    `seasons=${String(p.seasons).padStart(2)} rate=${capsRate(p).toFixed(1).padStart(4)} ` +
+    `stage=${p.stage === null ? '   -' : p.stage.toFixed(2)}`
 
   // What the game actually reads. Sizes alone say little; the names either side of each
   // threshold are what tell whether it sits in the right place.

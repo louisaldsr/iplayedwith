@@ -58,8 +58,9 @@ function checkCaps(value: number, label: string): number {
 
 /**
  * Recomputes the score of every player of the sport from the signals already stored — caps in
- * `player_fame.details`, games in `memberships`. Run after an import, or alone after the
- * formula or a constant changed.
+ * `player_fame.details`, games in `memberships`, and the season prestige of the squads they
+ * played in, which the same call rescores first. Run after an import, or alone after the
+ * formula, a weight or a constant changed.
  */
 export async function computeFameScores(db: SupabaseClient, sport: SportId): Promise<{ scored: number }> {
   const scored = await playersRepo.computeFameScores(db, sport)

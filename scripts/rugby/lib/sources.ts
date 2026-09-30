@@ -9,10 +9,12 @@ import {
   parsePlayerIdentity,
   parseCareerRows,
   parseCareerStats,
+  parseCompetitionRows,
   hasNoProfessionalCareer,
   type PlayerIdentity,
   type CareerRow,
   type CareerStats,
+  type CompetitionRow,
 } from './playerProfileParser'
 import { alpha2ForFrenchCountryName, alpha2ForEnglishCountryName } from '../../common/nationalities'
 
@@ -27,6 +29,8 @@ export type SourceAdapter = {
   parseCareerRows(html: string): CareerRow[]
   /** Matches played and international caps, for the fame metric. */
   parseCareerStats(html: string): CareerStats
+  /** Every competition line of the club career, uncollapsed, for the season prestige. */
+  parseCompetitionRows(html: string): CompetitionRow[]
   hasNoCareerRows(html: string): boolean
   nationalityToAlpha2(raw: string): string | null
   /**
@@ -71,6 +75,7 @@ export const SOURCES: Record<SourceId, SourceAdapter> = {
     parseIdentity: parsePlayerIdentity,
     parseCareerRows,
     parseCareerStats,
+    parseCompetitionRows,
     hasNoCareerRows: hasNoProfessionalCareer,
     nationalityToAlpha2: alpha2ForFrenchCountryName,
   },
@@ -85,6 +90,7 @@ export const SOURCES: Record<SourceId, SourceAdapter> = {
     parseIdentity: parsePlayerIdentity,
     parseCareerRows,
     parseCareerStats,
+    parseCompetitionRows,
     hasNoCareerRows: hasNoProfessionalCareer,
     nationalityToAlpha2: alpha2ForEnglishCountryName,
     crosswalkToAllrugbyCom,

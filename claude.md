@@ -525,6 +525,29 @@ partie sans indice (badge, bonus) plutôt que de pénaliser l'aide.
 
 ---
 
+## ✅ Bloc 13 terminé — Visiteurs et noms générés
+
+Le classement affiche un **nom généré** au lieu d'un UUID : un adjectif et un poste/rôle tirés de
+listes curatées (`src/domain/visitorName.ts`) — « Pilier Pressé », « Hasty Prop ». 40 × 28 = 1 120
+noms ; deux visiteurs peuvent partager un nom.
+
+- **Généré, pas choisi** : des listes curatées n'ont rien à modérer. Un pseudo libre viendra avec
+  les comptes, et avec lui son filtrage (format, liste noire FR/EN après normalisation + leetspeak,
+  noms de vrais joueurs réservés via `players.search_name`, signalement + reset admin).
+- **Stocké en clés**, pas en texte (`visitors.name_adjective` / `name_noun`, `017_visitors.sql`) :
+  tiré une fois, jamais changé, lu dans la langue du lecteur. Libellés dans `src/i18n`
+  (`visitorNames`), typés sur les clés : une clé sans libellé ne compile pas. Les listes ne font
+  que **grandir** — retirer une clé rendrait un nom stocké illisible (`visitorNameOf` → null).
+- Règles des listes : bienveillant (taquin au plus), aucun double sens dans une langue (pas de
+  « hooker »), noms français tous masculins — l'adjectif n'a jamais à s'accorder.
+- Créé au **Start** (`ensure_visitor`, idempotent) ; un échec est seulement logué. Pas de FK depuis
+  `daily_results` : un coup peut arriver avant le Start, le nom manque alors (`—`).
+- `visitors` est l'endroit où un compte s'accrochera : s'inscrire **réclamera** le visiteur et ses
+  résultats, sans repartir de zéro.
+- `npm run daily:ranking -- --sport=rugby [--lang=en]` affiche les noms (français par défaut).
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -607,3 +630,6 @@ Saisie user
 31. Appliquer `016_daily_hints.sql` après `015` ; puis faire entrer les indices dans le vrai score
     (badge « sans indice » ou bonus), et envisager un indice plus fort payant (« un coéquipier de
     X chez C en S », contre une vie) pour les joueurs vraiment bloqués
+32. Appliquer `017_visitors.sql` ; puis afficher le classement du jour aux joueurs (noms, sa
+    propre ligne en évidence)
+33. Comptes (lien magique Supabase) : réclamer le visiteur, pseudo libre + sa modération

@@ -8,6 +8,7 @@ import { SPORTS, SportId } from '../../domain/sport'
 import { useTranslations } from '../../i18n'
 import { useRules } from '../rules/RulesProvider'
 import { dailyOutcomesToday, DailyOutcome } from '../../lib/dailyProgress'
+import { VisitorBadge } from './VisitorBadge'
 
 const SPORT_ICONS: Record<SportId, string> = { rugby: '🏉', football: '⚽' }
 
@@ -29,6 +30,7 @@ export function HomeMenu() {
 
   return (
     <nav className="home-screen" aria-label={t.menu.label}>
+      <VisitorBadge />
       <header className="home-screen__header">
         {/* Decorative: the title right below says the same thing. */}
         <Image className="home-screen__logo" src={logo} alt="" priority />

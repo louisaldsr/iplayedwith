@@ -109,6 +109,37 @@ body {
   }
 }
 
+/* The visitor's generated name, top left of the menu — where the menu button sits in a game. */
+.visitor-badge {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  max-width: calc(100vw - 24px - 44px - 12px);
+  padding: 0 16px 0 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.visitor-badge__icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.visitor-badge__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .rules-button {
   position: fixed;
   top: 12px;

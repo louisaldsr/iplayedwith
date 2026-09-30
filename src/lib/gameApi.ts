@@ -5,6 +5,7 @@ import { Season } from '@/domain/season'
 import { SportId } from '@/domain/sport'
 import { DailyChallenge } from '@/domain/dailyChallenge'
 import { CareerStint } from '@/domain/career'
+import { VisitorName } from '@/domain/visitorName'
 
 /**
  * Browser-side calls the game makes.
@@ -60,6 +61,18 @@ export function recordDailyHint(sport: SportId, day: string, visitorId: string, 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ day, visitorId, playerId }),
   }).catch(() => {})
+}
+
+/** This visitor's generated name — created by the server on first call. */
+export async function getVisitorName(visitorId: string, signal?: AbortSignal): Promise<VisitorName> {
+  const res = await fetch('/api/visitor', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ visitorId }),
+    signal,
+  })
+  if (!res.ok) throw new Error(`/api/visitor failed with ${res.status}`)
+  return res.json()
 }
 
 /** A player's clubs, season runs oldest first — shown when a player card is opened. */

@@ -22,6 +22,7 @@ const fr: Translations = {
     ranking: 'Classement',
     stats: 'Mes stats',
     logIn: 'Connexion',
+    yourName: 'Votre nom dans les classements',
     doneToday: 'fait aujourd’hui',
     lostToday: 'perdu aujourd’hui',
     soon: 'Bientôt',

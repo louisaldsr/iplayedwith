@@ -1,8 +1,10 @@
 /**
  * The name a visitor shows in the rankings — generated, never typed.
  *
- * An anonymous visitor gets a sport-flavoured name drawn from curated lists ("Pilier Pressé",
- * "Hasty Prop"). Curated means nothing to moderate: a free-form username needs a filter, a report
+ * An anonymous visitor gets a sport-flavoured name drawn from curated lists, plus a number that
+ * makes it unique ("Pilier Pressé 042", "Hasty Prop 042").
+ * 40 adjectives × 28 nouns × 1,000 numbers = 1,120,000 names; the database hands out a number
+ * still free for the pair (018_visitor_number.sql). Curated means nothing to moderate: a free-form username needs a filter, a report
  * button and someone to act on it, and is kept for accounts.
  *
  * Stored as KEYS, not text, in `visitors` (017_visitors.sql): the name is drawn once and never
@@ -92,20 +94,28 @@ export const NAME_NOUNS = [
 export type NameAdjective = (typeof NAME_ADJECTIVES)[number]
 export type NameNoun = (typeof NAME_NOUNS)[number]
 
-export type VisitorName = { adjective: NameAdjective; noun: NameNoun }
+/** The words of a name — what the server draws; the database adds a free number. */
+export type NameWords = { adjective: NameAdjective; noun: NameNoun }
+
+export type VisitorName = NameWords & { number: number }
 
 const pick = <T>(list: readonly T[], random: () => number): T => list[Math.floor(random() * list.length)]
 
-/** A name drawn uniformly — 40 × 28 = 1,120 of them. Two visitors may share one; the ranking lists both. */
-export function randomVisitorName(random: () => number = Math.random): VisitorName {
+/** A pair of words drawn uniformly. */
+export function randomNameWords(random: () => number = Math.random): NameWords {
   return { adjective: pick(NAME_ADJECTIVES, random), noun: pick(NAME_NOUNS, random) }
 }
 
-/** A stored name read back — null when a key is no longer in the lists (they only ever grow). */
-export function visitorNameOf(adjective: unknown, noun: unknown): VisitorName | null {
+/**
+ * A stored name read back — null when missing, or when a key is no longer in the lists (they only
+ * ever grow).
+ */
+export function visitorNameOf(adjective: unknown, noun: unknown, number: unknown): VisitorName | null {
   const isAdjective = (NAME_ADJECTIVES as readonly unknown[]).includes(adjective)
   const isNoun = (NAME_NOUNS as readonly unknown[]).includes(noun)
-  return isAdjective && isNoun ? { adjective: adjective as NameAdjective, noun: noun as NameNoun } : null
+  const isNumber = Number.isInteger(number) && (number as number) >= 0 && (number as number) <= 999
+  if (!isAdjective || !isNoun || !isNumber) return null
+  return { adjective: adjective as NameAdjective, noun: noun as NameNoun, number: number as number }
 }
 
 type NameLabels = {
@@ -115,6 +125,8 @@ type NameLabels = {
   format: (adjective: string, noun: string) => string
 }
 
+/** "Pilier Pressé 042" — the number always on three digits. */
 export function formatVisitorName(name: VisitorName, labels: NameLabels): string {
-  return labels.format(labels.adjectives[name.adjective], labels.nouns[name.noun])
+  const words = labels.format(labels.adjectives[name.adjective], labels.nouns[name.noun])
+  return `${words} ${String(name.number).padStart(3, '0')}`
 }

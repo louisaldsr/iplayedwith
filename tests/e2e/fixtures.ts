@@ -8,6 +8,9 @@ import { test as base, expect, Page } from '@playwright/test'
  * recently added route first). After the test, any call that reached the guard fails it — so a
  * page that starts calling a new endpoint is caught here, instead of silently hitting the server.
  *
+ * One endpoint is mocked by default: `/api/visitor`, the name the menu shows. Any test can reach
+ * the menu, and none should have to care; a test about the name mocks it again (its route wins).
+ *
  * The server side is covered separately: the e2e dev server has no real database to reach (see
  * playwright.config.ts). Only requests the server answers WITHOUT the database — input
  * validation, unknown routes — are exercised through the `request` fixture.
@@ -20,6 +23,10 @@ export const test = base.extend<{ unmockedApiCalls: string[] }>({
         calls.push(`${route.request().method()} ${route.request().url()}`)
         return route.fulfill({ status: 500, json: { error: 'unmocked API call in an e2e test' } })
       })
+      await page.route(
+        (url) => url.pathname === '/api/visitor',
+        (route) => route.fulfill({ json: sampleVisitorName }),
+      )
       await use(calls)
       expect(calls, 'API calls with no mock — add one with mockApi()').toEqual([])
     },
@@ -48,6 +55,9 @@ export async function asReturningVisitor(page: Page): Promise<void> {
 }
 
 // ─── Sample data ──────────────────────────────────────────────────────────────
+
+/** "Hasty Prop 042" in English. */
+export const sampleVisitorName = { adjective: 'hasty', noun: 'prop', number: 42 }
 // Invented players: the tests must not depend on anything a re-seed could change.
 
 export const samplePlayers = [

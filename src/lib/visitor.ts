@@ -1,13 +1,15 @@
+import { VisitorName, visitorNameOf } from '@/domain/visitorName'
+
 /**
  * Who is visiting, without an account — browser-side only.
  *
  * Everything lives in `localStorage`, so "a visitor" is a browser on a device, not a person: a new
  * device, a private window or cleared site data all look like a first visit, and nothing
- * recognises the same person across devices. Nothing here is sent to the server.
+ * recognises the same person across devices.
  *
- * `playerId` is an anonymous random id, minted on the first visit. Nothing reads it yet: it is the
- * groundwork for recording daily-challenge results and a ranking, which will need to tell two
- * browsers apart without asking anyone to sign up.
+ * `playerId` is an anonymous random id, minted on the first visit. The server keeps the daily
+ * results under it, and gives it a generated name (`ipw.name` caches it). Nothing else leaves the
+ * browser.
  *
  * Storage can throw rather than return null — Safari in private mode, a browser set to block site
  * data. Every access is guarded, and a failure reads as a returning visitor who has seen the
@@ -67,6 +69,33 @@ export function readVisitor(): Visitor {
     return { playerId, isFirstVisit, rulesSeen }
   } catch {
     return UNAVAILABLE
+  }
+}
+
+const NAME_KEY = 'ipw.name'
+
+/**
+ * The visitor's generated name as last received from the server — shown by the menu at once,
+ * without waiting on a request. Kept with the id it belongs to: a new id (cleared storage) is a
+ * new visitor, with a name of its own.
+ */
+export function readCachedName(playerId: string): VisitorName | null {
+  try {
+    const raw = window.localStorage.getItem(NAME_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Record<string, unknown>
+    if (parsed.playerId !== playerId) return null
+    return visitorNameOf(parsed.adjective, parsed.noun, parsed.number)
+  } catch {
+    return null
+  }
+}
+
+export function saveCachedName(playerId: string, name: VisitorName): void {
+  try {
+    window.localStorage.setItem(NAME_KEY, JSON.stringify({ playerId, ...name }))
+  } catch {
+    // The name is fetched again on the next visit.
   }
 }
 

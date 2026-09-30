@@ -1,30 +1,33 @@
-import { formatVisitorName, NAME_ADJECTIVES, NAME_NOUNS, randomVisitorName, visitorNameOf } from '@/domain/visitorName'
+import { formatVisitorName, NAME_ADJECTIVES, NAME_NOUNS, randomNameWords, visitorNameOf } from '@/domain/visitorName'
 import en from '@/i18n/en'
 import fr from '@/i18n/fr'
 
-describe('randomVisitorName', () => {
+describe('randomNameWords', () => {
   it('draws from the whole of both lists', () => {
-    expect(randomVisitorName(() => 0)).toEqual({ adjective: NAME_ADJECTIVES[0], noun: NAME_NOUNS[0] })
-    expect(randomVisitorName(() => 0.9999)).toEqual({ adjective: NAME_ADJECTIVES.at(-1), noun: NAME_NOUNS.at(-1) })
+    expect(randomNameWords(() => 0)).toEqual({ adjective: NAME_ADJECTIVES[0], noun: NAME_NOUNS[0] })
+    expect(randomNameWords(() => 0.9999)).toEqual({ adjective: NAME_ADJECTIVES.at(-1), noun: NAME_NOUNS.at(-1) })
   })
 })
 
 describe('visitorNameOf', () => {
   it('reads back a stored name', () => {
-    expect(visitorNameOf('hasty', 'prop')).toEqual({ adjective: 'hasty', noun: 'prop' })
+    expect(visitorNameOf('hasty', 'prop', 42)).toEqual({ adjective: 'hasty', noun: 'prop', number: 42 })
   })
 
-  it('gives null for a missing name or a key no longer in the lists', () => {
-    expect(visitorNameOf(null, null)).toBeNull()
-    expect(visitorNameOf('hasty', 'hooker')).toBeNull()
+  it('gives null for a missing name, a key no longer in the lists, or a number out of range', () => {
+    expect(visitorNameOf(null, null, null)).toBeNull()
+    expect(visitorNameOf('hasty', 'hooker', 42)).toBeNull()
+    expect(visitorNameOf('hasty', 'prop', 1000)).toBeNull()
+    expect(visitorNameOf('hasty', 'prop', 4.2)).toBeNull()
   })
 })
 
 describe('formatVisitorName', () => {
-  it("follows each language's word order", () => {
-    const name = { adjective: 'hasty', noun: 'prop' } as const
-    expect(formatVisitorName(name, en.visitorNames)).toBe('Hasty Prop')
-    expect(formatVisitorName(name, fr.visitorNames)).toBe('Pilier Pressé')
+  it("follows each language's word order, the number on three digits", () => {
+    const name = { adjective: 'hasty', noun: 'prop', number: 42 } as const
+    expect(formatVisitorName(name, en.visitorNames)).toBe('Hasty Prop 042')
+    expect(formatVisitorName(name, fr.visitorNames)).toBe('Pilier Pressé 042')
+    expect(formatVisitorName({ ...name, number: 0 }, en.visitorNames)).toBe('Hasty Prop 000')
   })
 })
 

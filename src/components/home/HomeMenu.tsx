@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
+import logo from '../../../brand/logo.svg'
 import { SPORTS, SportId } from '../../domain/sport'
 import { useTranslations } from '../../i18n'
 import { useRules } from '../rules/RulesProvider'
@@ -28,6 +30,8 @@ export function HomeMenu() {
   return (
     <nav className="home-screen" aria-label={t.menu.label}>
       <header className="home-screen__header">
+        {/* Decorative: the title right below says the same thing. */}
+        <Image className="home-screen__logo" src={logo} alt="" priority />
         <h1 className="home-screen__title">{t.home.title}</h1>
         <p className="home-screen__tagline">{t.home.tagline}</p>
       </header>

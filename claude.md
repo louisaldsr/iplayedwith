@@ -548,6 +548,30 @@ noms ; deux visiteurs peuvent partager un nom.
 
 ---
 
+## ✅ Bloc 14 terminé — Logo, favicon, carte de partage
+
+Le logo est un **monogramme** : « IPW » blanc sur une tuile violette (`--accent`), souligné par un
+lien doré entre deux joueurs (l'or de A, B et de la chaîne gagnante). Deux tailles :
+
+- **`brand/logo.svg`** — la tuile IPW, à partir de **48 px** (icône d'app, écran d'accueil, partage).
+- **`brand/logo-small.svg`** — le lien seul, **sous 48 px** : les lettres ne se lisent plus à 16 px.
+- `brand/wordmark.svg` — « I Played With », pour la carte de partage.
+
+Lettres et nom sont **vectorisés** (Archivo 800, largeur 66/72, licence OFL) : aucun fichier ne
+dépend d'une police. `npm run brand:render` régénère depuis `brand/` les fichiers que Next.js
+sert d'après leur nom dans `src/app/` : `icon.svg`, `favicon.ico` (16 et 32 petit logo, 48 grand),
+`apple-icon.png` (180 px, **plein cadre** : iOS arrondit lui-même) et `opengraph-image.png`
+(1200 × 630). Modifier un SVG de `brand/` → relancer le script et committer les sorties.
+
+Le menu principal affiche `brand/logo.svg` au-dessus du titre, importé tel quel (`next/image`, SVG
+non optimisé) : une seule source, rien à copier dans `public/`. Décoratif (`alt=""`), le `<h1>`
+porte le nom.
+
+La carte de partage est **statique** ; `twitter.card = summary_large_image` dans le layout. Son URL
+absolue vient de l'URL de production Vercel, faute de `metadataBase`.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -633,3 +657,5 @@ Saisie user
 32. Appliquer `017_visitors.sql` ; puis afficher le classement du jour aux joueurs (noms, sa
     propre ligne en évidence)
 33. Comptes (lien magique Supabase) : réclamer le visiteur, pseudo libre + sa modération
+34. Carte de partage par défi (`/[sport]/opengraph-image`, « Défi du jour #N · Rugby ») ;
+    `metadataBase` si le site sort de Vercel

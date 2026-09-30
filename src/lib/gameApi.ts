@@ -50,6 +50,18 @@ export function startDailyChallenge(sport: SportId, day: string, visitorId: stri
   }).catch(() => {})
 }
 
+/**
+ * Tells the server a career was opened during today's challenge — a hint, recorded for a future
+ * score. Fire and forget, like the start: the career opens whatever happens here.
+ */
+export function recordDailyHint(sport: SportId, day: string, visitorId: string, playerId: string): void {
+  fetch(`/api/${sport}/daily/hint`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ day, visitorId, playerId }),
+  }).catch(() => {})
+}
+
 /** A player's clubs, season runs oldest first — shown when a player card is opened. */
 export function getPlayerCareer(
   playerId: PlayerId,

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { DailyChallenge } from '../../domain/dailyChallenge'
 import { Player } from '../../domain/player'
 import { useTranslations } from '../../i18n'
-import { PlayerCareerDialog } from './PlayerCareerDialog'
+import { PlayerCareerDialog } from '../shared/PlayerCareerDialog'
 
 type Props = {
   challenge: DailyChallenge

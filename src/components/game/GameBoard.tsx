@@ -11,6 +11,8 @@ import { NodeCard } from './NodeCard'
 const NODE_WIDTH = 160
 const NODE_HEIGHT = 90
 const MIN_GAP = 180
+/** A press that moves less than this is a click (open the career), not a drag. */
+const CLICK_TOLERANCE = 5
 
 type Position = { x: number; y: number }
 type DragState = {
@@ -32,6 +34,8 @@ type Props = {
   game: Game
   players: Player[]
   clubs: Club[]
+  /** A player card was clicked, not dragged — the board opens their career. */
+  onOpenPlayer?: (player: Player) => void
 }
 
 function findFreePosition(existing: Map<string, Position>, boardW: number, boardH: number): Position {
@@ -109,7 +113,7 @@ function computePlayerPairEdges(edges: { playerId: PlayerId; clubId: ClubId; sea
   return [...pairMap.values()]
 }
 
-export function GameBoard({ game, players, clubs }: Props) {
+export function GameBoard({ game, players, clubs, onOpenPlayer }: Props) {
   const boardRef = useRef<HTMLDivElement>(null)
   const [positions, setPositions] = useState<Map<string, Position>>(new Map())
   const [dragging, setDragging] = useState<DragState | null>(null)
@@ -171,10 +175,25 @@ export function GameBoard({ game, players, clubs }: Props) {
     setPositions((prev) => new Map(prev).set(dragging.key, { x: nx, y: ny }))
   }
 
-  const handlePointerUp = () => {
+  const handlePointerCancel = () => {
     if (!dragging) return
     setPositions((prev) => resolveOverlap(dragging.key, prev))
     setDragging(null)
+  }
+
+  // Cards are dragged with the pointer captured by the board, so no click event reaches them: a
+  // press released where it started is the click.
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!dragging) return
+    const moved = Math.hypot(e.clientX - dragging.startX, e.clientY - dragging.startY)
+    if (moved < CLICK_TOLERANCE) openCareer(dragging.key)
+    handlePointerCancel()
+  }
+
+  const openCareer = (key: string) => {
+    const node = game.nodes.get(key)
+    const player = node?.kind === 'player' ? playerById.get(node.id) : undefined
+    if (player && onOpenPlayer) onOpenPlayer(player)
   }
 
   const playerMap = new Map(players.map((p) => [p.id as string, p.name]))
@@ -217,7 +236,7 @@ export function GameBoard({ game, players, clubs }: Props) {
         className={boardClass}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
       >
         <svg className="game-board-svg" aria-hidden="true">
           {playerPairEdges.map((edge) => {
@@ -263,6 +282,7 @@ export function GameBoard({ game, players, clubs }: Props) {
               nationality={p?.nationality ? nationalTeamFor(p.nationality, p.sport) : undefined}
               position={pos}
               onPointerDown={handlePointerDown}
+              onOpen={onOpenPlayer && p ? () => openCareer(key) : undefined}
               isDragging={dragging?.key === key}
               highlighted={game.path.includes(node.id)}
               pathStep={pathStep(node.id)}
@@ -330,7 +350,7 @@ export function GameBoard({ game, players, clubs }: Props) {
       className={boardClass}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
     >
       <svg className="game-board-svg" aria-hidden="true">
         {game.edges.map((edge, i) => {
@@ -393,6 +413,7 @@ export function GameBoard({ game, players, clubs }: Props) {
             nationality={nationality}
             position={pos}
             onPointerDown={handlePointerDown}
+            onOpen={onOpenPlayer && node.kind === 'player' ? () => openCareer(key) : undefined}
             isDragging={dragging?.key === key}
             highlighted={highlighted}
             pathStep={step}

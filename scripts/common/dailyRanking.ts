@@ -32,7 +32,7 @@ async function main() {
   console.log(`\n=== ${sport} — ${day} — ${ranking.length} won ===\n`)
   if (ranking.length === 0) return
 
-  console.log('rank  visitor   attempts  time      lives lost  links')
+  console.log('rank  visitor   attempts  time      lives lost  links  hints')
   for (const r of ranking) {
     console.log(
       [
@@ -42,6 +42,7 @@ async function main() {
         formatDuration(r.durationMs).padStart(8),
         String(r.livesLost).padStart(10),
         String(r.links).padStart(6),
+        String(r.hints).padStart(5),
       ].join('  '),
     )
   }

@@ -20,7 +20,8 @@ const formatSpan = (stint: CareerStint) => `${stint.from.slice(0, 4)} – ${stin
 
 /**
  * A player's career, club by club, oldest first — so a user who has never heard of a player can
- * still see where he played before starting. Loaded when opened, one small request per player.
+ * still see where he played: A and B on the daily's intro, and any player card on the board.
+ * Loaded when opened, one small request per player.
  */
 export function PlayerCareerDialog({ player, onClose }: Props) {
   const t = useTranslations()

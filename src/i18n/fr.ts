@@ -52,7 +52,7 @@ const fr: Translations = {
     freePlay: 'En partie libre, vous choisissez les deux joueurs et la difficulté, sans vies.',
     cardsTitle: 'Cartes joueurs',
     cards:
-      'Le badge d’une carte indique à quel point le joueur est connu. Moins il l’est, plus la trouvaille est rare.',
+      'Le badge d’une carte indique à quel point le joueur est connu. Moins il l’est, plus la trouvaille est rare. Bloqué ? Touchez une carte pour voir la carrière du joueur, club par club.',
     cta: 'C’est parti',
   },
   daily: {

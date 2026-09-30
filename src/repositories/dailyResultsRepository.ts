@@ -43,6 +43,23 @@ export async function recordMove(db: SupabaseClient, move: RecordedMove) {
   if (error) throw new Error(error.message)
 }
 
+/** Adds a player to the visitor's hints for the day. Ignored for A, B, an unknown player or a finished day. */
+export async function recordHint(
+  db: SupabaseClient,
+  sport: SportId,
+  day: ChallengeDay,
+  visitorId: VisitorId,
+  playerId: string,
+) {
+  const { error } = await db.rpc('record_daily_hint', {
+    p_sport: sport,
+    p_day: day,
+    p_visitor: visitorId,
+    p_player: playerId,
+  })
+  if (error) throw new Error(error.message)
+}
+
 type RankingRow = {
   rank: number
   visitor_id: string
@@ -50,6 +67,7 @@ type RankingRow = {
   duration_ms: number
   lives_lost: number
   links: number
+  hints: number
   finished_at: string
 }
 
@@ -63,6 +81,7 @@ export async function ranking(db: SupabaseClient, sport: SportId, day: Challenge
     durationMs: Number(r.duration_ms),
     livesLost: r.lives_lost,
     links: r.links,
+    hints: r.hints,
     finishedAt: r.finished_at,
   }))
 }

@@ -17,7 +17,7 @@ import { DailyIntro } from './daily/DailyIntro'
 import { DailyFinished } from './daily/DailyFinished'
 import { DailyBoard, DailyOutcome, readDailyRecord, saveDailyRecord } from '../lib/dailyProgress'
 import { readVisitor } from '../lib/visitor'
-import { startDailyChallenge } from '../lib/gameApi'
+import { recordDailyHint, startDailyChallenge } from '../lib/gameApi'
 
 /**
  * `victory`: the won board stays on screen, results in a pop-up over it.
@@ -313,6 +313,18 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
     dispatch({ type: 'PLAY_AGAIN' })
   }, [])
 
+  // A career opened mid-daily is a hint, recorded for a future score — except A's and B's, which
+  // everyone needs, and any opened once the game is over.
+  const handleCareerOpened = useCallback(
+    (player: Player) => {
+      if (!daily || state.phase !== 'playing') return
+      if (player.id === daily.playerA.id || player.id === daily.playerB.id) return
+      const visitorId = readVisitor().playerId
+      if (visitorId) recordDailyHint(daily.sport, daily.day, visitorId, player.id)
+    },
+    [daily, state.phase],
+  )
+
   const closeResults = useCallback(() => dispatch({ type: 'SHOW_RESULTS', open: false }), [])
 
   // A won game keeps its board on screen: the results open over it, and this bar replaces the
@@ -377,6 +389,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           }
           inputResetKey={state.rejectedCount}
           victory={victory ? { elapsedMs: victory.elapsedMs, bar: wonBar } : undefined}
+          onCareerOpened={handleCareerOpened}
         />
       )}
 

@@ -326,7 +326,7 @@ c'est du pistage au sens du RGPD. Rien n'est envoyé au serveur.
 |---|---|
 | `ipw.playerId` | UUID anonyme, créé à la première visite. **Lu par rien encore** : c'est l'amorce des résultats du défi et du classement (étape 17) |
 | `ipw.rulesSeen` | version des règles lue et fermée |
-| `ipw.dailyDone.<sport>` | jour du dernier défi gagné dans ce sport (`src/lib/dailyProgress.ts`) — le menu le colore en vert tant que c'est aujourd'hui (Paris) ; périme seul à minuit |
+| `ipw.daily.<sport>` | `{ day, livesLeft, outcome? }` du dernier défi joué dans ce sport (`src/lib/dailyProgress.ts`) — vies restantes, et `won`/`lost` une fois fini ; le menu colore la carte tant que c'est aujourd'hui (Paris) ; périme seul à minuit |
 
 `RULES_VERSION` : l'incrémenter quand les règles changent assez pour que tout le monde les relise.
 Stockage indisponible (Safari privé, données bloquées) → lu comme « visiteur connu, règles vues » :
@@ -377,6 +377,45 @@ ancien au plus récent, matchs additionnés (null si aucune saison n'en donne).
 `/about`, volontairement court : origine des données (rugby : allrugby.com + all.rugby ; football :
 Transfermarkt via `dcaribou/transfermarkt-datasets`, CC0), auteur (`louisaldsr` → GitHub),
 formulaire de contact « bientôt ». Pas de dons pour l'instant.
+
+---
+
+## ✅ Bloc 9 terminé — Vies dans le défi du jour
+
+**3 vies, fixes** (`DAILY_LIVES`), défi du jour seulement — la partie libre n'en a pas. Un coup
+coûte une vie **uniquement** s'il est jugé sans lien : aucun club ni saison en commun avec le
+plateau. Jamais pour un doublon, une erreur réseau/serveur, ni une partie déjà finie. À 0, la
+journée est **perdue** : écran « Plus de vies », carte rouge (✕) dans le menu, pas de rejeu.
+
+### Code de rejet
+
+`moveRules` renvoie `{ code, reason }` au lieu d'une phrase (`src/game/moveRejection.ts`) :
+`not-connected` · `already-on-board` · `wrong-kind` · `game-over`. Seul `not-connected` coûte une
+vie. Le code traverse `moveService` → `remoteEngine` ; une erreur de transport n'a **pas** de code
+(le coup n'a pas été jugé). Le client affiche `t.game.rejections[code]` — traduit, là où `reason`
+restait en français.
+
+### Persistance
+
+Vies et issue sauvées à chaque changement dans `ipw.daily.<sport>` : recharger ne rend pas les
+vies, et un jour fini (gagné ou perdu) s'ouvre sur son écran de fin (`DailyFinished`), pas sur une
+nouvelle partie. Le **plateau**, lui, n'est pas sauvé : recharger en cours de partie repart de A et
+B avec les vies restantes. **Contournable** en effaçant les données du site — la vraie garantie
+viendra des résultats stockés côté serveur (étape 17).
+
+**Pas de solution affichée** en cas de défaite : le serveur la garde, mais sans compte rien ne
+dit qui a vraiment perdu — l'exposer, c'est la donner à tout le monde avant de jouer.
+
+### Game design
+
+Cœurs **cartoon** (SVG : contour épais, aplat rouge et bande d'ombre franche, reflet blanc, ombre
+portée sans flou), sans libellé — les cœurs se suffisent — posés en bas du plateau
+(`.game-screen-board`), centrés, sans bloquer les clics (`LivesBar`) ; le même cœur sert sur
+l'écran de victoire. Le cœur perdu gonfle et se vide, la rangée tremble, l'écran **flashe rouge ~1 s**
+(`.life-flash`, rendu hors de l'écran de jeu pour jouer aussi sur la dernière vie). Réduit à une
+teinte douce sans secousse sous `prefers-reduced-motion`. Perte annoncée aux lecteurs d'écran
+(`aria-live`). Après un coup refusé, la saisie se vide pour le coup suivant (sauf erreur réseau :
+on peut réessayer tel quel). `RULES_VERSION` passe à 2 : tout le monde revoit les règles une fois.
 
 ---
 
@@ -447,3 +486,6 @@ Saisie user
 20. ~~Menu principal + page À propos~~
 21. Formulaire de contact ; dons (plateforme à choisir) ; plateau lisible sur mobile (A et B se
     chevauchent à 390 px)
+22. ~~Vies dans le défi du jour~~
+23. Révéler la solution du jour — le lendemain, ou après une défaite vérifiée côté serveur ;
+    sauver le plateau en cours ; ajuster les vies à la distance si les longs jours s'avèrent durs

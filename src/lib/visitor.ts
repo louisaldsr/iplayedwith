@@ -21,8 +21,10 @@ const RULES_SEEN_KEY = 'ipw.rulesSeen'
 /**
  * Version of the rules pop-up content. Bump it when the rules change enough that every visitor
  * should read them again: anyone who saw an older version gets the pop-up once more.
+ *
+ * 2 — lives in the daily challenge.
  */
-export const RULES_VERSION = 1
+export const RULES_VERSION = 2
 
 export type Visitor = {
   /** Anonymous id of this browser, stable across visits. Empty when storage is unavailable. */

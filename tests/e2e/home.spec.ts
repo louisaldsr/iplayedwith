@@ -24,16 +24,24 @@ test('the menu leads to each sport daily challenge, and to free play', async ({ 
   await expect(page.getByRole('link', { name: 'Football — Free play' })).toHaveAttribute('href', '/football/free')
 })
 
-test("a sport whose challenge was won today is marked done; yesterday's win is not", async ({ page }) => {
-  const today = parisToday()
+test("today's finished challenges are marked won or lost; yesterday's are not", async ({ page }) => {
   await page.addInitScript((day) => {
-    window.localStorage.setItem('ipw.dailyDone.rugby', day)
-    window.localStorage.setItem('ipw.dailyDone.football', '2000-01-01')
-  }, today)
+    window.localStorage.setItem('ipw.daily.rugby', JSON.stringify({ day, livesLeft: 2, outcome: 'won' }))
+    window.localStorage.setItem('ipw.daily.football', JSON.stringify({ day, livesLeft: 0, outcome: 'lost' }))
+  }, parisToday())
   await page.goto('/')
 
   await expect(page.getByRole('link', { name: 'Rugby — Daily challenge (done today)' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Football — Daily challenge', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Football — Daily challenge (lost today)' })).toBeVisible()
+})
+
+test("yesterday's result does not colour today's menu", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('ipw.daily.rugby', JSON.stringify({ day: '2000-01-01', livesLeft: 0, outcome: 'lost' }))
+  })
+  await page.goto('/')
+
+  await expect(page.getByRole('link', { name: 'Rugby — Daily challenge', exact: true })).toBeVisible()
 })
 
 test('features that need an account are listed as coming soon, not as links', async ({ page }) => {

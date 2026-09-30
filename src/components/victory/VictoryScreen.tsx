@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Player } from '../../domain/player'
 import { Game } from '../../game/game'
 import { useTranslations } from '../../i18n'
+import { Heart } from '../game/LivesBar'
 
 type Props = {
   game: Game
@@ -9,6 +10,8 @@ type Props = {
   moveCount: number
   /** Daily only: the shortest chain possible, shown next to the one the user found. */
   optimalLinks?: number
+  /** Daily only: the lives the win was achieved with. */
+  lives?: { left: number; total: number }
   /** Free play restarts in place; the daily has one pair a day, so it offers free play instead. */
   onPlayAgain?: () => void
   freePlayHref?: string
@@ -21,7 +24,7 @@ function formatTime(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
-export function VictoryScreen({ game, players, moveCount, optimalLinks, onPlayAgain, freePlayHref }: Props) {
+export function VictoryScreen({ game, players, moveCount, optimalLinks, lives, onPlayAgain, freePlayHref }: Props) {
   const t = useTranslations()
   const playerMap = new Map(players.map((p) => [p.id as string, p.name]))
   const elapsedMs = Date.now() - game.startedAt.getTime()
@@ -45,6 +48,18 @@ export function VictoryScreen({ game, players, moveCount, optimalLinks, onPlayAg
           <div className="victory-stat">
             <span className="stat-label">{t.daily.yourChain}</span>
             <span className="stat-value">{game.path.length - 1}</span>
+          </div>
+        )}
+        {lives && (
+          <div className="victory-stat">
+            <span className="stat-label">{t.daily.lives}</span>
+            <span className="victory-stat__hearts" role="img" aria-label={t.daily.livesLeft(lives.left, lives.total)}>
+              {Array.from({ length: lives.total }, (_, i) => (
+                <span key={i} className={`heart${i < lives.left ? '' : ' heart--empty'}`}>
+                  <Heart full={i < lives.left} />
+                </span>
+              ))}
+            </span>
           </div>
         )}
         {optimalLinks !== undefined && (

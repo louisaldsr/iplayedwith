@@ -23,6 +23,7 @@ const fr: Translations = {
     stats: 'Mes stats',
     logIn: 'Connexion',
     doneToday: 'fait aujourd’hui',
+    lostToday: 'perdu aujourd’hui',
     soon: 'Bientôt',
   },
   about: {
@@ -46,13 +47,22 @@ const fr: Translations = {
     dailyTitle: 'Défi du jour',
     daily:
       'Chaque jour, chaque sport a sa paire — la même pour tout le monde, renouvelée à minuit (heure de Paris). « Meilleur possible » est la longueur de la chaîne la plus courte.',
-    freePlay: 'En partie libre, vous choisissez les deux joueurs et la difficulté.',
+    lives:
+      'Vous avez 3 vies : chaque joueur ajouté qui ne partage aucun club ni aucune saison avec quelqu’un du plateau en coûte une. À zéro, la partie du jour est terminée.',
+    freePlay: 'En partie libre, vous choisissez les deux joueurs et la difficulté, sans vies.',
     cardsTitle: 'Cartes joueurs',
     cards:
       'Le badge d’une carte indique à quel point le joueur est connu. Moins il l’est, plus la trouvaille est rare.',
     cta: 'C’est parti',
   },
   daily: {
+    lives: 'Vies',
+    livesLeft: (left: number, total: number) => `${left} vie${left > 1 ? 's' : ''} sur ${total}`,
+    wonTitle: 'Réussi !',
+    lostTitle: 'Plus de vies',
+    wonText: (livesLeft: number) => `Chaîne complète avec ${livesLeft} vie${livesLeft > 1 ? 's' : ''} en réserve.`,
+    lostText: (links: number) => `Une chaîne de ${links} liens existait. Revanche demain !`,
+    comeBackTomorrow: 'Une nouvelle paire arrive à minuit (heure de Paris).',
     title: 'Défi du jour',
     viewCareer: 'Voir la carrière',
     games: 'matchs',
@@ -98,6 +108,13 @@ const fr: Translations = {
     searchUnavailable: 'Recherche indisponible — réessayez',
     addPlayer: 'Joueur',
     addClub: 'Club',
+    rejections: {
+      'not-connected': 'Aucun club ni aucune saison en commun avec les joueurs du plateau.',
+      'already-on-board': 'Déjà sur le plateau.',
+      'wrong-kind': 'Ce coup appartient à l’autre difficulté.',
+      'game-over': 'La partie est déjà terminée.',
+    },
+    moveFailed: 'Une erreur est survenue — réessayez.',
   },
   fame: {
     floors: {

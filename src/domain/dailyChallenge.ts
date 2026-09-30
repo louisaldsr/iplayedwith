@@ -46,6 +46,12 @@ export function challengeDayOf(now: Date): ChallengeDay {
 }
 
 /**
+ * Lives per daily challenge: a guess that connects to nobody on the board costs one, and the day
+ * is lost at zero. Flat — the same for every pair, whatever its distance.
+ */
+export const DAILY_LIVES = 3
+
+/**
  * The day's pair, as the API sends it.
  *
  * The stored solution is deliberately absent: it stays on the server while the day runs.

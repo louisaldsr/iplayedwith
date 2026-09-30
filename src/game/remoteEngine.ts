@@ -8,16 +8,22 @@ import { GameNode } from '../graph/node'
 import { GameEdge } from '../graph/edge'
 import { playerKey, clubKey } from './graphBuilder'
 import { UserInput } from './userInput'
+import { MoveRejectionCode } from './moveRejection'
 
 /** Mirrors the server's `ResolvedNode` — the node a move added, with its display data. */
 type ResolvedNode = { kind: 'player'; player: Player } | { kind: 'club'; club: Club; season: Season }
 
 type MoveResponse =
   | { ok: true; node: ResolvedNode; edges: GameEdge[]; clubs: Club[]; victory: boolean; path: PlayerId[] }
-  | { ok: false; reason: string }
+  | { ok: false; code: MoveRejectionCode; reason: string }
 
+/**
+ * A failure carries `code` only when the SERVER refused the move under the game's rules. A
+ * transport or server error has none: the move was never judged, so it must not count against
+ * the player — no life lost in the daily challenge.
+ */
 export type RemoteInputResult =
-  { ok: true; game: Game; players: Player[]; clubs: Club[] } | { ok: false; reason: string }
+  { ok: true; game: Game; players: Player[]; clubs: Club[] } | { ok: false; code?: MoveRejectionCode; reason: string }
 
 /**
  * Client-side driver for the server-authoritative game.
@@ -75,20 +81,26 @@ export function createRemoteEngine(
 
   async function addInput(input: UserInput): Promise<RemoteInputResult> {
     if (victory) {
-      return { ok: false, reason: 'La partie est déjà terminée.' }
+      return { ok: false, code: 'game-over', reason: 'La partie est déjà terminée.' }
     }
 
-    const res = await fetch(`/api/${sport}/move`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        playerAId: playerA.id,
-        playerBId: playerB.id,
-        difficulty,
-        graph: serializeGraph(),
-        move: input,
-      }),
-    })
+    let res: Response
+    try {
+      res = await fetch(`/api/${sport}/move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerAId: playerA.id,
+          playerBId: playerB.id,
+          difficulty,
+          graph: serializeGraph(),
+          move: input,
+        }),
+      })
+    } catch {
+      // Offline, or the request never completed: nothing was judged.
+      return { ok: false, reason: 'Une erreur est survenue. Réessayez.' }
+    }
 
     if (!res.ok) {
       const body = await res.json().catch(() => null)
@@ -96,7 +108,7 @@ export function createRemoteEngine(
     }
 
     const result: MoveResponse = await res.json()
-    if (!result.ok) return { ok: false, reason: result.reason }
+    if (!result.ok) return { ok: false, code: result.code, reason: result.reason }
 
     applyNode(result.node)
     mergeClubs(result.clubs)

@@ -308,6 +308,13 @@ body {
   margin-bottom: 12px;
 }
 
+.home-screen__logo {
+  width: clamp(72px, 18vw, 96px);
+  height: auto;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 10px 28px rgba(124, 110, 245, 0.35));
+}
+
 .home-screen__title {
   font-size: clamp(2.4rem, 7vw, 3.4rem);
   font-weight: 800;

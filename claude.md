@@ -563,6 +563,10 @@ sert d'après leur nom dans `src/app/` : `icon.svg`, `favicon.ico` (16 et 32 pet
 `apple-icon.png` (180 px, **plein cadre** : iOS arrondit lui-même) et `opengraph-image.png`
 (1200 × 630). Modifier un SVG de `brand/` → relancer le script et committer les sorties.
 
+Le menu principal affiche `brand/logo.svg` au-dessus du titre, importé tel quel (`next/image`, SVG
+non optimisé) : une seule source, rien à copier dans `public/`. Décoratif (`alt=""`), le `<h1>`
+porte le nom.
+
 La carte de partage est **statique** ; `twitter.card = summary_large_image` dans le layout. Son URL
 absolue vient de l'URL de production Vercel, faute de `metadataBase`.
 
@@ -653,5 +657,5 @@ Saisie user
 32. Appliquer `017_visitors.sql` ; puis afficher le classement du jour aux joueurs (noms, sa
     propre ligne en évidence)
 33. Comptes (lien magique Supabase) : réclamer le visiteur, pseudo libre + sa modération
-34. Carte de partage par défi (`/[sport]/opengraph-image`, « Défi du jour #N · Rugby ») ; logo dans
-    le menu principal ; `metadataBase` si le site sort de Vercel
+34. Carte de partage par défi (`/[sport]/opengraph-image`, « Défi du jour #N · Rugby ») ;
+    `metadataBase` si le site sort de Vercel

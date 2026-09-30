@@ -73,8 +73,13 @@ function seasonToRange(text: string): string | null {
  * line, with the club/season carried over from the last `sepSaison`/`sepClub` row.
  *
  * `matches` is the table's "Matchs" column, or null when the cell is empty or unparseable.
+ * `wins` is the first figure of the next column, "V/N/D" (wins, draws, losses: "8 0 4").
  */
-export type CareerTableRow = Omit<CareerRow, 'games'> & { isInternational: boolean; matches: number | null }
+export type CareerTableRow = Omit<CareerRow, 'games'> & {
+  isInternational: boolean
+  matches: number | null
+  wins: number | null
+}
 
 /**
  * Walks the season-by-season table under `#saison_ov` on a player's allrugby.com profile
@@ -134,10 +139,17 @@ function walkCareerTable(html: string): CareerTableRow[] {
       competition: $(tds.get(offset)).text().trim(),
       isInternational: currentIsInternational,
       matches: parseCount($(tds.get(offset + 1)).text()),
+      wins: parseWins($(tds.get(offset + 2)).text()),
     })
   })
 
   return rows
+}
+
+/** "8 0 4" (wins, draws, losses) -> 8; anything else -> null. */
+function parseWins(text: string): number | null {
+  const match = text.trim().match(/^(\d+)\s+\d+\s+\d+$/)
+  return match ? parseInt(match[1], 10) : null
 }
 
 /** "12" -> 12; an empty, non-numeric or negative cell -> null. */
@@ -180,6 +192,27 @@ export function parseCareerRows(html: string): CareerRow[] {
   }
 
   return rows
+}
+
+/** One competition line of a club season — "Toulouse · 23/24 · Champions Cup · 8 games, 8 wins". */
+export type CompetitionRow = {
+  season: string
+  clubName: string
+  competition: string
+  matches: number | null
+  wins: number | null
+}
+
+/**
+ * Every competition line of the player's club career, NOT collapsed: where `parseCareerRows`
+ * keeps one row per season+club, this keeps "Top 14: 22" and "Champions Cup: 8" apart, which is
+ * what the season prestige needs (scripts/rugby/lib/prestige.ts). National teams are excluded,
+ * as in `parseCareerRows`.
+ */
+export function parseCompetitionRows(html: string): CompetitionRow[] {
+  return walkCareerTable(html)
+    .filter((row) => !row.isInternational)
+    .map(({ season, clubName, competition, matches, wins }) => ({ season, clubName, competition, matches, wins }))
 }
 
 /**

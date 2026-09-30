@@ -102,6 +102,43 @@ export async function streamGames(onGame: (game: Game) => void): Promise<void> {
   })
 }
 
+/**
+ * A game with its outcome, for the season prestige: the round and score to find cup winners,
+ * the date and league positions to find champions.
+ *
+ * `homeGoals`/`awayGoals` include a penalty shoot-out — the 2016 Champions League final reads
+ * 6:4 — so a final never reads as a draw. `homePosition`/`awayPosition` are each club's league
+ * position after the game, null outside domestic leagues.
+ */
+export type GameResult = Game & {
+  round: string
+  date: string
+  homeGoals: number | null
+  awayGoals: number | null
+  homePosition: number | null
+  awayPosition: number | null
+}
+
+const parseOptionalInt = (raw: string): number | null => (/^\d+$/.test(raw) ? parseInt(raw, 10) : null)
+
+export async function streamGameResults(onGame: (game: GameResult) => void): Promise<void> {
+  await streamCsv('games.csv.gz', (row) => {
+    onGame({
+      gameId: row.game_id,
+      competitionId: row.competition_id,
+      season: row.season,
+      homeClubId: row.home_club_id,
+      awayClubId: row.away_club_id,
+      round: row.round,
+      date: row.date,
+      homeGoals: parseOptionalInt(row.home_club_goals),
+      awayGoals: parseOptionalInt(row.away_club_goals),
+      homePosition: parseOptionalInt(row.home_club_position),
+      awayPosition: parseOptionalInt(row.away_club_position),
+    })
+  })
+}
+
 export async function streamAppearances(onAppearance: (appearance: Appearance) => void): Promise<void> {
   await streamCsv('appearances.csv.gz', (row) => {
     onAppearance({

@@ -583,6 +583,9 @@ absolue vient de l'URL de production Vercel, faute de `metadataBase`.
 - **Badge en haut à gauche du menu** (`VisitorBadge`), là où le bouton Menu se trouve en partie :
   mis en cache dans `ipw.name` (avec l'id auquel il appartient) → affiché sans requête dès la
   deuxième visite. Pas de nom sans stockage ; échec serveur = pas de badge.
+- **Toujours visible en partie** : dans la barre du haut du plateau, à côté du badge de difficulté ;
+  sur téléphone, sur une ligne à lui sous les joueurs et le chrono (la barre passe en grille,
+  1ʳᵉ ligne de 44 px alignée sur les boutons fixes). Même source que le badge : `useVisitorName`.
 - e2e : `/api/visitor` est mocké **par défaut** dans `fixtures.ts` (toute page peut mener au menu).
 
 ---

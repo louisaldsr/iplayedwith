@@ -1,4 +1,4 @@
-import { test, expect, asReturningVisitor, sampleVisitorName } from './fixtures'
+import { test, expect, mockApi, asReturningVisitor, sampleDailyChallenge, sampleVisitorName } from './fixtures'
 
 // The name itself is drawn and kept unique by the database (018_visitor_number.sql); the menu
 // only shows what the server gave, and remembers it.
@@ -41,10 +41,15 @@ test('without an answer from the server, the menu simply has no badge', async ({
   await expect(badge(page)).toHaveCount(0)
 })
 
-test('the badge belongs to the menu, not to the game', async ({ page }) => {
+test('during a game the name stays in view, in the top bar', async ({ page }) => {
   await asReturningVisitor(page)
-  await page.goto('/rugby/free')
-  await expect(page.getByRole('link', { name: 'Menu' })).toBeVisible()
+  await mockApi(page, '/api/rugby/daily', sampleDailyChallenge)
+  await mockApi(page, '/api/rugby/daily/start', {})
+
+  await page.goto('/rugby')
+  await page.getByRole('button', { name: 'Start' }).click()
+
+  await expect(page.locator('.game-topbar__visitor')).toHaveText(/Hasty Prop 042/)
   await expect(badge(page)).toHaveCount(0)
 })
 

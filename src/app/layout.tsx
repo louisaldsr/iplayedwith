@@ -5,7 +5,9 @@ import { MenuButton } from '@/components/menu/MenuButton'
 
 export const metadata: Metadata = {
   title: 'I Played With',
-  description: 'Rugby six degrees of separation game',
+  description: 'Link two players through the teammates they shared. A daily challenge for rugby and football.',
+  // The image comes from src/app/opengraph-image.png; X only shows it large with this card.
+  twitter: { card: 'summary_large_image' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

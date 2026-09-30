@@ -27,7 +27,8 @@
     "seed:football:fame": "tsx --env-file=.env.local scripts/football/seedFame.ts",
     "fame:compute": "tsx --env-file=.env.local scripts/common/computeFame.ts",
     "fame:report": "tsx --env-file=.env.local scripts/common/fameReport.ts",
-    "daily:ranking": "tsx --env-file=.env.local scripts/common/dailyRanking.ts"
+    "daily:ranking": "tsx --env-file=.env.local scripts/common/dailyRanking.ts",
+    "brand:render": "tsx scripts/brand/renderIcons.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",

@@ -44,30 +44,51 @@ export type RemoteEngine = {
   isVictory(): boolean
 }
 
+/**
+ * An unfinished board to pick up again — the daily, resumed after leaving the page. Holds no path:
+ * a won game is over, never resumed.
+ */
+export type ResumedBoard = {
+  nodes: GameNode[]
+  edges: GameEdge[]
+  players: Player[]
+  clubs: Club[]
+  startedAt: Date
+}
+
 export function createRemoteEngine(
   sport: SportId,
   playerA: Player,
   playerB: Player,
   difficulty: DifficultyLevel,
+  resume?: ResumedBoard,
 ): RemoteEngine {
   const nodes = new Map<string, GameNode>([
     [playerKey(playerA.id), { kind: 'player', id: playerA.id }],
     [playerKey(playerB.id), { kind: 'player', id: playerB.id }],
   ])
+  for (const node of resume?.nodes ?? []) {
+    nodes.set(node.kind === 'player' ? playerKey(node.id) : clubKey(node.id, node.season), node)
+  }
 
   const game: Game = {
     playerA,
     playerB,
     difficulty,
     nodes,
-    edges: [],
+    edges: [...(resume?.edges ?? [])],
     path: [],
-    startedAt: new Date(),
+    startedAt: resume?.startedAt ?? new Date(),
   }
 
   const players: Player[] = [playerA, playerB]
   const clubs: Club[] = []
   let victory = false
+
+  for (const player of resume?.players ?? []) {
+    if (!players.some((p) => p.id === player.id)) players.push(player)
+  }
+  mergeClubs(resume?.clubs ?? [])
 
   function serializeGraph() {
     const playerIds: string[] = []

@@ -344,7 +344,7 @@ c'est du pistage au sens du RGPD. Rien n'est envoyé au serveur.
 |---|---|
 | `ipw.playerId` | UUID anonyme, créé à la première visite. **Lu par rien encore** : c'est l'amorce des résultats du défi et du classement (étape 17) |
 | `ipw.rulesSeen` | version des règles lue et fermée |
-| `ipw.daily.<sport>` | `{ day, livesLeft, outcome? }` du dernier défi joué dans ce sport (`src/lib/dailyProgress.ts`) — vies restantes, et `won`/`lost` une fois fini ; le menu colore la carte tant que c'est aujourd'hui (Paris) ; périme seul à minuit |
+| `ipw.daily.<sport>` | `{ day, livesLeft, outcome?, board? }` du dernier défi joué dans ce sport (`src/lib/dailyProgress.ts`) — vies restantes, plateau en cours, et `won`/`lost` une fois fini ; le menu colore la carte tant que c'est aujourd'hui (Paris) ; périme seul à minuit |
 
 `RULES_VERSION` : l'incrémenter quand les règles changent assez pour que tout le monde les relise.
 Stockage indisponible (Safari privé, données bloquées) → lu comme « visiteur connu, règles vues » :
@@ -415,10 +415,13 @@ restait en français.
 
 ### Persistance
 
-Vies et issue sauvées à chaque changement dans `ipw.daily.<sport>` : recharger ne rend pas les
-vies, et un jour fini (gagné ou perdu) s'ouvre sur son écran de fin (`DailyFinished`), pas sur une
-nouvelle partie. Le **plateau**, lui, n'est pas sauvé : recharger en cours de partie repart de A et
-B avec les vies restantes. **Contournable** en effaçant les données du site — la vraie garantie
+Vies, issue **et plateau** sauvés à chaque changement dans `ipw.daily.<sport>` : recharger ne rend
+pas les vies, et un jour fini (gagné ou perdu) s'ouvre sur son écran de fin (`DailyFinished`), pas
+sur une nouvelle partie. Dès le premier « Commencer », le plateau (`board` : nœuds, arêtes, joueurs,
+clubs, coups, heure de départ) est gardé : quitter la page et revenir rouvre **la même partie**, sans
+repasser par l'intro — `createRemoteEngine(…, resume)` reconstruit le moteur. Sûr sans confiance :
+le serveur revalide chaque arête au coup suivant. Un plateau malformé est jeté entier (les vies
+restent) ; il disparaît à la fin du jour, gagné ou perdu. **Contournable** en effaçant les données du site — la vraie garantie
 viendra des résultats stockés côté serveur (étape 17).
 
 **Pas de solution affichée** en cas de défaite : le serveur la garde, mais sans compte rien ne
@@ -504,7 +507,7 @@ Saisie user
     chevauchent à 390 px)
 23. ~~Vies dans le défi du jour~~
 24. Révéler la solution du jour — le lendemain, ou après une défaite vérifiée côté serveur ;
-    sauver le plateau en cours ; ajuster les vies à la distance si les longs jours s'avèrent durs
+    ~~sauver le plateau en cours~~ ; ajuster les vies à la distance si les longs jours s'avèrent durs
 25. ~~Fame v2 — caps seniors uniquement + caps par saison (revision 2)~~
 26. `014_fame_rate.sql` appliqué — reste à relancer, depuis le checkout qui a le cache des
     profils, `npm run seed:fame` (re-parse les caps rugby) et

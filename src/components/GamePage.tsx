@@ -1,6 +1,6 @@
 'use client'
 
-import { useReducer, useRef, useCallback, useEffect } from 'react'
+import { useReducer, useRef, useCallback, useEffect, useMemo, useState } from 'react'
 import { Game, DifficultyLevel } from '../game/game'
 import { Player } from '../domain/player'
 import { Club } from '../domain/club'
@@ -14,7 +14,7 @@ import { GameScreen } from './game/GameScreen'
 import { VictoryScreen } from './victory/VictoryScreen'
 import { DailyIntro } from './daily/DailyIntro'
 import { DailyFinished } from './daily/DailyFinished'
-import { DailyOutcome, readDailyRecord, saveDailyRecord } from '../lib/dailyProgress'
+import { DailyBoard, DailyOutcome, readDailyRecord, saveDailyRecord } from '../lib/dailyProgress'
 
 /** `finished`: a daily already over — lost in this session, or won or lost earlier today. */
 type Phase = 'setup' | 'playing' | 'victory' | 'finished'
@@ -51,19 +51,63 @@ type Action =
   | { type: 'DISMISS_ERROR' }
   | { type: 'PLAY_AGAIN' }
 
-/**
- * Free play starts on its setup screen. A daily starts where this browser left it today: with the
- * lives already lost, or straight on the finished screen if the day is over — reloading must
- * neither refill lives nor replay a lost day.
- */
-function initState(mode: GameMode): UIState {
-  const base = freshState()
-  if (mode.kind !== 'daily') return base
+/** Where a daily stands in this browser today, read once on mount. Null in free play. */
+type DailyStart = {
+  livesLeft: number
+  outcome: DailyOutcome | null
+  /** The engine rebuilt from the saved board, when the day was launched and is not over. */
+  engine: RemoteEngine | null
+  moveCount: number
+}
 
-  const { sport, day } = mode.challenge
+function readDailyStart(mode: GameMode): DailyStart | null {
+  if (mode.kind !== 'daily') return null
+  const { sport, day, playerA, playerB } = mode.challenge
   const record = readDailyRecord(sport, day)
   const outcome = record.outcome ?? (record.livesLeft === 0 ? 'lost' : null)
-  return { ...base, lives: record.livesLeft, outcome, phase: outcome ? 'finished' : 'setup' }
+  const board = outcome ? undefined : record.board
+  const engine = board
+    ? createRemoteEngine(sport, playerA, playerB, 'easy', { ...board, startedAt: new Date(board.startedAt) })
+    : null
+  return { livesLeft: record.livesLeft, outcome, engine, moveCount: board?.moveCount ?? 0 }
+}
+
+/**
+ * Free play starts on its setup screen. A daily starts where this browser left it today: on the
+ * board as it was, with the lives already lost, or straight on the finished screen if the day is
+ * over — leaving and coming back must neither refill lives, replay a lost day, nor lose the board.
+ */
+function initState(start: DailyStart | null): UIState {
+  const base = freshState()
+  if (!start) return base
+
+  const { livesLeft: lives, outcome, engine, moveCount } = start
+  if (outcome) return { ...base, lives, outcome, phase: 'finished' }
+  if (!engine) return { ...base, lives }
+  return {
+    ...base,
+    lives,
+    phase: 'playing',
+    game: { ...engine.game },
+    players: [...engine.players],
+    clubs: [...engine.clubs],
+    moveCount,
+  }
+}
+
+/** What the daily keeps of a game in progress; the finished screens need none of it. */
+type BoardState = Pick<UIState, 'phase' | 'game' | 'players' | 'clubs' | 'moveCount'>
+
+function boardOf({ phase, game, players, clubs, moveCount }: BoardState): DailyBoard | undefined {
+  if (phase !== 'playing' || !game) return undefined
+  return {
+    nodes: [...game.nodes.values()],
+    edges: game.edges,
+    players,
+    clubs,
+    moveCount,
+    startedAt: game.startedAt.toISOString(),
+  }
 }
 
 function freshState(): UIState {
@@ -179,17 +223,24 @@ type Props = {
  */
 export function GamePage({ sport, mode = FREE_PLAY }: Props) {
   const t = useTranslations()
-  const [state, dispatch] = useReducer(reducer, mode, initState)
-  const engineRef = useRef<RemoteEngine | null>(null)
+  const [dailyStart] = useState(() => readDailyStart(mode))
+  const [state, dispatch] = useReducer(reducer, dailyStart, initState)
+  const engineRef = useRef<RemoteEngine | null>(dailyStart?.engine ?? null)
 
   const daily = mode.kind === 'daily' ? mode.challenge : null
 
-  // The day's progress is saved on every change, so a reload resumes it: the lives left, and how
-  // it ended — which the menu also reads to colour the sport.
+  // The day's progress is saved on every change, so leaving and coming back resumes it: the board
+  // from the first "Start", the lives left, and how it ended — which the menu also reads to colour
+  // the sport.
+  const { phase, game, players, clubs, moveCount } = state
+  const board = useMemo(
+    () => (daily ? boardOf({ phase, game, players, clubs, moveCount }) : undefined),
+    [daily, phase, game, players, clubs, moveCount],
+  )
   useEffect(() => {
     if (!daily || state.lives === null) return
-    saveDailyRecord(daily.sport, daily.day, { livesLeft: state.lives, outcome: state.outcome ?? undefined })
-  }, [daily, state.lives, state.outcome])
+    saveDailyRecord(daily.sport, daily.day, { livesLeft: state.lives, outcome: state.outcome ?? undefined, board })
+  }, [daily, state.lives, state.outcome, board])
 
   const handleStart = useCallback(() => {
     const playerA = daily ? daily.playerA : state.playerA

@@ -342,7 +342,7 @@ c'est du pistage au sens du RGPD. Rien n'est envoyé au serveur.
 
 | Clé | Contenu |
 |---|---|
-| `ipw.playerId` | UUID anonyme, créé à la première visite. **Lu par rien encore** : c'est l'amorce des résultats du défi et du classement (étape 17) |
+| `ipw.playerId` | UUID anonyme, créé à la première visite. Envoyé avec « Commencer » et chaque coup du défi du jour : c'est sous cet id que le serveur tient le résultat (Bloc 11) |
 | `ipw.rulesSeen` | version des règles lue et fermée |
 | `ipw.daily.<sport>` | `{ day, livesLeft, outcome?, board? }` du dernier défi joué dans ce sport (`src/lib/dailyProgress.ts`) — vies restantes, plateau en cours, et `won`/`lost` une fois fini ; le menu colore la carte tant que c'est aujourd'hui (Paris) ; périme seul à minuit |
 
@@ -458,6 +458,51 @@ gagnant, pop-up fermée. Un défi perdu, ou gagné avant cette version, s'ouvre 
 
 ---
 
+## ✅ Bloc 11 terminé — Résultats du défi et classement du jour (côté serveur)
+
+Le classement se calcule sur ce que **le serveur a vu**, jamais sur ce que le navigateur déclare.
+Le client ne dit que *qui* il est (`ipw.playerId`) ; le nombre de tentatives et les deux horodatages
+viennent du serveur. Pas encore d'écran : lecture par `npm run daily:ranking -- --sport=rugby
+[--day=YYYY-MM-DD]`.
+
+### Stockage — `015_daily_results.sql`
+
+`daily_results`, PK `(sport, day, visitor_id)`, FK vers `daily_challenges`. RLS sans policy,
+`service_role` seul (comme `013`).
+
+| colonne | sens |
+|---|---|
+| `started_at` | heure serveur de « Commencer » (`POST /api/:sport/daily/start`) ; à défaut, du premier coup |
+| `attempts` | coups **jugés** : acceptés, ou refusés `not-connected`. Pas un doublon, pas une erreur réseau |
+| `lives_lost` | les refus `not-connected` ; à `DAILY_LIVES` le jour est perdu |
+| `outcome` / `finished_at` | `won`/`lost` + heure serveur du coup final ; NULL en cours |
+| `links` | longueur de la chaîne gagnante |
+
+- `record_daily_move` compte un coup **seulement si la paire est celle du jour** (un plateau resté
+  ouvert après minuit ne compte pas), et **fige** une ligne terminée (`WHERE outcome IS NULL`) :
+  rejouer après avoir vidé son stockage local ne change pas le résultat de ce visiteur.
+- `POST /api/:sport/move` accepte `daily: { visitorId }` (mode facile seulement) et enregistre après
+  jugement. **L'enregistrement ne fait jamais échouer le coup** : une erreur est seulement loguée.
+- `lives_lost` et `links` sont gardés dès maintenant pour le futur vrai score.
+
+### Le classement (v1)
+
+Gagnants seulement : **1. le moins de tentatives, 2. le temps le plus court** (`finished_at −
+started_at`). Égalités à rang partagé (`RANK()`). Score futur : vies restantes, fame des joueurs
+trouvés.
+
+### Limites connues
+
+- Un visiteur = un navigateur : fenêtre privée ou données effacées = nouvel id = nouvelle ligne,
+  donc une nouvelle chance au classement. La vraie garantie viendra des comptes.
+- Un client forgé qui n'appelle pas « start » fait partir son temps du premier coup.
+
+| Route | Rôle |
+|---|---|
+| `POST /api/:sport/daily/start` | `{ day, visitorId }` → 204 ; horodate le départ (idempotent), 409 si `day` n'est plus aujourd'hui |
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -515,8 +560,8 @@ Saisie user
 17. Appliquer `013_daily_challenges.sql` **le jour du lancement voulu** (il fixe le #1), puis les
     contrôles en bas du fichier (job planifié, pas de jour manquant, numéros, solution valide,
     fermé à anon) — et noter le temps réel du BFS sur les vraies données
-18. Identité du joueur (anonyme d'abord), résultats du défi vérifiés côté serveur, puis
-    classement du jour et stats perso ; empêcher de rejouer le défi
+18. ~~Identité du joueur (anonyme d'abord), résultats du défi vérifiés côté serveur~~, ~~classement
+    du jour (côté serveur)~~ ; reste : stats perso, empêcher de rejouer le défi
 19. Tirage du défi pondéré par la fame (`player_fame.score`, v1), une fois `012` appliqué et le
     top/bottom 30 validé
 20. ~~Accueil : détection de première visite + pop-up des règles~~
@@ -534,3 +579,6 @@ Saisie user
 28. Spike **Wikidata sitelinks** (nombre d'éditions Wikipédia d'un joueur) : le signal de
     notoriété médiatique qui manque (Dupont derrière Kinghorn) — football via l'ID Transfermarkt,
     rugby par rapprochement de noms
+29. Appliquer `015_daily_results.sql` (contrôles en bas du fichier), jouer quelques jours, lire
+    `npm run daily:ranking` — puis afficher le classement aux joueurs
+30. Vrai score du défi : tentatives, temps, vies restantes, fame des joueurs trouvés

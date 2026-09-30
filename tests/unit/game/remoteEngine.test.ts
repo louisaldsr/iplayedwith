@@ -21,15 +21,17 @@ describe('createRemoteEngine — resuming a saved board', () => {
   const startedAt = new Date('2026-07-15T07:45:00Z')
   const resume = () =>
     createRemoteEngine('rugby', playerA, playerB, 'easy', {
-      nodes: [
-        { kind: 'player', id: playerA.id },
-        { kind: 'player', id: playerB.id },
-        { kind: 'player', id: charlie.id },
-      ],
-      edges,
-      players: [playerA, charlie],
-      clubs: [club],
-      startedAt,
+      resume: {
+        nodes: [
+          { kind: 'player', id: playerA.id },
+          { kind: 'player', id: playerB.id },
+          { kind: 'player', id: charlie.id },
+        ],
+        edges,
+        players: [playerA, charlie],
+        clubs: [club],
+        startedAt,
+      },
     })
 
   it('rebuilds the board, without duplicating A and B', () => {
@@ -45,12 +47,14 @@ describe('createRemoteEngine — resuming a saved board', () => {
   it('comes back over when the saved board is a won one', async () => {
     const path = [playerA.id, charlie.id, playerB.id]
     const engine = createRemoteEngine('rugby', playerA, playerB, 'easy', {
-      nodes: [{ kind: 'player', id: charlie.id }],
-      edges,
-      players: [charlie],
-      clubs: [club],
-      startedAt,
-      path,
+      resume: {
+        nodes: [{ kind: 'player', id: charlie.id }],
+        edges,
+        players: [charlie],
+        clubs: [club],
+        startedAt,
+        path,
+      },
     })
     expect(engine.isVictory()).toBe(true)
     expect(engine.game.path).toEqual(path)
@@ -68,5 +72,32 @@ describe('createRemoteEngine — resuming a saved board', () => {
 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body)
     expect(body.graph).toEqual({ players: ['p-a', 'p-b', 'p-c'], clubs: [], edges })
+  })
+})
+
+describe('createRemoteEngine — daily moves', () => {
+  const answer = () =>
+    jest.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: false, code: 'not-connected', reason: '…' }) })
+
+  it("carries the visitor's id, for the server to count the move towards the day's result", async () => {
+    const fetchMock = answer()
+    global.fetch = fetchMock
+    const visitorId = '6f1c2b1e-8a5d-4c1b-9d3e-2f7a1b0c9e11'
+
+    await createRemoteEngine('rugby', playerA, playerB, 'easy', { dailyVisitorId: visitorId }).addInput({
+      kind: 'easy',
+      playerId: charlie.id,
+    })
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).daily).toEqual({ visitorId })
+  })
+
+  it('sends nothing of the sort in free play', async () => {
+    const fetchMock = answer()
+    global.fetch = fetchMock
+
+    await createRemoteEngine('rugby', playerA, playerB, 'easy').addInput({ kind: 'easy', playerId: charlie.id })
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).not.toHaveProperty('daily')
   })
 })

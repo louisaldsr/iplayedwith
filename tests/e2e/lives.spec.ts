@@ -13,6 +13,7 @@ import {
 test.beforeEach(async ({ page }) => {
   await asReturningVisitor(page)
   await mockApi(page, '/api/rugby/daily', sampleDailyChallenge)
+  await mockApi(page, '/api/rugby/daily/start', {})
   await mockApi(page, '/api/players', [linkingPlayer])
 })
 

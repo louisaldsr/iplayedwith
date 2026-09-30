@@ -62,8 +62,13 @@ export function createRemoteEngine(
   playerA: Player,
   playerB: Player,
   difficulty: DifficultyLevel,
-  resume?: ResumedBoard,
+  options: {
+    resume?: ResumedBoard
+    /** Daily only: sent with every move, so the server counts it towards this visitor's result. */
+    dailyVisitorId?: string
+  } = {},
 ): RemoteEngine {
+  const { resume, dailyVisitorId } = options
   const nodes = new Map<string, GameNode>([
     [playerKey(playerA.id), { kind: 'player', id: playerA.id }],
     [playerKey(playerB.id), { kind: 'player', id: playerB.id }],
@@ -117,6 +122,7 @@ export function createRemoteEngine(
           difficulty,
           graph: serializeGraph(),
           move: input,
+          ...(dailyVisitorId && { daily: { visitorId: dailyVisitorId } }),
         }),
       })
     } catch {

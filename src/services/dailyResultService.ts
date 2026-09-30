@@ -1,5 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import * as dailyResultsRepo from '@/repositories/dailyResultsRepository'
+import * as visitorsRepo from '@/repositories/visitorsRepository'
+import { randomVisitorName } from '@/domain/visitorName'
 import { SportId } from '@/domain/sport'
 import { ChallengeDay, challengeDayOf, DAILY_LIVES } from '@/domain/dailyChallenge'
 import { DailyRankingEntry, VisitorId } from '@/domain/dailyResult'
@@ -15,7 +17,14 @@ import { ConflictError } from '@/services/errors'
  * `now` is a parameter so the day boundary can be tested; callers leave it out.
  */
 
-/** Stamps "Start" on today's challenge. `day` is the one the client was shown: past midnight it is stale. */
+/**
+ * Stamps "Start" on today's challenge. `day` is the one the client was shown: past midnight it is
+ * stale.
+ *
+ * Also the visitor's first sight by the server: it gets its generated name here, once. A name that
+ * fails to be drawn is only logged — the result matters more than the name, and the next Start
+ * tries again.
+ */
 export async function startDailyResult(
   db: SupabaseClient,
   sport: SportId,
@@ -24,6 +33,9 @@ export async function startDailyResult(
   now: Date = new Date(),
 ): Promise<void> {
   if (day !== challengeDayOf(now)) throw new ConflictError(`${day} is not today's challenge`)
+  await visitorsRepo
+    .ensure(db, visitorId, randomVisitorName())
+    .catch((err) => console.error('visitor name not created', err))
   await dailyResultsRepo.start(db, sport, day, visitorId)
 }
 

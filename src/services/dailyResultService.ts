@@ -1,0 +1,61 @@
+import { SupabaseClient } from '@supabase/supabase-js'
+import * as dailyResultsRepo from '@/repositories/dailyResultsRepository'
+import { SportId } from '@/domain/sport'
+import { ChallengeDay, challengeDayOf, DAILY_LIVES } from '@/domain/dailyChallenge'
+import { DailyRankingEntry, VisitorId } from '@/domain/dailyResult'
+import { MoveResult } from '@/services/moveService'
+import { ConflictError } from '@/services/errors'
+
+/**
+ * The server's record of each visitor's daily challenge — what the day's ranking is computed from.
+ *
+ * The browser only says who it is. What it did is what the server saw: the moves it judged and
+ * the times on its own clock. The day is always the server's (`challengeDayOf`).
+ *
+ * `now` is a parameter so the day boundary can be tested; callers leave it out.
+ */
+
+/** Stamps "Start" on today's challenge. `day` is the one the client was shown: past midnight it is stale. */
+export async function startDailyResult(
+  db: SupabaseClient,
+  sport: SportId,
+  day: ChallengeDay,
+  visitorId: VisitorId,
+  now: Date = new Date(),
+): Promise<void> {
+  if (day !== challengeDayOf(now)) throw new ConflictError(`${day} is not today's challenge`)
+  await dailyResultsRepo.start(db, sport, day, visitorId)
+}
+
+/**
+ * Counts a daily move once the server has judged it. Only real guesses count as attempts: an
+ * accepted move, or one refused as linked to nobody — which also costs a life. A duplicate or a
+ * move after the end is not an attempt, and a move that never reached the rules is not recorded at
+ * all.
+ *
+ * The pair is checked in SQL against today's: a board left open past midnight is not recorded.
+ */
+export async function recordDailyMove(
+  db: SupabaseClient,
+  sport: SportId,
+  move: { visitorId: VisitorId; playerAId: string; playerBId: string },
+  result: MoveResult,
+  now: Date = new Date(),
+): Promise<void> {
+  const costsLife = !result.ok && result.code === 'not-connected'
+  if (!result.ok && !costsLife) return
+
+  await dailyResultsRepo.recordMove(db, {
+    sport,
+    day: challengeDayOf(now),
+    ...move,
+    costsLife,
+    links: result.ok && result.victory ? result.path.length - 1 : null,
+    maxLives: DAILY_LIVES,
+  })
+}
+
+/** The day's ranking: won results, fewest attempts first, then fastest. */
+export function getDailyRanking(db: SupabaseClient, sport: SportId, day: ChallengeDay): Promise<DailyRankingEntry[]> {
+  return dailyResultsRepo.ranking(db, sport, day)
+}

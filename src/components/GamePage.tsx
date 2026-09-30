@@ -16,6 +16,8 @@ import { VictoryDialog } from './victory/VictoryDialog'
 import { DailyIntro } from './daily/DailyIntro'
 import { DailyFinished } from './daily/DailyFinished'
 import { DailyBoard, DailyOutcome, readDailyRecord, saveDailyRecord } from '../lib/dailyProgress'
+import { readVisitor } from '../lib/visitor'
+import { startDailyChallenge } from '../lib/gameApi'
 
 /**
  * `victory`: the won board stays on screen, results in a pop-up over it.
@@ -78,7 +80,10 @@ function readDailyStart(mode: GameMode): DailyStart | null {
   // A won board comes back to be looked at again; a lost day only has its result screen.
   const board = outcome === 'lost' || (outcome === 'won' && !record.board?.path?.length) ? undefined : record.board
   const engine = board
-    ? createRemoteEngine(sport, playerA, playerB, 'easy', { ...board, startedAt: new Date(board.startedAt) })
+    ? createRemoteEngine(sport, playerA, playerB, 'easy', {
+        resume: { ...board, startedAt: new Date(board.startedAt) },
+        dailyVisitorId: readVisitor().playerId,
+      })
     : null
   return {
     livesLeft: record.livesLeft,
@@ -274,7 +279,15 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
     const playerB = daily ? daily.playerB : state.playerB
     const difficulty = daily ? 'easy' : state.difficulty
     if (!playerA || !playerB) return
-    engineRef.current = createRemoteEngine(sport, playerA, playerB, difficulty)
+
+    // The daily's result is kept by the server, under this browser's anonymous id: Start stamps
+    // the time, each move is counted. Without storage there is no id — the game is played, not
+    // ranked.
+    const visitorId = daily ? readVisitor().playerId : ''
+    if (daily && visitorId) startDailyChallenge(daily.sport, daily.day, visitorId)
+    engineRef.current = createRemoteEngine(sport, playerA, playerB, difficulty, {
+      dailyVisitorId: visitorId || undefined,
+    })
     dispatch({
       type: 'START_GAME',
       game: engineRef.current.game,

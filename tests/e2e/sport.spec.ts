@@ -88,6 +88,7 @@ test.describe('daily challenge', () => {
   test('winning the daily marks the sport as done in the menu', async ({ page }) => {
     await mockApi(page, '/api/rugby/daily', sampleDailyChallenge)
     await mockApi(page, '/api/players', [linkingPlayer])
+    await mockApi(page, '/api/rugby/daily/start', {})
     await mockApi(page, '/api/rugby/move', winningMove)
     await page.goto('/rugby')
 

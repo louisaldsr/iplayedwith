@@ -37,6 +37,19 @@ export function getDailyChallenge(sport: SportId, signal?: AbortSignal): Promise
   return getJson<DailyChallenge>(`/api/${sport}/daily`, signal)
 }
 
+/**
+ * Tells the server this visitor starts today's challenge — the ranking's time counts from its
+ * clock, not the browser's. Fire and forget: the game never waits on it, and a failure only means
+ * the time will count from the first move instead.
+ */
+export function startDailyChallenge(sport: SportId, day: string, visitorId: string): void {
+  fetch(`/api/${sport}/daily/start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ day, visitorId }),
+  }).catch(() => {})
+}
+
 /** A player's clubs, season runs oldest first — shown when a player card is opened. */
 export function getPlayerCareer(
   playerId: PlayerId,

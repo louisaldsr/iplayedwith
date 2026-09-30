@@ -29,7 +29,10 @@ describe('addInput — duplicate player refused', () => {
     const engine = createEngine(byId('p01'), byId('p04'), 'easy', memberships)
     const result = engine.addInput({ kind: 'easy', playerId: PlayerId('p01') })
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.reason).toMatch(/déjà dans le graphe/)
+    if (!result.ok) {
+      expect(result.code).toBe('already-on-board')
+      expect(result.reason).toMatch(/déjà dans le graphe/)
+    }
   })
 
   it('refuses playerB who is already seeded', () => {
@@ -45,7 +48,10 @@ describe('addInput — no shared club-season refused', () => {
     const engine = createEngine(byId('p01'), byId('p07'), 'easy', memberships)
     const result = engine.addInput({ kind: 'easy', playerId: PlayerId('p11') })
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.reason).toMatch(/aucun club/)
+    if (!result.ok) {
+      expect(result.code).toBe('not-connected')
+      expect(result.reason).toMatch(/aucun club/)
+    }
   })
 })
 
@@ -58,7 +64,10 @@ describe('addInput — game already won', () => {
 
     const result = engine.addInput({ kind: 'easy', playerId: PlayerId('p04') })
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.reason).toMatch(/terminée/)
+    if (!result.ok) {
+      expect(result.code).toBe('game-over')
+      expect(result.reason).toMatch(/terminée/)
+    }
   })
 })
 
@@ -109,6 +118,9 @@ describe('addInput — hard mode', () => {
       season: Season('2022-2023'),
     })
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.reason).toMatch(/Aucun joueur/)
+    if (!result.ok) {
+      expect(result.code).toBe('not-connected')
+      expect(result.reason).toMatch(/Aucun joueur/)
+    }
   })
 })

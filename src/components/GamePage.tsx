@@ -5,16 +5,19 @@ import { Game, DifficultyLevel } from '../game/game'
 import { Player } from '../domain/player'
 import { Club } from '../domain/club'
 import { SportId } from '../domain/sport'
-import { DailyChallenge } from '../domain/dailyChallenge'
+import { DailyChallenge, DAILY_LIVES } from '../domain/dailyChallenge'
 import { RemoteEngine, RemoteInputResult, createRemoteEngine } from '../game/remoteEngine'
 import { UserInput } from '../game/userInput'
+import { useTranslations } from '../i18n'
 import { SetupScreen } from './setup/SetupScreen'
 import { GameScreen } from './game/GameScreen'
 import { VictoryScreen } from './victory/VictoryScreen'
 import { DailyIntro } from './daily/DailyIntro'
-import { markDailyDone } from '../lib/dailyProgress'
+import { DailyFinished } from './daily/DailyFinished'
+import { DailyOutcome, readDailyRecord, saveDailyRecord } from '../lib/dailyProgress'
 
-type Phase = 'setup' | 'playing' | 'victory'
+/** `finished`: a daily already over — lost in this session, or won or lost earlier today. */
+type Phase = 'setup' | 'playing' | 'victory' | 'finished'
 
 type UIState = {
   phase: Phase
@@ -28,6 +31,14 @@ type UIState = {
   submitting: boolean
   moveCount: number
   lastError: string | null
+  /** Daily only: lives left. Null in free play, which has none. */
+  lives: number | null
+  /** Bumped on every life lost — the key that replays the red flash. */
+  lifeLostCount: number
+  /** Bumped on every move the server refused — resets the input for the next guess. */
+  rejectedCount: number
+  /** How a finished daily ended. */
+  outcome: DailyOutcome | null
 }
 
 type Action =
@@ -36,11 +47,26 @@ type Action =
   | { type: 'SET_DIFFICULTY'; difficulty: DifficultyLevel }
   | { type: 'START_GAME'; game: Game; players: Player[] }
   | { type: 'SUBMIT_PENDING' }
-  | { type: 'SUBMIT_INPUT'; result: RemoteInputResult }
+  | { type: 'SUBMIT_INPUT'; result: RemoteInputResult; message: string }
   | { type: 'DISMISS_ERROR' }
   | { type: 'PLAY_AGAIN' }
 
-function initState(): UIState {
+/**
+ * Free play starts on its setup screen. A daily starts where this browser left it today: with the
+ * lives already lost, or straight on the finished screen if the day is over — reloading must
+ * neither refill lives nor replay a lost day.
+ */
+function initState(mode: GameMode): UIState {
+  const base = freshState()
+  if (mode.kind !== 'daily') return base
+
+  const { sport, day } = mode.challenge
+  const record = readDailyRecord(sport, day)
+  const outcome = record.outcome ?? (record.livesLeft === 0 ? 'lost' : null)
+  return { ...base, lives: record.livesLeft, outcome, phase: outcome ? 'finished' : 'setup' }
+}
+
+function freshState(): UIState {
   return {
     phase: 'setup',
     difficulty: 'easy',
@@ -52,6 +78,10 @@ function initState(): UIState {
     submitting: false,
     moveCount: 0,
     lastError: null,
+    lives: null,
+    lifeLostCount: 0,
+    rejectedCount: 0,
+    outcome: null,
   }
 }
 
@@ -82,7 +112,24 @@ function reducer(state: UIState, action: Action): UIState {
 
     case 'SUBMIT_INPUT': {
       if (!action.result.ok) {
-        return { ...state, submitting: false, lastError: action.result.reason }
+        // A move the server judged clears the input for the next guess; after a transport error
+        // it stays, so the same move can simply be retried.
+        const rejectedCount = state.rejectedCount + (action.result.code ? 1 : 0)
+
+        // Only a guess judged wrong costs a life — never an error, a duplicate or a game over.
+        const costsLife = state.lives !== null && action.result.code === 'not-connected'
+        if (!costsLife) return { ...state, submitting: false, lastError: action.message, rejectedCount }
+
+        const lives = Math.max(0, state.lives! - 1)
+        return {
+          ...state,
+          submitting: false,
+          lastError: lives > 0 ? action.message : null,
+          lives,
+          lifeLostCount: state.lifeLostCount + 1,
+          rejectedCount,
+          ...(lives === 0 && { phase: 'finished' as const, outcome: 'lost' as const }),
+        }
       }
       const game = { ...action.result.game }
       const isVictory = game.path.length > 0
@@ -95,6 +142,7 @@ function reducer(state: UIState, action: Action): UIState {
         moveCount: state.moveCount + 1,
         lastError: null,
         phase: isVictory ? 'victory' : 'playing',
+        outcome: isVictory && state.lives !== null ? 'won' : state.outcome,
       }
     }
 
@@ -102,7 +150,7 @@ function reducer(state: UIState, action: Action): UIState {
       return { ...state, lastError: null }
 
     case 'PLAY_AGAIN':
-      return initState()
+      return freshState()
 
     default:
       return state
@@ -114,6 +162,8 @@ function reducer(state: UIState, action: Action): UIState {
  * Daily: the pair is the day's challenge, always in easy mode — one set of rules for everyone.
  */
 export type GameMode = { kind: 'free' } | { kind: 'daily'; challenge: DailyChallenge }
+
+const FREE_PLAY: GameMode = { kind: 'free' }
 
 type Props = {
   sport: SportId
@@ -127,16 +177,19 @@ type Props = {
  * (player search, randomize, the direct-connection check, each move) is a bounded request
  * made on demand. The graph and its rules live on the server — see `remoteEngine`.
  */
-export function GamePage({ sport, mode = { kind: 'free' } }: Props) {
-  const [state, dispatch] = useReducer(reducer, undefined, initState)
+export function GamePage({ sport, mode = FREE_PLAY }: Props) {
+  const t = useTranslations()
+  const [state, dispatch] = useReducer(reducer, mode, initState)
   const engineRef = useRef<RemoteEngine | null>(null)
 
   const daily = mode.kind === 'daily' ? mode.challenge : null
 
-  // A won daily is remembered for the menu, which marks the sport as done for the day.
+  // The day's progress is saved on every change, so a reload resumes it: the lives left, and how
+  // it ended — which the menu also reads to colour the sport.
   useEffect(() => {
-    if (daily && state.phase === 'victory') markDailyDone(daily.sport, daily.day)
-  }, [daily, state.phase])
+    if (!daily || state.lives === null) return
+    saveDailyRecord(daily.sport, daily.day, { livesLeft: state.lives, outcome: state.outcome ?? undefined })
+  }, [daily, state.lives, state.outcome])
 
   const handleStart = useCallback(() => {
     const playerA = daily ? daily.playerA : state.playerA
@@ -151,13 +204,18 @@ export function GamePage({ sport, mode = { kind: 'free' } }: Props) {
     })
   }, [sport, daily, state.playerA, state.playerB, state.difficulty])
 
-  const handleSubmit = useCallback(async (input: UserInput) => {
-    const engine = engineRef.current
-    if (!engine) return
-    dispatch({ type: 'SUBMIT_PENDING' })
-    const result = await engine.addInput(input)
-    dispatch({ type: 'SUBMIT_INPUT', result })
-  }, [])
+  const handleSubmit = useCallback(
+    async (input: UserInput) => {
+      const engine = engineRef.current
+      if (!engine) return
+      dispatch({ type: 'SUBMIT_PENDING' })
+      const result = await engine.addInput(input)
+      // Shown in the player's language: the server's reason is French, its code is not.
+      const message = result.ok ? '' : result.code ? t.game.rejections[result.code] : t.game.moveFailed
+      dispatch({ type: 'SUBMIT_INPUT', result, message })
+    },
+    [t],
+  )
 
   const handlePlayAgain = useCallback(() => {
     engineRef.current = null
@@ -191,8 +249,19 @@ export function GamePage({ sport, mode = { kind: 'free' } }: Props) {
           onSubmit={handleSubmit}
           lastError={state.lastError}
           onDismissError={() => dispatch({ type: 'DISMISS_ERROR' })}
+          lives={
+            state.lives === null ? undefined : { left: state.lives, total: DAILY_LIVES, lostCount: state.lifeLostCount }
+          }
+          inputResetKey={state.rejectedCount}
         />
       )}
+
+      {state.phase === 'finished' && daily && state.outcome && (
+        <DailyFinished challenge={daily} outcome={state.outcome} livesLeft={state.lives ?? 0} />
+      )}
+
+      {/* Outside the game screen, so the flash of the last life still plays over the game-over one. */}
+      {state.lifeLostCount > 0 && <div key={state.lifeLostCount} className="life-flash" aria-hidden="true" />}
 
       {state.phase === 'victory' && state.game && (
         <VictoryScreen
@@ -200,6 +269,7 @@ export function GamePage({ sport, mode = { kind: 'free' } }: Props) {
           players={state.players}
           moveCount={state.moveCount}
           optimalLinks={daily?.optimalLinks}
+          lives={state.lives === null ? undefined : { left: state.lives, total: DAILY_LIVES }}
           onPlayAgain={daily ? undefined : handlePlayAgain}
           freePlayHref={daily ? `/${sport}/free` : undefined}
         />

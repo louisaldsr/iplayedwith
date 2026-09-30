@@ -11,6 +11,7 @@ import { useTranslations } from '../../i18n'
 import { GameBoard } from './GameBoard'
 import { MoveInput } from './MoveInput'
 import { ErrorBanner } from './ErrorBanner'
+import { LivesBar } from './LivesBar'
 
 type Props = {
   game: Game
@@ -22,6 +23,10 @@ type Props = {
   onSubmit: (input: UserInput) => void
   lastError: string | null
   onDismissError: () => void
+  /** Daily only: the lives, shown at the bottom of the board. */
+  lives?: { left: number; total: number; lostCount: number }
+  /** Changes when the input should start empty again — after a refused move. */
+  inputResetKey?: number
 }
 
 function formatTime(ms: number): string {
@@ -31,7 +36,18 @@ function formatTime(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
-export function GameScreen({ game, sport, players, clubs, submitting, onSubmit, lastError, onDismissError }: Props) {
+export function GameScreen({
+  game,
+  sport,
+  players,
+  clubs,
+  submitting,
+  onSubmit,
+  lastError,
+  onDismissError,
+  lives,
+  inputResetKey = 0,
+}: Props) {
   const t = useTranslations()
   const [elapsed, setElapsed] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -69,12 +85,13 @@ export function GameScreen({ game, sport, players, clubs, submitting, onSubmit, 
 
       <div className="game-screen-board">
         <GameBoard game={game} players={players} clubs={clubs} />
+        {lives && <LivesBar left={lives.left} total={lives.total} lostCount={lives.lostCount} />}
       </div>
 
       <div className="game-screen-controls">
         {lastError && <ErrorBanner message={lastError} onDismiss={onDismissError} />}
         <MoveInput
-          key={game.edges.length}
+          key={`${game.edges.length}-${inputResetKey}`}
           sport={sport}
           difficulty={game.difficulty}
           alreadyInGraph={alreadyInGraph}

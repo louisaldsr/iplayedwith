@@ -40,6 +40,7 @@ export function RulesDialog({ open, onClose }: Props) {
       <section className="rules-dialog__section">
         <h3>{t.rules.dailyTitle}</h3>
         <p>{t.rules.daily}</p>
+        <p>{t.rules.lives}</p>
         <p>{t.rules.freePlay}</p>
       </section>
 

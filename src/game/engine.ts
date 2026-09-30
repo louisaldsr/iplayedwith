@@ -4,6 +4,7 @@ import { Game, DifficultyLevel } from './game'
 import { MembershipIndex } from './membershipIndex'
 import { GraphBuilder } from './graphBuilder'
 import { applyMove } from './moveRules'
+import { MoveRejectionCode } from './moveRejection'
 import { bfsPlayerPath } from './path'
 import { UserInput } from './userInput'
 
@@ -13,7 +14,7 @@ import { UserInput } from './userInput'
 export type { UserInput }
 
 /** The result of processing a user move. On failure, `reason` is a human-readable message. */
-export type InputResult = { ok: true; game: Game } | { ok: false; reason: string }
+export type InputResult = { ok: true; game: Game } | { ok: false; code: MoveRejectionCode; reason: string }
 
 /**
  * The public interface of a running game session.
@@ -65,11 +66,11 @@ export function createEngine(
 
   function addInput(input: UserInput): InputResult {
     if (isVictory()) {
-      return { ok: false, reason: 'La partie est déjà terminée.' }
+      return { ok: false, code: 'game-over', reason: 'La partie est déjà terminée.' }
     }
 
     const rejection = applyMove(builder, index, input, difficulty)
-    if (rejection) return { ok: false, reason: rejection }
+    if (rejection) return { ok: false, ...rejection }
 
     const solution = bfsPlayerPath(game.nodes, game.edges, playerA.id, playerB.id)
     if (solution) game.path = solution

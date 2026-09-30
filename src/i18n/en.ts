@@ -21,6 +21,7 @@ const en = {
     stats: 'My stats',
     logIn: 'Log in',
     doneToday: 'done today',
+    lostToday: 'lost today',
     soon: 'Soon',
   },
   about: {
@@ -44,12 +45,21 @@ const en = {
     dailyTitle: 'Daily challenge',
     daily:
       'Every day, each sport gets one pair — the same for everyone, new at midnight (Paris time). "Best possible" is the length of the shortest chain.',
-    freePlay: 'In free play, you pick both players and the difficulty.',
+    lives:
+      'You have 3 lives: each player you add who shares no club and season with anyone on the board costs one. Lose all three and the day is over.',
+    freePlay: 'In free play, you pick both players and the difficulty, with no lives.',
     cardsTitle: 'Player cards',
     cards: 'The badge on a card shows how well known the player is. The less known, the rarer the find.',
     cta: "Let's play",
   },
   daily: {
+    lives: 'Lives',
+    livesLeft: (left: number, total: number) => `${left} of ${total} lives left`,
+    wonTitle: 'Solved!',
+    lostTitle: 'Out of lives',
+    wonText: (livesLeft: number) => `Chain complete with ${livesLeft} ${livesLeft === 1 ? 'life' : 'lives'} to spare.`,
+    lostText: (links: number) => `A chain of ${links} links existed. Better luck tomorrow!`,
+    comeBackTomorrow: 'A new pair arrives at midnight (Paris time).',
     title: 'Daily Challenge',
     viewCareer: 'View career',
     games: 'games',
@@ -95,6 +105,13 @@ const en = {
     searchUnavailable: 'Search unavailable — try again',
     addPlayer: 'Player',
     addClub: 'Club',
+    rejections: {
+      'not-connected': 'No club and season in common with anyone on the board.',
+      'already-on-board': 'Already on the board.',
+      'wrong-kind': 'That move belongs to the other difficulty.',
+      'game-over': 'The game is already over.',
+    },
+    moveFailed: 'Something went wrong — try again.',
   },
   fame: {
     floors: {

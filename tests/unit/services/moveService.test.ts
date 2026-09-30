@@ -90,7 +90,10 @@ describe('applyMove — easy mode', () => {
     )
 
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.reason).toMatch(/ne partage aucun club/)
+    if (!result.ok) {
+      expect(result.code).toBe('not-connected')
+      expect(result.reason).toMatch(/ne partage aucun club/)
+    }
   })
 
   it('rejects a player already in the graph', async () => {
@@ -103,7 +106,10 @@ describe('applyMove — easy mode', () => {
     )
 
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.reason).toMatch(/déjà dans le graphe/)
+    if (!result.ok) {
+      expect(result.code).toBe('already-on-board')
+      expect(result.reason).toMatch(/déjà dans le graphe/)
+    }
   })
 
   it('reports victory and the path once A and B are connected', async () => {
@@ -194,7 +200,10 @@ describe('applyMove — hard mode', () => {
     )
 
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.reason).toMatch(/Aucun joueur du graphe/)
+    if (!result.ok) {
+      expect(result.code).toBe('not-connected')
+      expect(result.reason).toMatch(/Aucun joueur du graphe/)
+    }
   })
 
   it('rejects a player not attached to any club-season on the board', async () => {
@@ -211,7 +220,10 @@ describe('applyMove — hard mode', () => {
     )
 
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.reason).toMatch(/ne joue dans aucun club/)
+    if (!result.ok) {
+      expect(result.code).toBe('not-connected')
+      expect(result.reason).toMatch(/ne joue dans aucun club/)
+    }
   })
 })
 
@@ -264,7 +276,10 @@ describe('applyMove — the submitted graph is untrusted', () => {
     )
 
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.reason).toMatch(/réservé au mode difficile/)
+    if (!result.ok) {
+      expect(result.code).toBe('wrong-kind')
+      expect(result.reason).toMatch(/réservé au mode difficile/)
+    }
   })
 
   it('refuses further moves once the game is already won', async () => {
@@ -290,7 +305,10 @@ describe('applyMove — the submitted graph is untrusted', () => {
     )
 
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.reason).toMatch(/déjà terminée/)
+    if (!result.ok) {
+      expect(result.code).toBe('game-over')
+      expect(result.reason).toMatch(/déjà terminée/)
+    }
   })
 })
 

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { SPORTS, SportId } from '../../domain/sport'
 import { useTranslations } from '../../i18n'
 import { useRules } from '../rules/RulesProvider'
-import { sportsDoneToday } from '../../lib/dailyProgress'
+import { dailyOutcomesToday, DailyOutcome } from '../../lib/dailyProgress'
 
 const SPORT_ICONS: Record<SportId, string> = { rugby: '🏉', football: '⚽' }
 
@@ -13,7 +13,8 @@ const SPORT_ICONS: Record<SportId, string> = { rugby: '🏉', football: '⚽' }
  * The home screen, as the game's main menu.
  *
  * The sports own the middle of the screen — each card opens that sport's daily challenge, which is
- * the game. A sport whose challenge is already won today turns green, nudging towards the others.
+ * the game. A sport whose challenge is already over today turns green (won) or red (lost), nudging
+ * towards the ones still to play.
  * Everything else sits at the bottom: free play (open to everyone), the rules, About, and the
  * features that need an identity (ranking, stats, accounts), listed as "soon".
  */
@@ -21,8 +22,8 @@ export function HomeMenu() {
   const t = useTranslations()
   const { openRules } = useRules()
   // Read after mount: storage does not exist on the server, and guessing would flash a colour.
-  const [done, setDone] = useState<Set<SportId>>(new Set())
-  useEffect(() => setDone(sportsDoneToday()), [])
+  const [outcomes, setOutcomes] = useState<Map<SportId, DailyOutcome>>(new Map())
+  useEffect(() => setOutcomes(dailyOutcomesToday()), [])
 
   return (
     <nav className="home-screen" aria-label={t.menu.label}>
@@ -33,17 +34,18 @@ export function HomeMenu() {
 
       <div className="home-screen__sports">
         {SPORTS.map((sport) => {
-          const isDone = done.has(sport)
+          const outcome = outcomes.get(sport)
+          const status = outcome === 'won' ? t.menu.doneToday : outcome === 'lost' ? t.menu.lostToday : null
           return (
             <Link
               key={sport}
               href={`/${sport}`}
-              className={`home-screen__sport-card${isDone ? ' home-screen__sport-card--done' : ''}`}
-              aria-label={`${t.home.sports[sport]} — ${t.menu.daily}${isDone ? ` (${t.menu.doneToday})` : ''}`}
+              className={`home-screen__sport-card${outcome ? ` home-screen__sport-card--${outcome}` : ''}`}
+              aria-label={`${t.home.sports[sport]} — ${t.menu.daily}${status ? ` (${status})` : ''}`}
             >
-              {isDone && (
-                <span className="home-screen__sport-done" aria-hidden="true">
-                  ✓
+              {outcome && (
+                <span className="home-screen__sport-status" aria-hidden="true">
+                  {outcome === 'won' ? '✓' : '✕'}
                 </span>
               )}
               <span className="home-screen__sport-icon" aria-hidden="true">

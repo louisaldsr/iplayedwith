@@ -102,3 +102,10 @@ export const winningMove = {
   victory: true,
   path: ['p-alpha', 'p-charlie', 'p-bravo'],
 }
+
+/** A guess that connects to nobody on the board — the only rejection that costs a daily life. */
+export const notConnectedMove = {
+  ok: false,
+  code: 'not-connected',
+  reason: 'Ce joueur ne partage aucun club/saison avec les joueurs déjà dans le graphe.',
+}

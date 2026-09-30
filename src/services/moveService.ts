@@ -14,6 +14,7 @@ import { UserInput } from '@/game/userInput'
 import { MembershipIndex } from '@/game/membershipIndex'
 import { GraphBuilder, playerKey, clubKey } from '@/game/graphBuilder'
 import { applyMove as applyMoveRules } from '@/game/moveRules'
+import { MoveRejectionCode } from '@/game/moveRejection'
 import { GameNode } from '@/graph/node'
 import { GameEdge } from '@/graph/edge'
 import { bfsPlayerPath } from '@/game/path'
@@ -45,7 +46,7 @@ export type ResolvedNode = { kind: 'player'; player: Player } | { kind: 'club'; 
 
 export type MoveResult =
   | { ok: true; node: ResolvedNode; edges: GameEdge[]; clubs: Club[]; victory: boolean; path: PlayerId[] }
-  | { ok: false; reason: string }
+  | { ok: false; code: MoveRejectionCode; reason: string }
 
 /** Player ids whose memberships the engine can touch while processing `move`. */
 function relevantPlayerIds(graph: GraphState, move: UserInput): PlayerId[] {
@@ -112,12 +113,12 @@ export async function applyMove(db: SupabaseClient, sport: SportId, req: MoveReq
 
   // Already-won games take no further moves, matching the in-memory engine.
   if (bfsPlayerPath(nodes, edges, playerAId, playerBId) !== null) {
-    return { ok: false, reason: 'La partie est déjà terminée.' }
+    return { ok: false, code: 'game-over', reason: 'La partie est déjà terminée.' }
   }
 
   const builder = new GraphBuilder(index, nodes, edges, req.difficulty)
   const rejection = applyMoveRules(builder, index, req.move, req.difficulty)
-  if (rejection) return { ok: false, reason: rejection }
+  if (rejection) return { ok: false, ...rejection }
 
   const path = bfsPlayerPath(nodes, edges, playerAId, playerBId)
   const newEdges = edges.slice(edgeCountBefore)

@@ -186,6 +186,24 @@ calibration (piège `least(1, NULL) = 1` → score 100).
 `npm run fame:compute -- --sport=…`. `fame:report` signale toute ligne restée sur une
 ancienne révision.
 
+### La formule v2 — revision 2 (`014_fame_rate.sql`)
+
+```
+score = round(100 × [ 0.40·s(caps, k_caps) + 0.25·s(games, k_games) + 0.35·s(rate, k_rate) ])
+rate  = caps / greatest(seasons, 3)        k_rate : rugby 6, football 8
+```
+
+- **Caps seniors uniquement** (rugby) : le parseur comptait U20, A, XV, Barbarians, Māori,
+  Développement — ~15 % des « caps », surtout chez les jeunes. `isSeniorNationalTeam()` dans
+  `scripts/rugby/lib/playerProfileParser.ts` ; les Lions comptent.
+- **Caps par saison** = talent/intensité, le premier signal non cumulatif. Caps et saisons étant
+  coupés par le début des données (2012-2013), leur ratio résiste à cette coupure : un joueur à
+  cheval (Dusautoir) garde un taux juste. Plancher de 3 saisons contre les taux extrêmes.
+- Mesurés et **écartés** : la part de matchs dans l'équipe (récompense les piliers de club,
+  pénalise les internationaux absents) et le prestige de club par les caps de l'effectif (classe
+  en tête des viviers nationaux : Jaguares, Drua, franchises italiennes).
+- La notoriété médiatique (Dupont derrière Kinghorn) n'est dans aucune donnée : spike Wikidata.
+
 ### Limite connue
 
 Deux signaux cumulatifs : la fame suit la **longévité**, pas la célébrité (Atonio devant
@@ -472,20 +490,26 @@ Saisie user
     d'envoyer l'utilisateur vers la fiche d'origine du joueur depuis le jeu
 15. Le signal `appearance` (combien de fois un joueur est cherché), quand le jeu produira des
     parties — c'est lui qui donnera enfin des étiquettes pour ajuster les poids de la fame
-16. Le signal `appearance` (combien de fois un joueur est cherché), quand le jeu produira des
-    parties — c'est lui qui donnera enfin des étiquettes pour ajuster les poids de la fame
-17. ~~Daily Challenge : une paire par sport et par jour~~
-18. Appliquer `013_daily_challenges.sql` **le jour du lancement voulu** (il fixe le #1), puis les
+16. ~~Daily Challenge : une paire par sport et par jour~~
+17. Appliquer `013_daily_challenges.sql` **le jour du lancement voulu** (il fixe le #1), puis les
     contrôles en bas du fichier (job planifié, pas de jour manquant, numéros, solution valide,
     fermé à anon) — et noter le temps réel du BFS sur les vraies données
-19. Identité du joueur (anonyme d'abord), résultats du défi vérifiés côté serveur, puis
+18. Identité du joueur (anonyme d'abord), résultats du défi vérifiés côté serveur, puis
     classement du jour et stats perso ; empêcher de rejouer le défi
-20. Tirage du défi pondéré par la fame (`player_fame.score`, v1), une fois `012` appliqué et le
+19. Tirage du défi pondéré par la fame (`player_fame.score`, v1), une fois `012` appliqué et le
     top/bottom 30 validé
-19. ~~Accueil : détection de première visite + pop-up des règles~~
-20. ~~Menu principal + page À propos~~
-21. Formulaire de contact ; dons (plateforme à choisir) ; plateau lisible sur mobile (A et B se
+20. ~~Accueil : détection de première visite + pop-up des règles~~
+21. ~~Menu principal + page À propos~~
+22. Formulaire de contact ; dons (plateforme à choisir) ; plateau lisible sur mobile (A et B se
     chevauchent à 390 px)
-22. ~~Vies dans le défi du jour~~
-23. Révéler la solution du jour — le lendemain, ou après une défaite vérifiée côté serveur ;
+23. ~~Vies dans le défi du jour~~
+24. Révéler la solution du jour — le lendemain, ou après une défaite vérifiée côté serveur ;
     sauver le plateau en cours ; ajuster les vies à la distance si les longs jours s'avèrent durs
+25. ~~Fame v2 — caps seniors uniquement + caps par saison (revision 2)~~
+26. `014_fame_rate.sql` appliqué — reste à relancer, depuis le checkout qui a le cache des
+    profils, `npm run seed:fame` (re-parse les caps rugby) et
+    `npm run fame:compute -- --sport=football`, puis lire le top/bottom 30 et la section *Floors*
+27. Prestige de club (revision 3), puis trancher les seuils 70 / 30 une seule fois
+28. Spike **Wikidata sitelinks** (nombre d'éditions Wikipédia d'un joueur) : le signal de
+    notoriété médiatique qui manque (Dupont derrière Kinghorn) — football via l'ID Transfermarkt,
+    rugby par rapprochement de noms

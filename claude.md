@@ -529,7 +529,7 @@ partie sans indice (badge, bonus) plutôt que de pénaliser l'aide.
 
 Le classement affiche un **nom généré** au lieu d'un UUID : un adjectif et un poste/rôle tirés de
 listes curatées (`src/domain/visitorName.ts`) — « Pilier Pressé », « Hasty Prop ». 40 × 28 = 1 120
-noms ; deux visiteurs peuvent partager un nom.
+paires ; depuis `018`, un numéro les rend uniques (Bloc 15).
 
 - **Généré, pas choisi** : des listes curatées n'ont rien à modérer. Un pseudo libre viendra avec
   les comptes, et avec lui son filtrage (format, liste noire FR/EN après normalisation + leetspeak,
@@ -569,6 +569,24 @@ porte le nom.
 
 La carte de partage est **statique** ; `twitter.card = summary_large_image` dans le layout. Son URL
 absolue vient de l'URL de production Vercel, faute de `metadataBase`.
+
+---
+
+## ✅ Bloc 15 terminé — Nom unique, affiché sur le menu
+
+- **Numéro à 3 chiffres** (`018_visitor_number.sql`) : « Pilier Pressé 042 ». 40 × 28 × 1 000 =
+  **1 120 000** noms, **uniques** (index unique `(adjectif, nom, numéro)`). La base tire un numéro
+  encore libre pour la paire ; paire pleine ou numéro pris au même instant → le serveur retire une
+  autre paire (`ensureVisitorName`, 5 essais). Les visiteurs existants ont reçu un numéro distinct.
+- `ensure_visitor` **renvoie** le nom (existant ou créé). `POST /api/visitor` `{ visitorId }` →
+  `{ adjective, noun, number }` — POST car le premier appel crée le visiteur.
+- **Badge en haut à gauche du menu** (`VisitorBadge`), là où le bouton Menu se trouve en partie :
+  mis en cache dans `ipw.name` (avec l'id auquel il appartient) → affiché sans requête dès la
+  deuxième visite. Pas de nom sans stockage ; échec serveur = pas de badge.
+- **Toujours visible en partie** : dans la barre du haut du plateau, à côté du badge de difficulté ;
+  sur téléphone, sur une ligne à lui sous les joueurs et le chrono (la barre passe en grille,
+  1ʳᵉ ligne de 44 px alignée sur les boutons fixes). Même source que le badge : `useVisitorName`.
+- e2e : `/api/visitor` est mocké **par défaut** dans `fixtures.ts` (toute page peut mener au menu).
 
 ---
 
@@ -659,3 +677,4 @@ Saisie user
 33. Comptes (lien magique Supabase) : réclamer le visiteur, pseudo libre + sa modération
 34. Carte de partage par défi (`/[sport]/opengraph-image`, « Défi du jour #N · Rugby ») ;
     `metadataBase` si le site sort de Vercel
+34. Appliquer `018_visitor_number.sql` (après `017`) et ses contrôles

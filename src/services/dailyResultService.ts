@@ -1,7 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import * as dailyResultsRepo from '@/repositories/dailyResultsRepository'
-import * as visitorsRepo from '@/repositories/visitorsRepository'
-import { randomVisitorName } from '@/domain/visitorName'
+import { ensureVisitorName } from '@/services/visitorService'
 import { SportId } from '@/domain/sport'
 import { ChallengeDay, challengeDayOf, DAILY_LIVES } from '@/domain/dailyChallenge'
 import { DailyRankingEntry, VisitorId } from '@/domain/dailyResult'
@@ -33,9 +32,7 @@ export async function startDailyResult(
   now: Date = new Date(),
 ): Promise<void> {
   if (day !== challengeDayOf(now)) throw new ConflictError(`${day} is not today's challenge`)
-  await visitorsRepo
-    .ensure(db, visitorId, randomVisitorName())
-    .catch((err) => console.error('visitor name not created', err))
+  await ensureVisitorName(db, visitorId).catch((err) => console.error('visitor name not created', err))
   await dailyResultsRepo.start(db, sport, day, visitorId)
 }
 

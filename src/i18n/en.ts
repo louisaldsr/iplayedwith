@@ -22,6 +22,7 @@ const en = {
     ranking: 'Ranking',
     stats: 'My stats',
     logIn: 'Log in',
+    yourName: 'Your name in the rankings',
     doneToday: 'done today',
     lostToday: 'lost today',
     soon: 'Soon',

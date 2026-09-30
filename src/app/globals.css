@@ -109,6 +109,37 @@ body {
   }
 }
 
+/* The visitor's generated name, top left of the menu — where the menu button sits in a game. */
+.visitor-badge {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  max-width: calc(100vw - 24px - 44px - 12px);
+  padding: 0 16px 0 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.visitor-badge__icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.visitor-badge__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .rules-button {
   position: fixed;
   top: 12px;
@@ -1049,6 +1080,56 @@ body {
   font-variant-numeric: tabular-nums;
   color: var(--accent);
   letter-spacing: 0.04em;
+}
+
+.game-topbar__end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* The visitor's name, always in view while playing — the name the rankings show. */
+.game-topbar__visitor {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+/* Phones: the first row keeps the players, the clock and the badge, level with the fixed menu and
+   rules buttons (44px, 12px from the top); the name gets a slim row of its own below. */
+@media (max-width: 640px) {
+  .game-topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-rows: 44px auto;
+    column-gap: 8px;
+    height: auto;
+    padding-bottom: 6px;
+  }
+
+  .game-topbar__end {
+    display: contents;
+  }
+
+  .game-topbar__visitor {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: center;
+    max-width: 100%;
+    font-size: 0.75rem;
+  }
+
+  .game-topbar__players,
+  .game-topbar__chrono,
+  .game-topbar__badge {
+    grid-row: 1;
+    align-self: center;
+  }
 }
 
 .game-topbar__badge {

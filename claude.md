@@ -421,7 +421,7 @@ sur une nouvelle partie. Dès le premier « Commencer », le plateau (`board` : 
 clubs, coups, heure de départ) est gardé : quitter la page et revenir rouvre **la même partie**, sans
 repasser par l'intro — `createRemoteEngine(…, resume)` reconstruit le moteur. Sûr sans confiance :
 le serveur revalide chaque arête au coup suivant. Un plateau malformé est jeté entier (les vies
-restent) ; il disparaît à la fin du jour, gagné ou perdu. **Contournable** en effaçant les données du site — la vraie garantie
+restent) ; gagné, il est gardé avec sa chaîne (voir Bloc 10) ; perdu, il est jeté. **Contournable** en effaçant les données du site — la vraie garantie
 viendra des résultats stockés côté serveur (étape 17).
 
 **Pas de solution affichée** en cas de défaite : le serveur la garde, mais sans compte rien ne
@@ -437,6 +437,24 @@ l'écran de victoire. Le cœur perdu gonfle et se vide, la rangée tremble, l'é
 teinte douce sans secousse sous `prefers-reduced-motion`. Perte annoncée aux lecteurs d'écran
 (`aria-live`). Après un coup refusé, la saisie se vide pour le coup suivant (sauf erreur réseau :
 on peut réessayer tel quel). `RULES_VERSION` passe à 2 : tout le monde revoit les règles une fois.
+
+---
+
+## ✅ Bloc 10 terminé — Victoire sur le plateau
+
+Gagner ne remplace plus le plateau par un écran de résultats : le plateau **reste**, et les résultats
+s'ouvrent en pop-up par-dessus (`VictoryDialog`, sur `Modal`). Elle se ferme **à la main** (« Voir le
+plateau », Échap, fond) — pas de fermeture automatique : on y lit ses stats. Une barre remplace
+alors la saisie (`won-bar` : « Chaîne complète — N liens », Résultats pour la rouvrir, Partie libre
+ou Rejouer). Le chrono s'arrête au coup gagnant (`finishedAt`), le temps affiché ne dérive plus.
+
+**Chaîne gagnante** (`.game-board--won`, CSS seul) : ses cartes prennent une bordure holographique
+**dorée** avec un reflet qui balaie la carte — le shimmer des *unsung*, en or — et s'allument l'une
+après l'autre depuis A (`--path-step`, 180 ms) ; ses liens coulent en pointillés dorés ; le reste
+passe à 40 %. Le badge de fame reste. Figé sous `prefers-reduced-motion`.
+
+Un défi **gagné** garde son plateau (`board.path`, `board.finishedAt`) : y revenir rouvre le plateau
+gagnant, pop-up fermée. Un défi perdu, ou gagné avant cette version, s'ouvre sur `DailyFinished`.
 
 ---
 

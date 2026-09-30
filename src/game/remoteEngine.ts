@@ -45,8 +45,8 @@ export type RemoteEngine = {
 }
 
 /**
- * An unfinished board to pick up again — the daily, resumed after leaving the page. Holds no path:
- * a won game is over, never resumed.
+ * A saved board to pick up again — the daily, after leaving the page. A board with a path is a
+ * won game: it comes back over, refusing moves, for its winning chain to be looked at.
  */
 export type ResumedBoard = {
   nodes: GameNode[]
@@ -54,6 +54,7 @@ export type ResumedBoard = {
   players: Player[]
   clubs: Club[]
   startedAt: Date
+  path?: PlayerId[]
 }
 
 export function createRemoteEngine(
@@ -77,13 +78,13 @@ export function createRemoteEngine(
     difficulty,
     nodes,
     edges: [...(resume?.edges ?? [])],
-    path: [],
+    path: [...(resume?.path ?? [])],
     startedAt: resume?.startedAt ?? new Date(),
   }
 
   const players: Player[] = [playerA, playerB]
   const clubs: Club[] = []
-  let victory = false
+  let victory = game.path.length > 0
 
   for (const player of resume?.players ?? []) {
     if (!players.some((p) => p.id === player.id)) players.push(player)

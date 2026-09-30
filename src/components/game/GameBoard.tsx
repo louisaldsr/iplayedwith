@@ -203,11 +203,18 @@ export function GameBoard({ game, players, clubs }: Props) {
     return set
   }, [game.path])
 
+  // A path only exists once A and B are connected: the board is then a won board, its chain lit up.
+  const boardClass = game.path.length > 0 ? 'game-board game-board--won' : 'game-board'
+  const pathStep = (id: PlayerId) => {
+    const i = game.path.indexOf(id)
+    return i < 0 ? undefined : i
+  }
+
   if (game.difficulty === 'easy') {
     return (
       <div
         ref={boardRef}
-        className="game-board"
+        className={boardClass}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
@@ -258,6 +265,7 @@ export function GameBoard({ game, players, clubs }: Props) {
               onPointerDown={handlePointerDown}
               isDragging={dragging?.key === key}
               highlighted={game.path.includes(node.id)}
+              pathStep={pathStep(node.id)}
               target={isTarget(node.id)}
               fameFloor={isTarget(node.id) ? undefined : p?.fameFloor}
             />
@@ -296,6 +304,8 @@ export function GameBoard({ game, players, clubs }: Props) {
 
   const pathPlayerKeys = new Set(game.path.map((id: PlayerId) => playerKey(id)))
   const pathClubKeys = new Set<string>()
+  /** Where each club sits along the chain: players at even steps, the club linking them in between. */
+  const clubSteps = new Map<string, number>()
   const pathEdgeSet = new Set<string>()
 
   if (game.path.length >= 2) {
@@ -306,6 +316,7 @@ export function GameBoard({ game, players, clubs }: Props) {
       for (const e of game.edges) {
         if (e.playerId === pB && membershipsA.has(`${e.clubId}:${e.season}`)) {
           pathClubKeys.add(clubKey(e.clubId, e.season))
+          if (!clubSteps.has(clubKey(e.clubId, e.season))) clubSteps.set(clubKey(e.clubId, e.season), 2 * i + 1)
           pathEdgeSet.add(`${pA}:${e.clubId}:${e.season}`)
           pathEdgeSet.add(`${pB}:${e.clubId}:${e.season}`)
         }
@@ -316,7 +327,7 @@ export function GameBoard({ game, players, clubs }: Props) {
   return (
     <div
       ref={boardRef}
-      className="game-board"
+      className={boardClass}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
@@ -351,11 +362,14 @@ export function GameBoard({ game, players, clubs }: Props) {
         let imageUrl: string | undefined
         let nationality: Player['nationality']
         let fameFloor: Player['fameFloor']
+        let step: number | undefined
 
         if (node.kind === 'player') {
           label = playerMap.get(node.id) ?? node.id
           kind = 'player'
           highlighted = pathPlayerKeys.has(key)
+          const i = pathStep(node.id)
+          step = i === undefined ? undefined : 2 * i
           const p = playerById.get(node.id)
           nationality = p?.nationality ? nationalTeamFor(p.nationality, p.sport) : undefined
           fameFloor = isTarget(node.id) ? undefined : p?.fameFloor
@@ -364,6 +378,7 @@ export function GameBoard({ game, players, clubs }: Props) {
           sublabel = node.season
           kind = 'club'
           highlighted = pathClubKeys.has(key)
+          step = clubSteps.get(key)
           imageUrl = clubById.get(node.id)?.logoUrl
         }
 
@@ -380,6 +395,7 @@ export function GameBoard({ game, players, clubs }: Props) {
             onPointerDown={handlePointerDown}
             isDragging={dragging?.key === key}
             highlighted={highlighted}
+            pathStep={step}
             target={node.kind === 'player' && isTarget(node.id)}
             fameFloor={fameFloor}
           />

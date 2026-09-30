@@ -128,6 +128,9 @@ const fr: Translations = {
     moves: 'Coups',
     time: 'Temps',
     playAgain: 'Rejouer',
+    viewBoard: 'Voir le plateau',
+    results: 'Résultats',
+    chainComplete: (links: number) => `Chaîne complète — ${links} ${links === 1 ? 'lien' : 'liens'}`,
   },
 }
 

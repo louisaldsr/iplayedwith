@@ -13,6 +13,8 @@ type Props = {
   onPointerDown: (e: React.PointerEvent, key: string) => void
   isDragging?: boolean
   highlighted?: boolean
+  /** Rank along the winning chain, from A — staggers the cards lighting up one after another. */
+  pathStep?: number
   target?: boolean
   /** Styles the card by fame floor. The board leaves it unset for players A and B. */
   fameFloor?: FameFloor
@@ -29,6 +31,7 @@ export function NodeCard({
   onPointerDown,
   isDragging,
   highlighted,
+  pathStep,
   target,
   fameFloor,
 }: Props) {
@@ -50,7 +53,7 @@ export function NodeCard({
   return (
     <div
       className={classes}
-      style={{ left: position.x, top: position.y }}
+      style={{ left: position.x, top: position.y, ...(pathStep !== undefined && { '--path-step': pathStep }) }}
       onPointerDown={(e) => onPointerDown(e, nodeKey)}
     >
       {kind === 'player' && nationality && (

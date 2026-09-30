@@ -97,6 +97,7 @@ test.describe('daily challenge', () => {
     await page.getByRole('button', { name: 'Submit' }).click()
     await expect(page.getByRole('heading', { name: 'Congratulations!' })).toBeVisible()
 
+    await page.getByRole('button', { name: 'See the board' }).click()
     await page.getByRole('link', { name: 'Menu' }).click()
     await expect(page.getByRole('link', { name: 'Rugby — Daily challenge (done today)' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Football — Daily challenge', exact: true })).toBeVisible()

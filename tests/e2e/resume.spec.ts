@@ -84,3 +84,31 @@ test('the next move after a resume carries the saved board to the server', async
   expect(sent[1].graph.players).toEqual(['p-alpha', 'p-bravo', 'p-charlie'])
   expect(sent[1].graph.edges).toEqual(partialMove.edges)
 })
+
+test('a win keeps the board on screen: the results pop up over it, close, and reopen', async ({ page }) => {
+  await mockApi(page, '/api/rugby/move', winningMove)
+  await page.goto('/rugby')
+  await page.getByRole('button', { name: 'Start' }).click()
+  await guess(page)
+
+  const results = page.getByRole('dialog', { name: 'Congratulations!' })
+  await expect(results).toBeVisible()
+  await expect(results.getByText('Alpha Testeur → Charlie Lien → Bravo Éssai')).toBeVisible()
+
+  await results.getByRole('button', { name: 'See the board' }).click()
+  await expect(results).toBeHidden()
+  await expect(page.locator('.game-board--won .node-card--highlighted')).toHaveCount(3)
+  await expect(page.getByText('Chain complete — 2 links')).toBeVisible()
+  await expect(page.getByPlaceholder('Player…')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Results' }).click()
+  await expect(results).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(results).toBeHidden()
+
+  // Coming back to a won day shows the winning board again, results closed.
+  await page.reload()
+  await expect(page.locator('.game-board--won .node-card--highlighted')).toHaveCount(3)
+  await expect(results).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Start' })).toHaveCount(0)
+})

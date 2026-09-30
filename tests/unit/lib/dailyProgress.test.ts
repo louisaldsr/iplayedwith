@@ -53,8 +53,18 @@ describe('the board of a day in progress', () => {
     expect(readDailyRecord('rugby', today)).toEqual({ livesLeft: 2, board })
   })
 
-  it('is dropped once the day is over — a finished day is never resumed', () => {
-    saveDailyRecord('rugby', today, { livesLeft: 2, outcome: 'won', board })
+  it('is kept once won, with its winning chain, to be looked at again', () => {
+    const won = {
+      ...board,
+      path: [PlayerId('p-a'), PlayerId('p-c'), PlayerId('p-b')],
+      finishedAt: '2026-07-15T07:50:00.000Z',
+    }
+    saveDailyRecord('rugby', today, { livesLeft: 2, outcome: 'won', board: won })
+    expect(readDailyRecord('rugby', today)).toEqual({ livesLeft: 2, outcome: 'won', board: won })
+  })
+
+  it('is dropped once lost — a lost day only has its result', () => {
+    saveDailyRecord('rugby', today, { livesLeft: 0, outcome: 'lost', board })
     expect(readDailyRecord('rugby', today).board).toBeUndefined()
   })
 

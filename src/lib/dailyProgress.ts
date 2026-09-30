@@ -2,6 +2,7 @@ import { SportId, SPORTS } from '@/domain/sport'
 import { ChallengeDay, challengeDayOf, DAILY_LIVES } from '@/domain/dailyChallenge'
 import { Player } from '@/domain/player'
 import { Club } from '@/domain/club'
+import { PlayerId } from '@/domain/ids'
 import { GameNode } from '@/graph/node'
 import { GameEdge } from '@/graph/edge'
 
@@ -9,7 +10,7 @@ import { GameEdge } from '@/graph/edge'
  * This browser's progress on each sport's daily challenge — browser-side only, like `visitor.ts`.
  *
  * One key per sport, `ipw.daily.<sport>`, holding the latest day played there: lives left and,
- * once over, whether it was won or lost; while it is being played, the board itself. Only the latest day matters — a record for another day
+ * once over, whether it was won or lost; the board itself while it is played, and once won. Only the latest day matters — a record for another day
  * reads as a fresh start, so yesterday's goes stale by itself at midnight (Paris).
  *
  * It is what makes lives stick: without it a reload would refill them, and a lost day could be
@@ -22,7 +23,8 @@ import { GameEdge } from '@/graph/edge'
 export type DailyOutcome = 'won' | 'lost'
 
 /**
- * A daily game in progress, as the client holds it — enough to rebuild the engine on return.
+ * A daily's board, as the client holds it — enough to rebuild the engine on return: the game in
+ * progress, or the winning board to look at again.
  *
  * Trusting it is safe: the server revalidates every edge the client sends with its next move, so a
  * board edited in devtools is rejected there, like any forged graph.
@@ -35,13 +37,16 @@ export type DailyBoard = {
   moveCount: number
   /** ISO timestamp of the first launch today — the victory time counts from there. */
   startedAt: string
+  /** Won boards only: the winning chain, A to B, and when it was completed. */
+  path?: PlayerId[]
+  finishedAt?: string
 }
 
 export type DailyRecord = {
   livesLeft: number
   /** Set once the day is over; absent while it can still be played. */
   outcome?: DailyOutcome
-  /** Set once the day is launched and until it ends; absent before the first "Start". */
+  /** Set from the first "Start"; kept once won, dropped once lost. */
   board?: DailyBoard
 }
 
@@ -59,7 +64,7 @@ function readStored(sport: SportId): StoredRecord | null {
     if (typeof parsed.day !== 'string' || typeof parsed.livesLeft !== 'number') return null
     const livesLeft = Math.max(0, Math.min(DAILY_LIVES, Math.floor(parsed.livesLeft)))
     const outcome = parsed.outcome === 'won' || parsed.outcome === 'lost' ? parsed.outcome : undefined
-    const board = !outcome && isBoard(parsed.board) ? parsed.board : undefined
+    const board = outcome !== 'lost' && isBoard(parsed.board) ? parsed.board : undefined
     return { day: parsed.day, livesLeft, outcome, board }
   } catch {
     return null
@@ -77,6 +82,8 @@ function isNode(v: unknown): v is GameNode {
 const isEdge = (v: unknown): v is GameEdge =>
   isObject(v) && isString(v.playerId) && isString(v.clubId) && isString(v.season)
 
+const isDate = (v: unknown): v is string => isString(v) && !Number.isNaN(Date.parse(v))
+
 const isEntity = (v: unknown): v is { id: string; name: string } => isObject(v) && isString(v.id) && isString(v.name)
 
 /** Shape only: a malformed board is dropped (the day restarts from A and B), never trusted half-way. */
@@ -92,8 +99,9 @@ function isBoard(v: unknown): v is DailyBoard {
     Array.isArray(v.clubs) &&
     v.clubs.every(isEntity) &&
     typeof v.moveCount === 'number' &&
-    isString(v.startedAt) &&
-    !Number.isNaN(Date.parse(v.startedAt))
+    isDate(v.startedAt) &&
+    (v.path === undefined || (Array.isArray(v.path) && v.path.every(isString))) &&
+    (v.finishedAt === undefined || isDate(v.finishedAt))
   )
 }
 

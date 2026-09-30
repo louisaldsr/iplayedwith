@@ -1,13 +1,21 @@
+'use client'
+
 import Link from 'next/link'
 import { Player } from '../../domain/player'
 import { Game } from '../../game/game'
 import { useTranslations } from '../../i18n'
+import { Modal } from '../shared/Modal'
 import { Heart } from '../game/LivesBar'
 
 type Props = {
+  open: boolean
+  /** Closing leaves the board on screen, its winning chain lit — the pop-up never navigates away. */
+  onClose: () => void
   game: Game
   players: Player[]
   moveCount: number
+  /** Frozen at the winning move, so reopening the results later shows the same time. */
+  elapsedMs: number
   /** Daily only: the shortest chain possible, shown next to the one the user found. */
   optimalLinks?: number
   /** Daily only: the lives the win was achieved with. */
@@ -24,15 +32,35 @@ function formatTime(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
-export function VictoryScreen({ game, players, moveCount, optimalLinks, lives, onPlayAgain, freePlayHref }: Props) {
+/**
+ * The results of a won game, over the board. It opens on the winning move and closes by its button,
+ * Escape or the backdrop — the board stays underneath, to be enjoyed, and the results can be
+ * reopened from the bar below it.
+ */
+export function VictoryDialog({
+  open,
+  onClose,
+  game,
+  players,
+  moveCount,
+  elapsedMs,
+  optimalLinks,
+  lives,
+  onPlayAgain,
+  freePlayHref,
+}: Props) {
   const t = useTranslations()
   const playerMap = new Map(players.map((p) => [p.id as string, p.name]))
-  const elapsedMs = Date.now() - game.startedAt.getTime()
   const pathNames = game.path.map((id) => playerMap.get(id) ?? id)
 
   return (
-    <div className="victory-screen">
-      <h2 className="victory-screen__heading">{t.victory.heading}</h2>
+    <Modal open={open} onClose={onClose} labelledBy="victory-title" className="victory-dialog">
+      <span className="victory-dialog__trophy" aria-hidden="true">
+        🏆
+      </span>
+      <h2 id="victory-title" className="victory-dialog__heading">
+        {t.victory.heading}
+      </h2>
 
       <div className="victory-path">
         {pathNames.map((name, i) => (
@@ -50,18 +78,6 @@ export function VictoryScreen({ game, players, moveCount, optimalLinks, lives, o
             <span className="stat-value">{game.path.length - 1}</span>
           </div>
         )}
-        {lives && (
-          <div className="victory-stat">
-            <span className="stat-label">{t.daily.lives}</span>
-            <span className="victory-stat__hearts" role="img" aria-label={t.daily.livesLeft(lives.left, lives.total)}>
-              {Array.from({ length: lives.total }, (_, i) => (
-                <span key={i} className={`heart${i < lives.left ? '' : ' heart--empty'}`}>
-                  <Heart full={i < lives.left} />
-                </span>
-              ))}
-            </span>
-          </div>
-        )}
         {optimalLinks !== undefined && (
           <div className="victory-stat">
             <span className="stat-label">{t.daily.bestPossible}</span>
@@ -76,18 +92,35 @@ export function VictoryScreen({ game, players, moveCount, optimalLinks, lives, o
           <span className="stat-label">{t.victory.time}</span>
           <span className="stat-value">{formatTime(elapsedMs)}</span>
         </div>
+        {lives && (
+          <div className="victory-stat">
+            <span className="stat-label">{t.daily.lives}</span>
+            <span className="victory-stat__hearts" role="img" aria-label={t.daily.livesLeft(lives.left, lives.total)}>
+              {Array.from({ length: lives.total }, (_, i) => (
+                <span key={i} className={`heart${i < lives.left ? '' : ' heart--empty'}`}>
+                  <Heart full={i < lives.left} />
+                </span>
+              ))}
+            </span>
+          </div>
+        )}
       </div>
 
-      {onPlayAgain && (
-        <button type="button" className="btn btn--primary btn--lg" onClick={onPlayAgain}>
-          {t.victory.playAgain}
+      <div className="victory-dialog__actions">
+        <button type="button" className="btn btn--ghost btn--lg" onClick={onClose}>
+          {t.victory.viewBoard}
         </button>
-      )}
-      {freePlayHref && (
-        <Link href={freePlayHref} className="btn btn--primary btn--lg">
-          {t.daily.freePlay}
-        </Link>
-      )}
-    </div>
+        {onPlayAgain && (
+          <button type="button" className="btn btn--primary btn--lg" onClick={onPlayAgain}>
+            {t.victory.playAgain}
+          </button>
+        )}
+        {freePlayHref && (
+          <Link href={freePlayHref} className="btn btn--primary btn--lg">
+            {t.daily.freePlay}
+          </Link>
+        )}
+      </div>
+    </Modal>
   )
 }

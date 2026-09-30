@@ -42,6 +42,21 @@ describe('createRemoteEngine — resuming a saved board', () => {
     expect(engine.isVictory()).toBe(false)
   })
 
+  it('comes back over when the saved board is a won one', async () => {
+    const path = [playerA.id, charlie.id, playerB.id]
+    const engine = createRemoteEngine('rugby', playerA, playerB, 'easy', {
+      nodes: [{ kind: 'player', id: charlie.id }],
+      edges,
+      players: [charlie],
+      clubs: [club],
+      startedAt,
+      path,
+    })
+    expect(engine.isVictory()).toBe(true)
+    expect(engine.game.path).toEqual(path)
+    expect(await engine.addInput({ kind: 'easy', playerId: PlayerId('p-d') })).toMatchObject({ code: 'game-over' })
+  })
+
   it('sends the resumed graph with the next move, for the server to revalidate', async () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,

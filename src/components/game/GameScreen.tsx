@@ -12,6 +12,7 @@ import { GameBoard } from './GameBoard'
 import { MoveInput } from './MoveInput'
 import { ErrorBanner } from './ErrorBanner'
 import { LivesBar } from './LivesBar'
+import { PlayerCareerDialog } from '../shared/PlayerCareerDialog'
 
 type Props = {
   game: Game
@@ -32,6 +33,8 @@ type Props = {
    * winning time and `bar` takes the place of the move input.
    */
   victory?: { elapsedMs: number; bar: ReactNode }
+  /** Every career opened from the board — the daily records the ones that are hints. */
+  onCareerOpened?: (player: Player) => void
 }
 
 function formatTime(ms: number): string {
@@ -53,8 +56,14 @@ export function GameScreen({
   lives,
   inputResetKey = 0,
   victory,
+  onCareerOpened,
 }: Props) {
   const t = useTranslations()
+  const [careerOf, setCareerOf] = useState<Player | null>(null)
+  const openCareer = (player: Player) => {
+    setCareerOf(player)
+    onCareerOpened?.(player)
+  }
   const [elapsed, setElapsed] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -92,9 +101,11 @@ export function GameScreen({
       </div>
 
       <div className="game-screen-board">
-        <GameBoard game={game} players={players} clubs={clubs} />
+        <GameBoard game={game} players={players} clubs={clubs} onOpenPlayer={openCareer} />
         {lives && <LivesBar left={lives.left} total={lives.total} lostCount={lives.lostCount} />}
       </div>
+
+      <PlayerCareerDialog player={careerOf} onClose={() => setCareerOf(null)} />
 
       <div className="game-screen-controls">
         {victory ? (

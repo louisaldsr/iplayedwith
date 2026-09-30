@@ -28,5 +28,7 @@ export type DailyRankingEntry = {
   livesLost: number
   /** Length of the winning chain, in links. */
   links: number
+  /** Careers opened during the game (A and B excepted). Shown, not ranked — yet. */
+  hints: number
   finishedAt: string
 }

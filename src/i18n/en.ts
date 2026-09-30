@@ -49,7 +49,8 @@ const en = {
       'You have 3 lives: each player you add who shares no club and season with anyone on the board costs one. Lose all three and the day is over.',
     freePlay: 'In free play, you pick both players and the difficulty, with no lives.',
     cardsTitle: 'Player cards',
-    cards: 'The badge on a card shows how well known the player is. The less known, the rarer the find.',
+    cards:
+      "The badge on a card shows how well known the player is. The less known, the rarer the find. Stuck? Tap a card to see the player's career, club by club.",
     cta: "Let's play",
   },
   daily: {

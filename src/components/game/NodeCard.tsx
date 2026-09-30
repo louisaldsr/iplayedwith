@@ -11,6 +11,8 @@ type Props = {
   nationality?: Nationality
   position: { x: number; y: number }
   onPointerDown: (e: React.PointerEvent, key: string) => void
+  /** Makes the card a button (keyboard included) that opens the player's career. */
+  onOpen?: () => void
   isDragging?: boolean
   highlighted?: boolean
   /** Rank along the winning chain, from A — staggers the cards lighting up one after another. */
@@ -29,6 +31,7 @@ export function NodeCard({
   nationality,
   position,
   onPointerDown,
+  onOpen,
   isDragging,
   highlighted,
   pathStep,
@@ -55,6 +58,16 @@ export function NodeCard({
       className={classes}
       style={{ left: position.x, top: position.y, ...(pathStep !== undefined && { '--path-step': pathStep }) }}
       onPointerDown={(e) => onPointerDown(e, nodeKey)}
+      {...(onOpen && {
+        role: 'button',
+        tabIndex: 0,
+        'aria-label': `${label} — ${t.daily.viewCareer}`,
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key !== 'Enter' && e.key !== ' ') return
+          e.preventDefault()
+          onOpen()
+        },
+      })}
     >
       {kind === 'player' && nationality && (
         <span

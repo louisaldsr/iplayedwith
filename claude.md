@@ -503,6 +503,28 @@ trouvés.
 
 ---
 
+## ✅ Bloc 12 terminé — Carrière sur toutes les cartes, comptée comme indice
+
+Toute carte joueur du plateau ouvre sa carrière (`PlayerCareerDialog`, déplacé dans `shared/`) : un
+**clic** sans déplacement (< 5 px — le plateau capture le pointeur pour le glisser-déposer, aucun
+`click` n'atteint la carte), ou Entrée/Espace au clavier (`role="button"`).
+
+**Gratuit, mais enregistré** : la carrière dit *où* chercher (clubs, saisons), pas *qui* y jouait —
+le puzzle reste. La faire payer ne taxerait que les honnêtes : la même info est à une recherche
+Google, et un joueur bloqué qui part est pire qu'un joueur aidé. Un futur score **récompensera** la
+partie sans indice (badge, bonus) plutôt que de pénaliser l'aide.
+
+- `016_daily_hints.sql` : `daily_results.hint_player_ids` (joueurs **distincts** dont la carrière a
+  été ouverte) ; `record_daily_hint` ; `daily_ranking` renvoie `hints` — affiché par
+  `daily:ranking`, **pas** utilisé dans l'ordre.
+- `POST /api/:sport/daily/hint` `{ day, visitorId, playerId }` → 204 ; 409 si `day` périmé.
+- **Pas un indice** : A et B (l'intro les montre, tout le monde en a besoin), une carrière ouverte
+  après la fin du jour (ligne figée), la partie libre.
+- Sur parole : `/api/players/:id/career` est public, une lecture directe n'est pas comptée — pas
+  plus qu'une recherche Google.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -582,3 +604,6 @@ Saisie user
 29. Appliquer `015_daily_results.sql` (contrôles en bas du fichier), jouer quelques jours, lire
     `npm run daily:ranking` — puis afficher le classement aux joueurs
 30. Vrai score du défi : tentatives, temps, vies restantes, fame des joueurs trouvés
+31. Appliquer `016_daily_hints.sql` après `015` ; puis faire entrer les indices dans le vrai score
+    (badge « sans indice » ou bonus), et envisager un indice plus fort payant (« un coéquipier de
+    X chez C en S », contre une vie) pour les joueurs vraiment bloqués

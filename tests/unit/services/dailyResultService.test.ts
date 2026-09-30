@@ -1,4 +1,4 @@
-import { getDailyRanking, recordDailyMove, startDailyResult } from '@/services/dailyResultService'
+import { getDailyRanking, recordDailyHint, recordDailyMove, startDailyResult } from '@/services/dailyResultService'
 import * as dailyResultsRepo from '@/repositories/dailyResultsRepository'
 import { ChallengeDay, DAILY_LIVES } from '@/domain/dailyChallenge'
 import { VisitorId } from '@/domain/dailyResult'
@@ -69,6 +69,20 @@ describe('recordDailyMove', () => {
   })
 })
 
+describe('recordDailyHint', () => {
+  it("records a career opened during today's challenge", async () => {
+    await recordDailyHint(db, 'rugby', ChallengeDay('2026-07-16'), visitorId, 'p-c', now)
+    expect(repo.recordHint).toHaveBeenCalledWith(db, 'rugby', '2026-07-16', visitorId, 'p-c')
+  })
+
+  it('refuses a day that is no longer today', async () => {
+    await expect(recordDailyHint(db, 'rugby', ChallengeDay('2026-07-15'), visitorId, 'p-c', now)).rejects.toThrow(
+      ConflictError,
+    )
+    expect(repo.recordHint).not.toHaveBeenCalled()
+  })
+})
+
 describe('getDailyRanking', () => {
   it("reads the day's ranking as the database orders it", async () => {
     const entry = {
@@ -78,6 +92,7 @@ describe('getDailyRanking', () => {
       durationMs: 61_000,
       livesLost: 0,
       links: 2,
+      hints: 1,
       finishedAt: '2026-07-16T08:00:00Z',
     }
     repo.ranking.mockResolvedValue([entry])

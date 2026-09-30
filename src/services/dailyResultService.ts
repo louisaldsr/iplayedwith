@@ -55,6 +55,22 @@ export async function recordDailyMove(
   })
 }
 
+/**
+ * Records a career opened during today's challenge — a hint. `day` is the one the client was
+ * shown: past midnight it is stale. A, B, unknown players and finished days are filtered in SQL.
+ */
+export async function recordDailyHint(
+  db: SupabaseClient,
+  sport: SportId,
+  day: ChallengeDay,
+  visitorId: VisitorId,
+  playerId: string,
+  now: Date = new Date(),
+): Promise<void> {
+  if (day !== challengeDayOf(now)) throw new ConflictError(`${day} is not today's challenge`)
+  await dailyResultsRepo.recordHint(db, sport, day, visitorId, playerId)
+}
+
 /** The day's ranking: won results, fewest attempts first, then fastest. */
 export function getDailyRanking(db: SupabaseClient, sport: SportId, day: ChallengeDay): Promise<DailyRankingEntry[]> {
   return dailyResultsRepo.ranking(db, sport, day)

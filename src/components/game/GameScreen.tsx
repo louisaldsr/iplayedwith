@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Game } from '../../game/game'
 import { Player } from '../../domain/player'
 import { Club } from '../../domain/club'
@@ -27,6 +27,11 @@ type Props = {
   lives?: { left: number; total: number; lostCount: number }
   /** Changes when the input should start empty again — after a refused move. */
   inputResetKey?: number
+  /**
+   * Set once the game is won: the board stays, its winning chain lit, the clock stops at the
+   * winning time and `bar` takes the place of the move input.
+   */
+  victory?: { elapsedMs: number; bar: ReactNode }
 }
 
 function formatTime(ms: number): string {
@@ -47,19 +52,22 @@ export function GameScreen({
   onDismissError,
   lives,
   inputResetKey = 0,
+  victory,
 }: Props) {
   const t = useTranslations()
   const [elapsed, setElapsed] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  const won = victory !== undefined
   useEffect(() => {
+    if (won) return
     intervalRef.current = setInterval(() => {
       setElapsed(Date.now() - game.startedAt.getTime())
     }, 1000)
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [game.startedAt])
+  }, [game.startedAt, won])
 
   const alreadyInGraph = useMemo(() => {
     const ids = new Set<PlayerId>()
@@ -79,7 +87,7 @@ export function GameScreen({
           <span className="game-topbar__arrow"></span>
           <span className="game-topbar__player">{game.playerB.name}</span>
         </div>
-        <span className="game-topbar__chrono">{formatTime(elapsed)}</span>
+        <span className="game-topbar__chrono">{formatTime(victory?.elapsedMs ?? elapsed)}</span>
         <span className="game-topbar__badge">{difficultyLabel}</span>
       </div>
 
@@ -89,15 +97,21 @@ export function GameScreen({
       </div>
 
       <div className="game-screen-controls">
-        {lastError && <ErrorBanner message={lastError} onDismiss={onDismissError} />}
-        <MoveInput
-          key={`${game.edges.length}-${inputResetKey}`}
-          sport={sport}
-          difficulty={game.difficulty}
-          alreadyInGraph={alreadyInGraph}
-          submitting={submitting}
-          onSubmit={onSubmit}
-        />
+        {victory ? (
+          victory.bar
+        ) : (
+          <>
+            {lastError && <ErrorBanner message={lastError} onDismiss={onDismissError} />}
+            <MoveInput
+              key={`${game.edges.length}-${inputResetKey}`}
+              sport={sport}
+              difficulty={game.difficulty}
+              alreadyInGraph={alreadyInGraph}
+              submitting={submitting}
+              onSubmit={onSubmit}
+            />
+          </>
+        )}
       </div>
     </div>
   )

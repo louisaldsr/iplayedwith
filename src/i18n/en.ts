@@ -125,6 +125,9 @@ const en = {
     moves: 'Moves',
     time: 'Time',
     playAgain: 'Play Again',
+    viewBoard: 'See the board',
+    results: 'Results',
+    chainComplete: (links: number) => `Chain complete — ${links} ${links === 1 ? 'link' : 'links'}`,
   },
 }
 

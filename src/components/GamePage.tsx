@@ -1,6 +1,7 @@
 'use client'
 
-import { useReducer, useRef, useCallback, useEffect } from 'react'
+import Link from 'next/link'
+import { useReducer, useRef, useCallback, useEffect, useMemo, useState } from 'react'
 import { Game, DifficultyLevel } from '../game/game'
 import { Player } from '../domain/player'
 import { Club } from '../domain/club'
@@ -11,12 +12,15 @@ import { UserInput } from '../game/userInput'
 import { useTranslations } from '../i18n'
 import { SetupScreen } from './setup/SetupScreen'
 import { GameScreen } from './game/GameScreen'
-import { VictoryScreen } from './victory/VictoryScreen'
+import { VictoryDialog } from './victory/VictoryDialog'
 import { DailyIntro } from './daily/DailyIntro'
 import { DailyFinished } from './daily/DailyFinished'
-import { DailyOutcome, readDailyRecord, saveDailyRecord } from '../lib/dailyProgress'
+import { DailyBoard, DailyOutcome, readDailyRecord, saveDailyRecord } from '../lib/dailyProgress'
 
-/** `finished`: a daily already over — lost in this session, or won or lost earlier today. */
+/**
+ * `victory`: the won board stays on screen, results in a pop-up over it.
+ * `finished`: a daily over without a board to show — lost, or won before boards were kept.
+ */
 type Phase = 'setup' | 'playing' | 'victory' | 'finished'
 
 type UIState = {
@@ -39,6 +43,10 @@ type UIState = {
   rejectedCount: number
   /** How a finished daily ended. */
   outcome: DailyOutcome | null
+  /** When the winning move landed — freezes the clock and the time shown in the results. */
+  finishedAt: Date | null
+  /** The results pop-up over a won board; closed, the board stays to be looked at. */
+  resultsOpen: boolean
 }
 
 type Action =
@@ -47,23 +55,79 @@ type Action =
   | { type: 'SET_DIFFICULTY'; difficulty: DifficultyLevel }
   | { type: 'START_GAME'; game: Game; players: Player[] }
   | { type: 'SUBMIT_PENDING' }
-  | { type: 'SUBMIT_INPUT'; result: RemoteInputResult; message: string }
+  | { type: 'SUBMIT_INPUT'; result: RemoteInputResult; message: string; at: Date }
   | { type: 'DISMISS_ERROR' }
+  | { type: 'SHOW_RESULTS'; open: boolean }
   | { type: 'PLAY_AGAIN' }
 
-/**
- * Free play starts on its setup screen. A daily starts where this browser left it today: with the
- * lives already lost, or straight on the finished screen if the day is over — reloading must
- * neither refill lives nor replay a lost day.
- */
-function initState(mode: GameMode): UIState {
-  const base = freshState()
-  if (mode.kind !== 'daily') return base
+/** Where a daily stands in this browser today, read once on mount. Null in free play. */
+type DailyStart = {
+  livesLeft: number
+  outcome: DailyOutcome | null
+  /** The engine rebuilt from the saved board: a day launched and still going, or won. */
+  engine: RemoteEngine | null
+  moveCount: number
+  finishedAt: Date | null
+}
 
-  const { sport, day } = mode.challenge
+function readDailyStart(mode: GameMode): DailyStart | null {
+  if (mode.kind !== 'daily') return null
+  const { sport, day, playerA, playerB } = mode.challenge
   const record = readDailyRecord(sport, day)
   const outcome = record.outcome ?? (record.livesLeft === 0 ? 'lost' : null)
-  return { ...base, lives: record.livesLeft, outcome, phase: outcome ? 'finished' : 'setup' }
+  // A won board comes back to be looked at again; a lost day only has its result screen.
+  const board = outcome === 'lost' || (outcome === 'won' && !record.board?.path?.length) ? undefined : record.board
+  const engine = board
+    ? createRemoteEngine(sport, playerA, playerB, 'easy', { ...board, startedAt: new Date(board.startedAt) })
+    : null
+  return {
+    livesLeft: record.livesLeft,
+    outcome,
+    engine,
+    moveCount: board?.moveCount ?? 0,
+    finishedAt: board?.finishedAt ? new Date(board.finishedAt) : null,
+  }
+}
+
+/**
+ * Free play starts on its setup screen. A daily starts where this browser left it today: on the
+ * board as it was, with the lives already lost; on the winning board, results closed; or on the
+ * finished screen of a lost day — leaving and coming back must neither refill lives, replay a lost
+ * day, nor lose the board.
+ */
+function initState(start: DailyStart | null): UIState {
+  const base = freshState()
+  if (!start) return base
+
+  const { livesLeft: lives, outcome, engine, moveCount, finishedAt } = start
+  if (!engine) return outcome ? { ...base, lives, outcome, phase: 'finished' } : { ...base, lives }
+  return {
+    ...base,
+    lives,
+    outcome,
+    finishedAt,
+    phase: outcome === 'won' ? 'victory' : 'playing',
+    game: { ...engine.game },
+    players: [...engine.players],
+    clubs: [...engine.clubs],
+    moveCount,
+  }
+}
+
+/** What the daily keeps of its board: the game in progress, or the winning board. */
+type BoardState = Pick<UIState, 'phase' | 'game' | 'players' | 'clubs' | 'moveCount' | 'finishedAt'>
+
+function boardOf({ phase, game, players, clubs, moveCount, finishedAt }: BoardState): DailyBoard | undefined {
+  if ((phase !== 'playing' && phase !== 'victory') || !game) return undefined
+  return {
+    nodes: [...game.nodes.values()],
+    edges: game.edges,
+    players,
+    clubs,
+    moveCount,
+    startedAt: game.startedAt.toISOString(),
+    ...(phase === 'victory' && { path: game.path, finishedAt: (finishedAt ?? new Date()).toISOString() }),
+  }
 }
 
 function freshState(): UIState {
@@ -82,6 +146,8 @@ function freshState(): UIState {
     lifeLostCount: 0,
     rejectedCount: 0,
     outcome: null,
+    finishedAt: null,
+    resultsOpen: false,
   }
 }
 
@@ -143,11 +209,16 @@ function reducer(state: UIState, action: Action): UIState {
         lastError: null,
         phase: isVictory ? 'victory' : 'playing',
         outcome: isVictory && state.lives !== null ? 'won' : state.outcome,
+        finishedAt: isVictory ? action.at : null,
+        resultsOpen: isVictory,
       }
     }
 
     case 'DISMISS_ERROR':
       return { ...state, lastError: null }
+
+    case 'SHOW_RESULTS':
+      return { ...state, resultsOpen: action.open }
 
     case 'PLAY_AGAIN':
       return freshState()
@@ -179,17 +250,24 @@ type Props = {
  */
 export function GamePage({ sport, mode = FREE_PLAY }: Props) {
   const t = useTranslations()
-  const [state, dispatch] = useReducer(reducer, mode, initState)
-  const engineRef = useRef<RemoteEngine | null>(null)
+  const [dailyStart] = useState(() => readDailyStart(mode))
+  const [state, dispatch] = useReducer(reducer, dailyStart, initState)
+  const engineRef = useRef<RemoteEngine | null>(dailyStart?.engine ?? null)
 
   const daily = mode.kind === 'daily' ? mode.challenge : null
 
-  // The day's progress is saved on every change, so a reload resumes it: the lives left, and how
-  // it ended — which the menu also reads to colour the sport.
+  // The day's progress is saved on every change, so leaving and coming back resumes it: the board
+  // from the first "Start", the lives left, and how it ended — which the menu also reads to colour
+  // the sport.
+  const { phase, game, players, clubs, moveCount, finishedAt } = state
+  const board = useMemo(
+    () => (daily ? boardOf({ phase, game, players, clubs, moveCount, finishedAt }) : undefined),
+    [daily, phase, game, players, clubs, moveCount, finishedAt],
+  )
   useEffect(() => {
     if (!daily || state.lives === null) return
-    saveDailyRecord(daily.sport, daily.day, { livesLeft: state.lives, outcome: state.outcome ?? undefined })
-  }, [daily, state.lives, state.outcome])
+    saveDailyRecord(daily.sport, daily.day, { livesLeft: state.lives, outcome: state.outcome ?? undefined, board })
+  }, [daily, state.lives, state.outcome, board])
 
   const handleStart = useCallback(() => {
     const playerA = daily ? daily.playerA : state.playerA
@@ -212,7 +290,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
       const result = await engine.addInput(input)
       // Shown in the player's language: the server's reason is French, its code is not.
       const message = result.ok ? '' : result.code ? t.game.rejections[result.code] : t.game.moveFailed
-      dispatch({ type: 'SUBMIT_INPUT', result, message })
+      dispatch({ type: 'SUBMIT_INPUT', result, message, at: new Date() })
     },
     [t],
   )
@@ -221,6 +299,38 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
     engineRef.current = null
     dispatch({ type: 'PLAY_AGAIN' })
   }, [])
+
+  const closeResults = useCallback(() => dispatch({ type: 'SHOW_RESULTS', open: false }), [])
+
+  // A won game keeps its board on screen: the results open over it, and this bar replaces the
+  // move input to reopen them or move on.
+  const victory =
+    state.phase === 'victory' && state.game
+      ? { elapsedMs: (state.finishedAt ?? new Date()).getTime() - state.game.startedAt.getTime() }
+      : null
+  const freePlayHref = daily ? `/${sport}/free` : undefined
+  const wonBar = victory && state.game && (
+    <div className="won-bar">
+      <span className="won-bar__title">
+        <span aria-hidden="true">🏆 </span>
+        {t.victory.chainComplete(state.game.path.length - 1)}
+      </span>
+      <div className="won-bar__actions">
+        <button type="button" className="btn btn--ghost" onClick={() => dispatch({ type: 'SHOW_RESULTS', open: true })}>
+          {t.victory.results}
+        </button>
+        {daily ? (
+          <Link href={freePlayHref!} className="btn btn--primary">
+            {t.daily.freePlay}
+          </Link>
+        ) : (
+          <button type="button" className="btn btn--primary" onClick={handlePlayAgain}>
+            {t.victory.playAgain}
+          </button>
+        )}
+      </div>
+    </div>
+  )
 
   return (
     <div className="game-page">
@@ -239,7 +349,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
         />
       )}
 
-      {state.phase === 'playing' && state.game && (
+      {(state.phase === 'playing' || state.phase === 'victory') && state.game && (
         <GameScreen
           game={state.game}
           sport={sport}
@@ -253,6 +363,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
             state.lives === null ? undefined : { left: state.lives, total: DAILY_LIVES, lostCount: state.lifeLostCount }
           }
           inputResetKey={state.rejectedCount}
+          victory={victory ? { elapsedMs: victory.elapsedMs, bar: wonBar } : undefined}
         />
       )}
 
@@ -263,15 +374,18 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
       {/* Outside the game screen, so the flash of the last life still plays over the game-over one. */}
       {state.lifeLostCount > 0 && <div key={state.lifeLostCount} className="life-flash" aria-hidden="true" />}
 
-      {state.phase === 'victory' && state.game && (
-        <VictoryScreen
+      {victory && state.game && (
+        <VictoryDialog
+          open={state.resultsOpen}
+          onClose={closeResults}
           game={state.game}
           players={state.players}
           moveCount={state.moveCount}
+          elapsedMs={victory.elapsedMs}
           optimalLinks={daily?.optimalLinks}
           lives={state.lives === null ? undefined : { left: state.lives, total: DAILY_LIVES }}
           onPlayAgain={daily ? undefined : handlePlayAgain}
-          freePlayHref={daily ? `/${sport}/free` : undefined}
+          freePlayHref={freePlayHref}
         />
       )}
     </div>

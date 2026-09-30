@@ -38,6 +38,10 @@
   --error: #f87171;
   --error-bg: rgba(248, 113, 113, 0.1);
   --success: #4ade80;
+  --win-gold: #ffd66b;
+  --win-gold-text: #ffe39a;
+  --win-tint: #2a2416;
+  --win-glow: rgba(255, 200, 90, 0.35);
 
   --node-width: 160px;
   --node-height: 90px;
@@ -1469,6 +1473,85 @@ body {
   }
 }
 
+/* ─── Won board ─────────────────────────────────────────────
+   Once A and B are connected the board stays on screen and the winning chain takes the light:
+   its cards get a gold holographic border with a gloss sweeping across — the unsung shimmer, in
+   gold — and pop in one after another from A (--path-step); its links flow; everything else
+   steps back. The fame badge stays, so a find along the chain still shows its floor. */
+.game-board--won .node-card:not(.node-card--highlighted) {
+  opacity: 0.4;
+}
+.game-board--won .graph-edge:not(.graph-edge--path) {
+  opacity: 0.15;
+}
+
+.game-board--won .node-card--highlighted {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.22) 50%, transparent 60%) padding-box,
+    linear-gradient(var(--win-tint), var(--win-tint)) padding-box,
+    linear-gradient(120deg, #ffd66b, #fff4cc, #ffb547, #5fe3d0, #9d7bff, #ffd66b) border-box;
+  background-size:
+    250% 100%,
+    100% 100%,
+    300% 300%;
+  box-shadow:
+    0 0 0 2px rgba(255, 214, 107, 0.3),
+    0 0 26px var(--win-glow);
+  animation:
+    win-pop 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) both,
+    win-shine 3.5s linear infinite;
+  animation-delay: calc(var(--path-step, 0) * 180ms), calc(var(--path-step, 0) * 180ms + 0.5s);
+}
+
+.game-board--won .graph-edge--path {
+  stroke: var(--win-gold);
+  stroke-width: 3;
+  stroke-dasharray: 10 8;
+  filter: drop-shadow(0 0 4px var(--win-glow));
+  animation: win-flow 0.9s linear infinite;
+}
+
+@keyframes win-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes win-shine {
+  from {
+    background-position:
+      130% 0,
+      0 0,
+      0% 50%;
+  }
+  to {
+    background-position:
+      -130% 0,
+      0 0,
+      300% 50%;
+  }
+}
+
+@keyframes win-flow {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-board--won .node-card--highlighted,
+  .game-board--won .graph-edge--path {
+    animation: none;
+  }
+}
+
 .node-card__avatar {
   width: 28px;
   height: 28px;
@@ -1734,18 +1817,85 @@ body {
   opacity: 1;
 }
 
-/* ─── Victory screen ────────────────────────────────────── */
-.victory-screen {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 32px;
-  padding: 48px 24px;
+/* ─── Victory pop-up ────────────────────────────────────── */
+/* Opens over the won board; closing it leaves the board, so the chain can be enjoyed. */
+.victory-dialog {
   text-align: center;
+  width: min(620px, calc(100vw - 32px));
+}
+.victory-dialog[open] {
+  animation: victory-pop 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+.victory-dialog .modal__body {
+  align-items: center;
+  gap: 24px;
 }
 
-.victory-screen__heading {
-  font-size: 2.5rem;
+.victory-dialog__trophy {
+  font-size: 3rem;
+  line-height: 1;
+  animation: trophy-bounce 0.9s 0.2s ease-out both;
+}
+
+.victory-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+@keyframes victory-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes trophy-bounce {
+  0% {
+    transform: scale(0) rotate(-20deg);
+  }
+  60% {
+    transform: scale(1.25) rotate(8deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .victory-dialog[open],
+  .victory-dialog__trophy {
+    animation: none;
+  }
+}
+
+/* ─── Won bar: replaces the move input under a won board ─── */
+.won-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 20px;
+  width: 100%;
+}
+
+.won-bar__title {
+  font-weight: 700;
+  color: var(--win-gold-text);
+}
+
+.won-bar__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.victory-dialog__heading {
+  font-size: 2.25rem;
   font-weight: 800;
   background: linear-gradient(135deg, var(--success), var(--accent));
   -webkit-background-clip: text;

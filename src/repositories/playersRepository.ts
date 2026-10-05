@@ -3,6 +3,7 @@ import { PlayerId } from '@/domain/ids'
 import { Player } from '@/domain/player'
 import { SportId } from '@/domain/sport'
 import { Nationality } from '@/domain/nationality'
+import { FameBand } from '@/domain/drawFameBand'
 import { FameDetails, ImportedFameDetails, parseFameDetails } from '@/domain/fame'
 import { fetchAllRows } from '@/lib/supabasePagination'
 
@@ -46,17 +47,72 @@ export async function findRandom(db: SupabaseClient, sport: SportId, excludeId?:
   if (countError) throw new Error(countError.message)
   if (!count) return null
 
-  const pick = async (offset: number): Promise<Player | null> => {
-    const { data, error } = await db
-      .from('players')
-      .select('id, name, sport, nationality')
-      .eq('sport', sport)
-      .order('id')
-      .range(offset, offset)
-    if (error) throw new Error(error.message)
-    return data?.[0] ? toPlayer(data[0]) : null
-  }
+  return pickByOffset(
+    count,
+    async (offset) => {
+      const { data, error } = await db
+        .from('players')
+        .select('id, name, sport, nationality')
+        .eq('sport', sport)
+        .order('id')
+        .range(offset, offset)
+      if (error) throw new Error(error.message)
+      return data?.[0] ? toPlayer(data[0]) : null
+    },
+    excludeId,
+  )
+}
 
+/**
+ * A uniformly random player among those whose fame score lies in `band` (inclusive), by the
+ * same offset pick as `findRandom`, read from `player_fame` — its (sport, score) index exists
+ * for this.
+ *
+ * Null when the band holds fewer than 2 players (scores not computed yet): one player cannot
+ * fill both slots of a game, so the caller falls back to `findRandom` rather than serve the
+ * same name every time.
+ */
+export async function findRandomInFameBand(
+  db: SupabaseClient,
+  sport: SportId,
+  band: FameBand,
+  excludeId?: PlayerId,
+): Promise<Player | null> {
+  const { count, error: countError } = await db
+    .from('player_fame')
+    .select('player_id', { count: 'exact', head: true })
+    .eq('sport', sport)
+    .gte('score', band.min)
+    .lte('score', band.max)
+  if (countError) throw new Error(countError.message)
+  if (!count || count < 2) return null
+
+  return pickByOffset(
+    count,
+    async (offset) => {
+      const { data, error } = await db
+        .from('player_fame')
+        .select('players(id, name, sport, nationality)')
+        .eq('sport', sport)
+        .gte('score', band.min)
+        .lte('score', band.max)
+        .order('player_id')
+        .range(offset, offset)
+      if (error) throw new Error(error.message)
+      // Many-to-one through the (player_id, sport) FK: PostgREST embeds an object. Without
+      // generated types supabase-js cannot know that and types every embed as an array.
+      const row = data?.[0] as unknown as { players: PlayerRow | null } | undefined
+      return row?.players ? toPlayer(row.players) : null
+    },
+    excludeId,
+  )
+}
+
+async function pickByOffset(
+  count: number,
+  pick: (offset: number) => Promise<Player | null>,
+  excludeId?: PlayerId,
+): Promise<Player | null> {
   const offset = Math.floor(Math.random() * count)
   const player = await pick(offset)
 

@@ -2,8 +2,9 @@
  * Fame floors — the coarse grouping the game actually reads, instead of the raw 0..100 score.
  *
  * A user cannot tell a 47 from a 52, and neither can the score: it orders the top imprecisely
- * (see docs/spikes/fame.md) but groups well. So the game — points today, the random draw and the
- * daily challenge later — reads a player's floor, never their score.
+ * (see docs/spikes/fame.md) but groups well. So what the game shows — the card styles, points
+ * later — reads a player's floor, never their score. The random draw is the one exception: it
+ * reads a score band straddling two floors (drawFameBand.ts), and never shows it.
  *
  * The thresholds are ABSOLUTE, not percentiles, for the same reasons the score is: a player's
  * floor depends on their own career only, so importing other players never moves it, and the

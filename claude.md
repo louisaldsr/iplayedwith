@@ -590,6 +590,25 @@ absolue vient de l'URL de production Vercel, faute de `metadataBase`.
 
 ---
 
+## ✅ Bloc 16 terminé — Tirage dans une bande de fame (60–80)
+
+Tiré uniformément, un nouveau joueur tombait sur deux inconnus (⅔ du rugby et ⅘ du football sont
+`unsung`). Le tirage vise désormais **juste sous les stars** : des noms qu'on a pu entendre, sans
+les quelques célébrités dont tout le monde trouve la chaîne. `DRAW_FAME_BAND = { min: 60, max: 80 }`
+(`src/domain/drawFameBand.ts`) — mesuré en revision 2 : **427** joueurs rugby, **787** football.
+
+- **Une bande de score, pas un palier** : elle chevauche le haut de `known` et le bas de `famous`.
+  Jamais affichée.
+- **« Aléatoire » en partie libre** : `findRandomInFameBand` (lit `player_fame`, index
+  `(sport, score)`), repli sur `findRandom` uniforme si la bande a moins de 2 joueurs.
+- **Défi du jour** : `019_daily_fame_band.sql` remplace `generate_daily_challenge` — passe 1 dans
+  la bande (joueurs avec membership), passe 2 sur tout le sport si la bande ne donne pas de paire
+  en 20 essais. Toujours ≥ 2 liens. Les jours déjà tirés restent figés ; celui de **demain** est
+  déjà tiré à l'application — le retirer (contrôles en bas du fichier).
+- ⚠️ La bande est écrite **deux fois** (TS + constantes SQL) : les changer ensemble.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -649,8 +668,8 @@ Saisie user
     fermé à anon) — et noter le temps réel du BFS sur les vraies données
 18. ~~Identité du joueur (anonyme d'abord), résultats du défi vérifiés côté serveur~~, ~~classement
     du jour (côté serveur)~~ ; reste : stats perso, empêcher de rejouer le défi
-19. Tirage du défi pondéré par la fame (`player_fame.score`, v1), une fois `012` appliqué et le
-    top/bottom 30 validé
+19. ~~Tirage du défi par la fame~~ (bande 60–80, Bloc 16) ; reste : appliquer `019_daily_fame_band.sql`
+    et retirer le défi de demain (contrôles en bas du fichier)
 20. ~~Accueil : détection de première visite + pop-up des règles~~
 21. ~~Menu principal + page À propos~~
 22. Formulaire de contact ; dons (plateforme à choisir) ; plateau lisible sur mobile (A et B se

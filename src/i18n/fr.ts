@@ -57,21 +57,27 @@ const fr: Translations = {
   rules: {
     openLabel: 'Comment jouer',
     title: 'Comment jouer',
-    goalTitle: 'Le but',
-    goal: 'Reliez le joueur A au joueur B par leurs coéquipiers. Deux joueurs sont liés s’ils ont joué dans le même club, la même saison.',
-    howTitle: 'À chaque coup',
-    how: 'Ajoutez les joueurs un par un. Chaque nouveau joueur doit avoir partagé un club et une saison avec un joueur déjà sur le plateau. La partie est gagnée dès qu’une chaîne relie A à B.',
-    easy: 'saisissez un joueur ; le club et la saison en commun sont trouvés pour vous.',
-    hard: 'indiquez vous-même le joueur, le club et la saison.',
-    dailyTitle: 'Défi du jour',
-    daily:
-      'Chaque jour, chaque sport a sa paire — la même pour tout le monde, renouvelée à minuit (heure de Paris). « Meilleur possible » est la longueur de la chaîne la plus courte.',
-    lives:
-      'Vous avez 3 vies : chaque joueur ajouté qui ne partage aucun club ni aucune saison avec quelqu’un du plateau en coûte une. À zéro, la partie du jour est terminée.',
-    freePlay: 'En partie libre, vous choisissez les deux joueurs et la difficulté, sans vies.',
-    cardsTitle: 'Cartes joueurs',
-    cards:
-      'Le badge d’une carte indique à quel point le joueur est connu. Moins il l’est, plus la trouvaille est rare. Bloqué ? Touchez une carte pour voir la carrière du joueur, club par club.',
+    demo: {
+      captions: {
+        goal: 'Deux joueurs sont tirés au sort. Reliez-les par leurs coéquipiers.',
+        move: 'Citez un joueur qui a partagé un club et une saison avec quelqu’un du plateau.',
+        miss: 'Aucun club ni saison en commun ? Vous perdez une vie. Vous en avez 3.',
+        win: 'Atteignez l’autre joueur : la chaîne est complète, c’est gagné !',
+      },
+      linked: (teammate: string, club: string, season: string) => `Avec ${teammate} — ${club}, ${season}`,
+      step: (n: number, total: number) => `Étape ${n} sur ${total}`,
+      play: 'Lancer la démo',
+      pause: 'Mettre la démo en pause',
+    },
+    notes: {
+      dailyTitle: 'Défi du jour',
+      daily: 'une paire par jour, la même pour tout le monde. Nouvelle à minuit (heure de Paris).',
+      stuckTitle: 'Bloqué ?',
+      stuck: 'Touchez une carte pour voir la carrière du joueur, club par club.',
+      fame: 'Moins le joueur est connu, plus la trouvaille est rare.',
+      freePlayTitle: 'Partie libre',
+      freePlay: 'choisissez vos joueurs, sans vies. En mode Difficile, indiquez aussi le club et la saison.',
+    },
     cta: 'C’est parti',
   },
   daily: {

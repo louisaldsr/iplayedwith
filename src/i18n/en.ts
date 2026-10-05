@@ -58,21 +58,27 @@ const en = {
   rules: {
     openLabel: 'How to play',
     title: 'How to play',
-    goalTitle: 'The goal',
-    goal: 'Connect player A to player B through teammates. Two players are linked when they played for the same club in the same season.',
-    howTitle: 'Each move',
-    how: 'Add players one at a time. Each new player must have shared a club and a season with a player already on the board. The game is won as soon as a chain links A to B.',
-    easy: 'type a player; the club and season you share are found for you.',
-    hard: 'give the player, the club and the season yourself.',
-    dailyTitle: 'Daily challenge',
-    daily:
-      'Every day, each sport gets one pair — the same for everyone, new at midnight (Paris time). "Best possible" is the length of the shortest chain.',
-    lives:
-      'You have 3 lives: each player you add who shares no club and season with anyone on the board costs one. Lose all three and the day is over.',
-    freePlay: 'In free play, you pick both players and the difficulty, with no lives.',
-    cardsTitle: 'Player cards',
-    cards:
-      "The badge on a card shows how well known the player is. The less known, the rarer the find. Stuck? Tap a card to see the player's career, club by club.",
+    demo: {
+      captions: {
+        goal: 'Two players are drawn. Link them through their teammates.',
+        move: 'Name a player who shared a club and a season with someone on the board.',
+        miss: 'No club and season in common? That costs a life. You have 3.',
+        win: 'Reach the other player and the chain is complete. You win!',
+      },
+      linked: (teammate: string, club: string, season: string) => `With ${teammate} — ${club}, ${season}`,
+      step: (n: number, total: number) => `Step ${n} of ${total}`,
+      play: 'Play the demo',
+      pause: 'Pause the demo',
+    },
+    notes: {
+      dailyTitle: 'Daily challenge',
+      daily: 'one pair a day, the same for everyone. New at midnight (Paris time).',
+      stuckTitle: 'Stuck?',
+      stuck: "Tap a card to see the player's career, club by club.",
+      fame: 'The less known the player, the rarer the find.',
+      freePlayTitle: 'Free play',
+      freePlay: 'pick your own players, no lives. In Hard mode, you also name the club and the season.',
+    },
     cta: "Let's play",
   },
   daily: {

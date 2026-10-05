@@ -427,38 +427,345 @@ body {
   font-weight: 800;
 }
 
-.rules-dialog__section {
+.rules-dialog .modal__body {
+  gap: 16px;
+}
+
+.rules-dialog__notes {
+  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: 0.9rem;
-  line-height: 1.5;
+  gap: 10px;
+  font-size: 0.85rem;
+  line-height: 1.45;
   color: var(--text-muted);
 }
 
-.rules-dialog__section h3 {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-hover);
-}
-
-.rules-dialog__section ul {
+.rules-dialog__notes li {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-left: 18px;
+  align-items: flex-start;
+  gap: 10px;
 }
 
-.rules-dialog__section strong {
+.rules-dialog__notes strong {
   color: var(--text-primary);
 }
 
+.rules-dialog__icon {
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+  font-size: 0.95rem;
+  line-height: 1.3;
+  color: var(--accent-hover);
+}
+
+.rules-dialog__icon--heart .heart__svg {
+  width: 18px;
+  height: 18px;
+  filter: none;
+}
+
 .rules-dialog__floors {
-  display: flex;
-  gap: 10px;
+  display: inline-flex;
+  gap: 6px;
   flex-wrap: wrap;
+  vertical-align: middle;
+}
+
+/* ─── How-to-play demo ──────────────────────────────────────
+   A mini board playing a short game on a loop (RulesDemo). The cards are the board's own
+   (.node-card, fame floors, the won board's gold chain), scaled down to fit the dialog. */
+.rules-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Doubled class: .game-board comes later in this file and would set the height back to 100%. */
+.game-board.rules-demo__stage {
+  height: 220px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.rules-demo__stage .node-card {
+  width: 30%;
+  height: 26%;
+  padding: 4px 6px;
+  gap: 2px;
+  cursor: default;
+}
+
+.rules-demo__stage .node-card__avatar {
+  width: 20px;
+  height: 20px;
+}
+
+/* Two lines rather than an ellipsis: a cut name would defeat a demo about names. */
+.rules-demo__stage .node-card__label {
+  font-size: 0.68rem;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+@media (max-width: 480px) {
+  .rules-demo__stage .node-card__avatar {
+    display: none;
+  }
+}
+
+.rules-demo__card {
+  animation: rules-demo-pop 0.4s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+/* A move refused: the card shows up in red, shakes its head, and leaves. Doubled class: the
+   player card's colours come later in this file. */
+.node-card.rules-demo__card--miss {
+  border-color: var(--error);
+  background: #2a171c;
+  animation:
+    rules-demo-pop 0.4s cubic-bezier(0.3, 1.6, 0.5, 1) both,
+    rules-demo-shake 0.45s ease-in-out 0.4s;
+}
+
+/* An animation, not a transition: the pop's fill would otherwise hold the card at full opacity. */
+.rules-demo__card--gone {
+  animation: rules-demo-leave 0.35s ease-in forwards;
+}
+
+.rules-demo__edge {
+  animation: rules-demo-edge-in 0.5s ease-out both;
+}
+
+.rules-demo__hearts {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+.rules-demo__hearts .heart {
+  width: 22px;
+  height: 22px;
+}
+
+.rules-demo__input {
+  display: flex;
+  gap: 8px;
+}
+
+.rules-demo__field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.rules-demo__placeholder {
+  color: var(--text-muted);
+}
+
+.rules-demo__caret {
+  display: inline-block;
+  width: 1.5px;
+  height: 1.05em;
+  margin-left: 1px;
+  background: var(--text-primary);
+  animation: rules-demo-caret 1s steps(1) infinite;
+}
+
+.rules-demo__submit {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition:
+    transform 0.1s,
+    background 0.1s;
+}
+
+.rules-demo__submit--pressed {
+  transform: scale(0.94);
+  background: var(--accent-hover);
+}
+
+/* Reserves two lines: the winning move links to two teammates, and nothing below should jump. */
+.rules-demo__verdict {
+  display: flex;
+  flex-direction: column;
+  min-height: 2.8em;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.rules-demo__verdict--ok {
+  color: var(--success);
+}
+
+.rules-demo__verdict--miss {
+  color: var(--error);
+}
+
+/* Reserves two lines too: captions differ in length, the controls below stay put. */
+.rules-demo__caption {
+  min-height: 2.9em;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.rules-demo__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rules-demo__pause {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.rules-demo__pause:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.rules-demo__steps {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  list-style: none;
+}
+
+.rules-demo__steps li {
+  flex: 1;
+}
+
+/* A thin bar, inside a button tall enough to tap. */
+.rules-demo__step {
+  position: relative;
+  width: 100%;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.rules-demo__step::before,
+.rules-demo__step-fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: var(--radius-full);
+}
+
+.rules-demo__step::before {
+  content: '';
+  right: 0;
+  background: var(--border-subtle);
+}
+
+.rules-demo__step-fill {
+  background: var(--accent);
+}
+
+.rules-demo__step:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes rules-demo-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes rules-demo-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes rules-demo-edge-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rules-demo-leave {
+  to {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+@keyframes rules-demo-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Motion-sensitive users: the story still plays (it is a change of state, not a motion), but
+   cards appear and leave without popping, shaking or drawing in. */
+@media (prefers-reduced-motion: reduce) {
+  .rules-demo__card,
+  .node-card.rules-demo__card--miss,
+  .rules-demo__edge,
+  .rules-demo__caret {
+    animation: none;
+  }
+
+  .rules-demo__card--gone {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 /* The board's floor badge, out of its card: same colours (shared selectors under "Fame floors"),

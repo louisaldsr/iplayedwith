@@ -1,4 +1,5 @@
 import type { NameAdjective, NameNoun } from '../domain/visitorName'
+import type { UsernameProblem } from '../domain/username'
 
 const en = {
   home: {
@@ -23,6 +24,24 @@ const en = {
     stats: 'My stats',
     logIn: 'Log in',
     yourName: 'Your name in the rankings',
+    rename: {
+      open: 'Change your name',
+      label: 'New name',
+      rules: "3 to 20 characters: letters, digits, spaces and\u00a0.\u00a0_\u00a0'\u00a0-",
+      save: 'Save',
+      saving: 'Saving…',
+      cancel: 'Cancel',
+      problems: {
+        'too-short': 'A little short — at least 3 letters or digits.',
+        'too-long': 'A little long — 20 characters at most.',
+        characters: "Letters, digits, spaces and\u00a0.\u00a0_\u00a0'\u00a0- only.",
+      } satisfies Record<UsernameProblem, string>,
+      taken: (name: string) => `“${name}” is already on the team sheet.`,
+      tryInstead: 'Still free:',
+      tryAnother: 'Try another one?',
+      error: 'Could not save your name. Please try again.',
+      done: 'Name saved',
+    },
     doneToday: 'done today',
     lostToday: 'lost today',
     soon: 'Soon',

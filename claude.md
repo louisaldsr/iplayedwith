@@ -609,6 +609,55 @@ les quelques célébrités dont tout le monde trouve la chaîne. `DRAW_FAME_BAND
 
 ---
 
+## ✅ Bloc 17 terminé — Une seule colonne `username`
+
+`020_visitor_username.sql` remplace les trois colonnes de `018` par `visitors.username`, **unique**.
+Un nom généré y est stocké en **clés** séparées par `:` — `laidBack:playmaker:742` — et toujours lu
+dans la langue du lecteur : `formatUsername` (`src/domain/visitorName.ts`) le redécoupe
+(`generatedNameOf`) ; une valeur qui ne se découpe pas en clés connues est affichée **telle quelle**.
+C'est la place du futur pseudo libre, qui ne devra donc **jamais contenir `:`**.
+
+- Le serveur tire **les trois parties** (`randomVisitorName`) ; nom déjà pris → l'index unique
+  refuse, `ensureUsername` retire tout (5 essais). Plus de recherche de numéro libre en SQL.
+- **Unique une fois normalisé** (`search_normalize`, la règle de la recherche) : « Dupont »,
+  « dupont » et « Dupönt » sont un seul nom — personne ne se fait passer pour un autre à une
+  majuscule ou un accent près.
+- API : `POST /api/visitor` → `{ username }` ; cache `ipw.name` = `{ playerId, username }` (un cache
+  à l'ancien format est ignoré, le serveur renvoie le même nom). `daily_ranking` renvoie `username`.
+- ⚠️ Appliquer `020` et déployer **ensemble** : entre les deux, un nouveau visiteur n'a pas de nom
+  (logué, badge absent) — les résultats comptent quand même.
+
+---
+
+### Renommer depuis le menu
+
+**Sur place** : un clic sur le badge du menu (✎) le transforme en champ, nom présélectionné
+(`VisitorBadge`). Entrée **ou un clic ailleurs** enregistre ; Échap ou ✕ annule. Un nom refusé
+garde le champ ouvert avec la raison dans une bulle sous le badge. Laisser un nom généré tel
+qu'affiché ne change rien (il reste traduisible). Dans la barre du jeu, le nom est seulement affiché. `PATCH /api/visitor` `{ visitorId, username }` :
+
+| réponse | sens |
+|---|---|
+| 200 `{ username }` | renommé (nom nettoyé : espaces en trop retirés) |
+| 400 `{ error: 'invalid', problem }` | `too-short` · `too-long` · `characters` |
+| 409 `{ error: 'taken', suggestions }` | pris — jusqu'à 3 variantes **vérifiées libres** (« Dupont42 ») |
+
+- Règles (`parseTypedUsername`, `src/domain/username.ts`, partagé dialogue + serveur) : 3 à 20
+  caractères, **lettres latines** (accents compris), chiffres, espaces et `. _ ' -` ; au moins 3
+  lettres ou chiffres. Latin seul : l'unicité se juge sur la forme normalisée (a–z, 0–9), un nom
+  cyrillique s'y réduirait à ses chiffres. Jamais de `:`.
+- SQL : `rename_visitor` (`renamed` / `taken` / `unknown`), `free_usernames` ; `service_role` a
+  `UPDATE (username)` seulement.
+- Nom pris : badge ambré qui secoue la tête, bulle « déjà sur la feuille de match », suggestions
+  en un clic. Pas une erreur rouge — quelqu'un est juste arrivé avant.
+- ⚠️ **Pas encore de filtre de mots** : le nom n'est montré qu'à son propriétaire et dans
+  `daily:ranking`. Il faudra la liste noire (FR/EN, leetspeak) et les noms de vrais joueurs réservés
+  **avant** d'afficher le classement aux joueurs.
+- Qui connaît le `visitorId` d'un navigateur peut renommer ce visiteur — même modèle de confiance
+  que les résultats ; la vraie garantie viendra des comptes.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -697,3 +746,4 @@ Saisie user
 34. Carte de partage par défi (`/[sport]/opengraph-image`, « Défi du jour #N · Rugby ») ;
     `metadataBase` si le site sort de Vercel
 34. Appliquer `018_visitor_number.sql` (après `017`) et ses contrôles
+35. Appliquer `020_visitor_username.sql` (après `018`) en même temps que le déploiement, puis ses contrôles

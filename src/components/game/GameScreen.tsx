@@ -13,8 +13,8 @@ import { MoveInput } from './MoveInput'
 import { ErrorBanner } from './ErrorBanner'
 import { LivesBar } from './LivesBar'
 import { PlayerCareerDialog } from '../shared/PlayerCareerDialog'
-import { useVisitorName } from '../shared/useVisitorName'
-import { formatVisitorName } from '../../domain/visitorName'
+import { useUsername } from '../shared/useUsername'
+import { formatUsername } from '../../domain/visitorName'
 
 type Props = {
   game: Game
@@ -62,7 +62,7 @@ export function GameScreen({
 }: Props) {
   const t = useTranslations()
   const [careerOf, setCareerOf] = useState<Player | null>(null)
-  const visitorName = useVisitorName()
+  const { username } = useUsername()
   const openCareer = (player: Player) => {
     setCareerOf(player)
     onCareerOpened?.(player)
@@ -102,11 +102,11 @@ export function GameScreen({
         <span className="game-topbar__chrono">{formatTime(victory?.elapsedMs ?? elapsed)}</span>
         {/* One group on wide screens; on phones the name drops to a row of its own (see CSS). */}
         <div className="game-topbar__end">
-          {visitorName && (
+          {username && (
             <span className="game-topbar__visitor" title={t.menu.yourName}>
               <span aria-hidden="true">👤 </span>
               <span className="visually-hidden">{t.menu.yourName}: </span>
-              {formatVisitorName(visitorName, t.visitorNames)}
+              {formatUsername(username, t.visitorNames)}
             </span>
           )}
           <span className="game-topbar__badge">{difficultyLabel}</span>

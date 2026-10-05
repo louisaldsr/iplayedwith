@@ -619,7 +619,7 @@ C'est la place du futur pseudo libre, qui ne devra donc **jamais contenir `:`**.
 
 - Le serveur tire **les trois parties** (`randomVisitorName`) ; nom déjà pris → l'index unique
   refuse, `ensureUsername` retire tout (5 essais). Plus de recherche de numéro libre en SQL.
-- **Unique une fois normalisé** (`search_normalize`, la règle de la recherche) : « Dupont »,
+- **Unique une fois normalisé** (`search_normalize`, la règle de la recherche — index posé par `021`) : « Dupont »,
   « dupont » et « Dupönt » sont un seul nom — personne ne se fait passer pour un autre à une
   majuscule ou un accent près.
 - API : `POST /api/visitor` → `{ username }` ; cache `ipw.name` = `{ playerId, username }` (un cache
@@ -646,8 +646,9 @@ qu'affiché ne change rien (il reste traduisible). Dans la barre du jeu, le nom 
   caractères, **lettres latines** (accents compris), chiffres, espaces et `. _ ' -` ; au moins 3
   lettres ou chiffres. Latin seul : l'unicité se juge sur la forme normalisée (a–z, 0–9), un nom
   cyrillique s'y réduirait à ses chiffres. Jamais de `:`.
-- SQL : `rename_visitor` (`renamed` / `taken` / `unknown`), `free_usernames` ; `service_role` a
-  `UPDATE (username)` seulement.
+- SQL (`021_visitor_rename.sql`) : `rename_visitor` (`renamed` / `taken` / `unknown`),
+  `free_usernames` ; `service_role` a `UPDATE (username)` seulement. `020` a été appliqué **avant**
+  que le renommage y soit ajouté : tout ce que le renommage demande vit donc dans `021`.
 - Nom pris : badge ambré qui secoue la tête, bulle « déjà sur la feuille de match », suggestions
   en un clic. Pas une erreur rouge — quelqu'un est juste arrivé avant.
 - ⚠️ **Pas encore de filtre de mots** : le nom n'est montré qu'à son propriétaire et dans
@@ -746,4 +747,5 @@ Saisie user
 34. Carte de partage par défi (`/[sport]/opengraph-image`, « Défi du jour #N · Rugby ») ;
     `metadataBase` si le site sort de Vercel
 34. Appliquer `018_visitor_number.sql` (après `017`) et ses contrôles
-35. Appliquer `020_visitor_username.sql` (après `018`) en même temps que le déploiement, puis ses contrôles
+35. ~~Appliquer `020_visitor_username.sql`~~ ; appliquer `021_visitor_rename.sql` (le renommage
+    échoue en prod tant qu'il manque), puis ses contrôles

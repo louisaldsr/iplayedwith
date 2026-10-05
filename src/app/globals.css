@@ -140,6 +140,232 @@ body {
   white-space: nowrap;
 }
 
+/* On the menu the badge is a button: renaming lives there. */
+.visitor-badge--button {
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.visitor-badge--button:hover,
+.visitor-badge--button:focus-visible {
+  border-color: var(--accent);
+  background: var(--bg-elevated);
+}
+
+.visitor-badge__edit {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.visitor-badge--button:hover .visitor-badge__edit {
+  color: var(--accent-hover);
+}
+
+.visitor-badge--saved {
+  border-color: var(--success);
+  animation: badge-saved 0.6s ease-out;
+}
+
+@keyframes badge-saved {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ─── Renaming, in place ─── */
+/* The badge itself becomes the field; hints, refusals and suggestions sit in a bubble under it. */
+.visitor-badge--editing {
+  padding: 0 4px 0 12px;
+  gap: 6px;
+  border-color: var(--accent);
+  background: var(--bg-elevated);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.visitor-badge--invalid {
+  border-color: var(--error);
+  box-shadow: 0 0 0 3px var(--error-bg);
+}
+
+/* Taken: a warm amber and a little head-shake — not an error, just someone got there first. */
+.visitor-badge--taken {
+  border-color: var(--win-gold);
+  box-shadow: 0 0 0 3px rgba(255, 214, 107, 0.15);
+  animation: name-taken 0.4s ease-in-out;
+}
+
+@keyframes name-taken {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+.visitor-badge__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.visitor-badge__input::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.visitor-badge__count {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.visitor-badge__action {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.visitor-badge__action:hover:not(:disabled),
+.visitor-badge__action:focus-visible {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.visitor-badge__action--save {
+  background: var(--accent);
+  color: #fff;
+}
+
+.visitor-badge__action--save:hover:not(:disabled),
+.visitor-badge__action--save:focus-visible {
+  background: var(--accent-hover);
+  color: #fff;
+}
+
+.visitor-badge__action:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.visitor-badge__bubble {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(340px, calc(100vw - 24px));
+  padding: 10px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  font-size: 0.8rem;
+  font-weight: 500;
+  /* The menu centres its text; the bubble reads under the field, from its left edge. */
+  text-align: left;
+  animation: bubble-in 0.2s ease-out;
+}
+
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.visitor-badge__hint {
+  color: var(--text-muted);
+}
+
+.visitor-badge__problem {
+  color: var(--error);
+}
+
+.visitor-badge--taken .visitor-badge__bubble {
+  border-color: rgba(255, 214, 107, 0.35);
+  background: var(--win-tint);
+}
+
+.visitor-badge__taken {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--win-gold-text);
+}
+
+.visitor-badge__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.visitor-badge__suggestion {
+  padding: 5px 12px;
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.1s;
+}
+
+.visitor-badge__suggestion:hover,
+.visitor-badge__suggestion:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.visitor-badge__suggestion:active {
+  transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .visitor-badge--saved,
+  .visitor-badge--taken,
+  .visitor-badge__bubble {
+    animation: none;
+  }
+}
+
 .rules-button {
   position: fixed;
   top: 12px;

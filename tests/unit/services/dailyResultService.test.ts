@@ -1,7 +1,7 @@
 import { getDailyRanking, recordDailyHint, recordDailyMove, startDailyResult } from '@/services/dailyResultService'
 import * as dailyResultsRepo from '@/repositories/dailyResultsRepository'
 import * as visitorsRepo from '@/repositories/visitorsRepository'
-import { NAME_ADJECTIVES, NAME_NOUNS } from '@/domain/visitorName'
+import { generatedNameOf } from '@/domain/visitorName'
 import { ChallengeDay, DAILY_LIVES } from '@/domain/dailyChallenge'
 import { VisitorId } from '@/domain/dailyResult'
 import { PlayerId } from '@/domain/ids'
@@ -28,7 +28,7 @@ const accepted = (victory: boolean): MoveResult => ({
   path: victory ? [PlayerId('p-a'), PlayerId('p-c'), PlayerId('p-b')] : [],
 })
 
-beforeEach(() => visitors.ensure.mockResolvedValue({ adjective: 'hasty', noun: 'prop', number: 42 }))
+beforeEach(() => visitors.ensure.mockResolvedValue('hasty:prop:042'))
 
 afterEach(() => {
   jest.clearAllMocks()
@@ -43,10 +43,9 @@ describe('startDailyResult', () => {
 
   it('gives the visitor a generated name on the way', async () => {
     await startDailyResult(db, 'rugby', ChallengeDay('2026-07-16'), visitorId, now)
-    const [, id, name] = visitors.ensure.mock.calls[0]
+    const [, id, username] = visitors.ensure.mock.calls[0]
     expect(id).toBe(visitorId)
-    expect(NAME_ADJECTIVES).toContain(name.adjective)
-    expect(NAME_NOUNS).toContain(name.noun)
+    expect(generatedNameOf(username)).not.toBeNull()
   })
 
   it('still starts when the name cannot be created — the result matters more', async () => {
@@ -114,7 +113,7 @@ describe('getDailyRanking', () => {
     const entry = {
       rank: 1,
       visitorId,
-      name: { adjective: 'hasty' as const, noun: 'prop' as const, number: 42 },
+      username: 'hasty:prop:042',
       attempts: 2,
       durationMs: 61_000,
       livesLost: 0,

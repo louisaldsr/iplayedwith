@@ -1,7 +1,7 @@
 import { isSportId, SPORTS } from '@/domain/sport'
 import { ChallengeDay, challengeDayOf } from '@/domain/dailyChallenge'
 import { getDailyRanking } from '@/services/dailyResultService'
-import { formatVisitorName } from '@/domain/visitorName'
+import { formatUsername } from '@/domain/visitorName'
 import en from '@/i18n/en'
 import fr from '@/i18n/fr'
 import { getDb } from './env'
@@ -43,7 +43,7 @@ async function main() {
     console.log(
       [
         String(r.rank).padStart(4),
-        (r.name ? formatVisitorName(r.name, labels) : '—').padEnd(NAME_WIDTH),
+        (r.username ? formatUsername(r.username, labels) : '—').padEnd(NAME_WIDTH),
         r.visitorId.slice(0, 8),
         String(r.attempts).padStart(8),
         formatDuration(r.durationMs).padStart(8),

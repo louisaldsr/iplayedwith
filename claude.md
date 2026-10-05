@@ -590,6 +590,74 @@ absolue vient de l'URL de production Vercel, faute de `metadataBase`.
 
 ---
 
+## ✅ Bloc 16 terminé — Tirage dans une bande de fame (60–80)
+
+Tiré uniformément, un nouveau joueur tombait sur deux inconnus (⅔ du rugby et ⅘ du football sont
+`unsung`). Le tirage vise désormais **juste sous les stars** : des noms qu'on a pu entendre, sans
+les quelques célébrités dont tout le monde trouve la chaîne. `DRAW_FAME_BAND = { min: 60, max: 80 }`
+(`src/domain/drawFameBand.ts`) — mesuré en revision 2 : **427** joueurs rugby, **787** football.
+
+- **Une bande de score, pas un palier** : elle chevauche le haut de `known` et le bas de `famous`.
+  Jamais affichée.
+- **« Aléatoire » en partie libre** : `findRandomInFameBand` (lit `player_fame`, index
+  `(sport, score)`), repli sur `findRandom` uniforme si la bande a moins de 2 joueurs.
+- **Défi du jour** : `019_daily_fame_band.sql` remplace `generate_daily_challenge` — passe 1 dans
+  la bande (joueurs avec membership), passe 2 sur tout le sport si la bande ne donne pas de paire
+  en 20 essais. Toujours ≥ 2 liens. Les jours déjà tirés restent figés ; celui de **demain** est
+  déjà tiré à l'application — le retirer (contrôles en bas du fichier).
+- ⚠️ La bande est écrite **deux fois** (TS + constantes SQL) : les changer ensemble.
+
+---
+
+## ✅ Bloc 17 terminé — Une seule colonne `username`
+
+`020_visitor_username.sql` remplace les trois colonnes de `018` par `visitors.username`, **unique**.
+Un nom généré y est stocké en **clés** séparées par `:` — `laidBack:playmaker:742` — et toujours lu
+dans la langue du lecteur : `formatUsername` (`src/domain/visitorName.ts`) le redécoupe
+(`generatedNameOf`) ; une valeur qui ne se découpe pas en clés connues est affichée **telle quelle**.
+C'est la place du futur pseudo libre, qui ne devra donc **jamais contenir `:`**.
+
+- Le serveur tire **les trois parties** (`randomVisitorName`) ; nom déjà pris → l'index unique
+  refuse, `ensureUsername` retire tout (5 essais). Plus de recherche de numéro libre en SQL.
+- **Unique une fois normalisé** (`search_normalize`, la règle de la recherche) : « Dupont »,
+  « dupont » et « Dupönt » sont un seul nom — personne ne se fait passer pour un autre à une
+  majuscule ou un accent près.
+- API : `POST /api/visitor` → `{ username }` ; cache `ipw.name` = `{ playerId, username }` (un cache
+  à l'ancien format est ignoré, le serveur renvoie le même nom). `daily_ranking` renvoie `username`.
+- ⚠️ Appliquer `020` et déployer **ensemble** : entre les deux, un nouveau visiteur n'a pas de nom
+  (logué, badge absent) — les résultats comptent quand même.
+
+---
+
+### Renommer depuis le menu
+
+**Sur place** : un clic sur le badge du menu (✎) le transforme en champ, nom présélectionné
+(`VisitorBadge`). Entrée **ou un clic ailleurs** enregistre ; Échap ou ✕ annule. Un nom refusé
+garde le champ ouvert avec la raison dans une bulle sous le badge. Laisser un nom généré tel
+qu'affiché ne change rien (il reste traduisible). Dans la barre du jeu, le nom est seulement affiché. `PATCH /api/visitor` `{ visitorId, username }` :
+
+| réponse | sens |
+|---|---|
+| 200 `{ username }` | renommé (nom nettoyé : espaces en trop retirés) |
+| 400 `{ error: 'invalid', problem }` | `too-short` · `too-long` · `characters` |
+| 409 `{ error: 'taken', suggestions }` | pris — jusqu'à 3 variantes **vérifiées libres** (« Dupont42 ») |
+
+- Règles (`parseTypedUsername`, `src/domain/username.ts`, partagé dialogue + serveur) : 3 à 20
+  caractères, **lettres latines** (accents compris), chiffres, espaces et `. _ ' -` ; au moins 3
+  lettres ou chiffres. Latin seul : l'unicité se juge sur la forme normalisée (a–z, 0–9), un nom
+  cyrillique s'y réduirait à ses chiffres. Jamais de `:`.
+- SQL : `rename_visitor` (`renamed` / `taken` / `unknown`), `free_usernames` ; `service_role` a
+  `UPDATE (username)` seulement.
+- Nom pris : badge ambré qui secoue la tête, bulle « déjà sur la feuille de match », suggestions
+  en un clic. Pas une erreur rouge — quelqu'un est juste arrivé avant.
+- ⚠️ **Pas encore de filtre de mots** : le nom n'est montré qu'à son propriétaire et dans
+  `daily:ranking`. Il faudra la liste noire (FR/EN, leetspeak) et les noms de vrais joueurs réservés
+  **avant** d'afficher le classement aux joueurs.
+- Qui connaît le `visitorId` d'un navigateur peut renommer ce visiteur — même modèle de confiance
+  que les résultats ; la vraie garantie viendra des comptes.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -649,8 +717,8 @@ Saisie user
     fermé à anon) — et noter le temps réel du BFS sur les vraies données
 18. ~~Identité du joueur (anonyme d'abord), résultats du défi vérifiés côté serveur~~, ~~classement
     du jour (côté serveur)~~ ; reste : stats perso, empêcher de rejouer le défi
-19. Tirage du défi pondéré par la fame (`player_fame.score`, v1), une fois `012` appliqué et le
-    top/bottom 30 validé
+19. ~~Tirage du défi par la fame~~ (bande 60–80, Bloc 16) ; reste : appliquer `019_daily_fame_band.sql`
+    et retirer le défi de demain (contrôles en bas du fichier)
 20. ~~Accueil : détection de première visite + pop-up des règles~~
 21. ~~Menu principal + page À propos~~
 22. Formulaire de contact ; dons (plateforme à choisir) ; plateau lisible sur mobile (A et B se
@@ -678,3 +746,4 @@ Saisie user
 34. Carte de partage par défi (`/[sport]/opengraph-image`, « Défi du jour #N · Rugby ») ;
     `metadataBase` si le site sort de Vercel
 34. Appliquer `018_visitor_number.sql` (après `017`) et ses contrôles
+35. Appliquer `020_visitor_username.sql` (après `018`) en même temps que le déploiement, puis ses contrôles

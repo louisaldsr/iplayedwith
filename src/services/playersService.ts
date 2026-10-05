@@ -4,15 +4,21 @@ import * as playersRepo from '@/repositories/playersRepository'
 import { PlayerId } from '@/domain/ids'
 import { Player } from '@/domain/player'
 import { SportId } from '@/domain/sport'
+import { DRAW_FAME_BAND } from '@/domain/drawFameBand'
 import { Nationality } from '@/domain/nationality'
 
 export async function listPlayers(db: SupabaseClient, sport: SportId, q?: string): Promise<Player[]> {
   return q ? playersRepo.searchBySport(db, sport, q) : playersRepo.listBySport(db, sport)
 }
 
-/** A random player from the sport, optionally excluding one already picked. */
+/**
+ * A random player from the sport, optionally excluding one already picked — from the draw's fame
+ * band (DRAW_FAME_BAND) when it can supply one, from the whole sport otherwise (scores not
+ * computed yet).
+ */
 export async function randomPlayer(db: SupabaseClient, sport: SportId, excludeId?: PlayerId): Promise<Player | null> {
-  return playersRepo.findRandom(db, sport, excludeId)
+  const known = await playersRepo.findRandomInFameBand(db, sport, DRAW_FAME_BAND, excludeId)
+  return known ?? playersRepo.findRandom(db, sport, excludeId)
 }
 
 export type CreatePlayerInput = { name: string; sport: SportId; nationality?: string }

@@ -5,8 +5,6 @@
  * (`src/lib/visitor.ts`). Not a person — a new browser or cleared site data is a new visitor.
  */
 
-import { VisitorName } from './visitorName'
-
 /** Branded string for a visitor's anonymous id — a UUID. */
 export type VisitorId = string & { readonly _brand: 'VisitorId' }
 
@@ -23,8 +21,8 @@ export function isVisitorId(raw: unknown): raw is VisitorId {
 export type DailyRankingEntry = {
   rank: number
   visitorId: VisitorId
-  /** The visitor's generated name — null if it was never created (Start did not reach the server). */
-  name: VisitorName | null
+  /** The visitor's username — null if it was never created (Start did not reach the server). */
+  username: string | null
   /** Every move the server judged: accepted, or refused as linked to nobody. */
   attempts: number
   /** From Start to the winning move, both stamped by the server's clock. */

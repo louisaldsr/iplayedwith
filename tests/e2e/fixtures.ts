@@ -57,7 +57,7 @@ export async function asReturningVisitor(page: Page): Promise<void> {
 // ─── Sample data ──────────────────────────────────────────────────────────────
 
 /** "Hasty Prop 042" in English. */
-export const sampleVisitorName = { adjective: 'hasty', noun: 'prop', number: 42 }
+export const sampleVisitorName = { username: 'hasty:prop:042' }
 // Invented players: the tests must not depend on anything a re-seed could change.
 
 export const samplePlayers = [

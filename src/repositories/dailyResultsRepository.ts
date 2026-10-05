@@ -2,7 +2,6 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import { SportId } from '@/domain/sport'
 import { ChallengeDay } from '@/domain/dailyChallenge'
 import { DailyRankingEntry, VisitorId } from '@/domain/dailyResult'
-import { visitorNameOf } from '@/domain/visitorName'
 
 /**
  * Daily results, written and read through the SQL functions of 015_daily_results.sql: the counting
@@ -64,9 +63,7 @@ export async function recordHint(
 type RankingRow = {
   rank: number
   visitor_id: string
-  name_adjective: string | null
-  name_noun: string | null
-  name_number: number | null
+  username: string | null
   attempts: number
   duration_ms: number
   lives_lost: number
@@ -81,7 +78,7 @@ export async function ranking(db: SupabaseClient, sport: SportId, day: Challenge
   return (data as RankingRow[]).map((r) => ({
     rank: Number(r.rank),
     visitorId: r.visitor_id as VisitorId,
-    name: visitorNameOf(r.name_adjective, r.name_noun, r.name_number),
+    username: r.username,
     attempts: r.attempts,
     durationMs: Number(r.duration_ms),
     livesLost: r.lives_lost,

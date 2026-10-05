@@ -1,4 +1,10 @@
-import { getDailyRanking, recordDailyHint, recordDailyMove, startDailyResult } from '@/services/dailyResultService'
+import {
+  getDailyRanking,
+  getDailyStats,
+  recordDailyHint,
+  recordDailyMove,
+  startDailyResult,
+} from '@/services/dailyResultService'
 import * as dailyResultsRepo from '@/repositories/dailyResultsRepository'
 import * as visitorsRepo from '@/repositories/visitorsRepository'
 import { generatedNameOf } from '@/domain/visitorName'
@@ -74,18 +80,25 @@ describe('recordDailyMove', () => {
       ...move,
       costsLife: false,
       links: null,
+      path: null,
       maxLives: DAILY_LIVES,
     })
   })
 
-  it('records the winning chain length', async () => {
+  it('records the winning chain — its length and its players, A to B', async () => {
     await recordDailyMove(db, 'rugby', move, accepted(true), now)
-    expect(repo.recordMove).toHaveBeenCalledWith(db, expect.objectContaining({ costsLife: false, links: 2 }))
+    expect(repo.recordMove).toHaveBeenCalledWith(
+      db,
+      expect.objectContaining({ costsLife: false, links: 2, path: ['p-a', 'p-c', 'p-b'] }),
+    )
   })
 
   it('counts a guess linked to nobody as an attempt that costs a life', async () => {
     await recordDailyMove(db, 'rugby', move, { ok: false, code: 'not-connected', reason: '' }, now)
-    expect(repo.recordMove).toHaveBeenCalledWith(db, expect.objectContaining({ costsLife: true, links: null }))
+    expect(repo.recordMove).toHaveBeenCalledWith(
+      db,
+      expect.objectContaining({ costsLife: true, links: null, path: null }),
+    )
   })
 
   it.each(['already-on-board', 'wrong-kind', 'game-over'] as const)('does not count a %s refusal', async (code) => {
@@ -114,14 +127,33 @@ describe('getDailyRanking', () => {
       rank: 1,
       visitorId,
       username: 'hasty:prop:042',
+      outcome: 'won' as const,
+      score: 0,
+      added: 1,
+      needed: 1,
       attempts: 2,
       durationMs: 61_000,
       livesLost: 0,
       links: 2,
       hints: 1,
+      pathPlayerIds: ['p-a', 'p-c', 'p-b'],
       finishedAt: '2026-07-16T08:00:00Z',
     }
     repo.ranking.mockResolvedValue([entry])
     await expect(getDailyRanking(db, 'rugby', ChallengeDay('2026-07-16'))).resolves.toEqual([entry])
+  })
+})
+
+describe('getDailyStats', () => {
+  it("computes the visitor's stats as of today — the Paris day", async () => {
+    repo.visitorDays.mockResolvedValue([
+      { day: ChallengeDay('2026-07-15'), outcome: 'won', score: 0 },
+      { day: ChallengeDay('2026-07-16'), outcome: 'won', score: 2 },
+    ])
+
+    const stats = await getDailyStats(db, 'rugby', visitorId, now)
+
+    expect(repo.visitorDays).toHaveBeenCalledWith(db, 'rugby', visitorId)
+    expect(stats).toMatchObject({ played: 2, currentStreak: 2, today: 2, distribution: [1, 0, 1, 0, 0, 0, 0] })
   })
 })

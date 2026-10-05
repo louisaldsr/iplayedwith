@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { DailyChallenge } from '../../domain/dailyChallenge'
 import { DailyOutcome } from '../../lib/dailyProgress'
 import { useTranslations } from '../../i18n'
+import { DailyStats } from './DailyStats'
 
 type Props = {
   challenge: DailyChallenge
@@ -36,6 +37,7 @@ export function DailyFinished({ challenge, outcome, livesLeft }: Props) {
         {won ? t.daily.wonText(livesLeft) : t.daily.lostText(challenge.optimalLinks)}
       </p>
       <p className="daily-finished__tomorrow">{t.daily.comeBackTomorrow}</p>
+      <DailyStats sport={challenge.sport} />
       <div className="daily-finished__actions">
         <Link href={`/${challenge.sport}/free`} className="btn btn--primary">
           {t.daily.freePlay}

@@ -9,6 +9,8 @@ import { useTranslations } from '../../i18n'
 import { useRules } from '../rules/RulesProvider'
 import { dailyOutcomesToday, DailyOutcome } from '../../lib/dailyProgress'
 import { VisitorBadge } from './VisitorBadge'
+import { Modal } from '../shared/Modal'
+import { DailyStats } from '../daily/DailyStats'
 
 const SPORT_ICONS: Record<SportId, string> = { rugby: '🏉', football: '⚽' }
 
@@ -18,8 +20,8 @@ const SPORT_ICONS: Record<SportId, string> = { rugby: '🏉', football: '⚽' }
  * The sports own the middle of the screen — each card opens that sport's daily challenge, which is
  * the game. A sport whose challenge is already over today turns green (won) or red (lost), nudging
  * towards the ones still to play.
- * Everything else sits at the bottom: free play (open to everyone), the rules, About, and the
- * features that need an identity (ranking, stats, accounts), listed as "soon".
+ * Everything else sits at the bottom: free play (open to everyone), the rules, the visitor's stats,
+ * About, and the features still to come (ranking, accounts), listed as "soon".
  */
 export function HomeMenu() {
   const t = useTranslations()
@@ -27,6 +29,7 @@ export function HomeMenu() {
   // Read after mount: storage does not exist on the server, and guessing would flash a colour.
   const [outcomes, setOutcomes] = useState<Map<SportId, DailyOutcome>>(new Map())
   useEffect(() => setOutcomes(dailyOutcomesToday()), [])
+  const [statsOpen, setStatsOpen] = useState(false)
 
   return (
     <nav className="home-screen" aria-label={t.menu.label}>
@@ -80,19 +83,36 @@ export function HomeMenu() {
           <button type="button" className="btn btn--ghost" onClick={openRules}>
             {t.rules.openLabel}
           </button>
+          <button type="button" className="btn btn--ghost" onClick={() => setStatsOpen(true)}>
+            {t.menu.stats}
+          </button>
           <Link href="/about" className="btn btn--ghost">
             {t.menu.about}
           </Link>
         </div>
 
         <ul className="home-menu__soon" aria-label={t.menu.soon}>
-          {[t.menu.ranking, t.menu.stats, t.menu.logIn].map((label) => (
+          {[t.menu.ranking, t.menu.logIn].map((label) => (
             <li key={label} aria-disabled="true">
               {label} <span className="home-menu__soon-badge">{t.menu.soon}</span>
             </li>
           ))}
         </ul>
       </footer>
+
+      <Modal open={statsOpen} onClose={() => setStatsOpen(false)} labelledBy="stats-title" className="stats-dialog">
+        <h2 id="stats-title" className="stats-dialog__title">
+          {t.daily.stats.title}
+        </h2>
+        {/* Mounted only while open: the stats are fetched when asked for, fresh after a game. */}
+        {statsOpen &&
+          SPORTS.map((sport) => (
+            <DailyStats key={sport} sport={sport} heading={`${SPORT_ICONS[sport]} ${t.home.sports[sport]}`} />
+          ))}
+        <button type="button" className="btn btn--ghost" onClick={() => setStatsOpen(false)}>
+          {t.daily.close}
+        </button>
+      </Modal>
     </nav>
   )
 }

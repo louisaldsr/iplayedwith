@@ -62,7 +62,7 @@ test.describe('daily challenge', () => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText('#7')
     await expect(page.getByRole('button', { name: /Alpha Testeur/ })).toBeVisible()
     await expect(page.getByRole('button', { name: /Bravo Éssai/ })).toBeVisible()
-    await expect(page.getByText('Best possible 3 links')).toBeVisible()
+    await expect(page.getByText('Best possible 2 links')).toBeVisible()
     await expect(page.locator('a[href="/rugby/free"]')).toBeVisible()
   })
 

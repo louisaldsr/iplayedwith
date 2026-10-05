@@ -1,4 +1,12 @@
-import { test, expect, mockApi, asReturningVisitor, sampleDailyChallenge, parisToday } from './fixtures'
+import {
+  test,
+  expect,
+  mockApi,
+  asReturningVisitor,
+  sampleDailyChallenge,
+  sampleDailyStats,
+  parisToday,
+} from './fixtures'
 
 // A returning visitor: the first-visit rules pop-up is modal and would block these clicks.
 // First visits are covered by onboarding.spec.ts.
@@ -47,10 +55,24 @@ test("yesterday's result does not colour today's menu", async ({ page }) => {
 test('features that need an account are listed as coming soon, not as links', async ({ page }) => {
   await page.goto('/')
   const soon = page.getByRole('list', { name: 'Soon' })
-  for (const entry of ['Ranking', 'My stats', 'Log in']) {
+  for (const entry of ['Ranking', 'Log in']) {
     await expect(soon.getByText(entry)).toBeVisible()
     await expect(page.getByRole('link', { name: entry })).toHaveCount(0)
   }
+})
+
+test("the menu opens the visitor's stats, one section per sport", async ({ page }) => {
+  await mockApi(page, '/api/rugby/daily/stats', sampleDailyStats)
+  await page.goto('/')
+  await page.getByRole('button', { name: 'My stats' }).click()
+
+  const dialog = page.getByRole('dialog', { name: 'Your stats' })
+  const rugby = dialog.getByRole('region', { name: '🏉 Rugby' })
+  await expect(rugby.getByRole('definition').first()).toHaveText('4') // played
+  await expect(rugby.getByText('75')).toBeVisible() // win %
+  await expect(rugby.getByText('+0.7')).toBeVisible() // average
+  // Football is mocked empty by default.
+  await expect(dialog.getByRole('region', { name: '⚽ Football' })).toContainText('No daily challenge finished yet.')
 })
 
 test('the menu opens the rules and the About page', async ({ page }) => {

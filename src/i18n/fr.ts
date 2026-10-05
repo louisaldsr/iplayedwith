@@ -100,7 +100,23 @@ const fr: Translations = {
     start: 'Commencer',
     freePlayLink: 'Ou choisissez vos joueurs en partie libre',
     freePlay: 'Partie libre',
-    yourChain: 'Votre chaîne',
+    perfect: 'Parfait !',
+    perfectBucket: 'Parfait',
+    scoreHint: (extra: number) =>
+      extra === 0 ? 'Chaîne la plus courte trouvée' : `${extra} ${extra === 1 ? 'joueur' : 'joueurs'} en trop`,
+    stats: {
+      title: 'Vos stats',
+      played: 'Joués',
+      winRate: 'Victoires',
+      streak: 'Série',
+      bestStreak: 'Meilleure série',
+      average: 'Moyenne',
+      distribution: 'Vos scores',
+      lost: 'Perdus',
+      empty: 'Aucun défi du jour terminé pour l’instant.',
+      averageValue: (score: number) =>
+        score === 0 ? 'Parfait' : `+${score.toLocaleString('fr', { maximumFractionDigits: 1 })}`,
+    },
   },
   setup: {
     title: 'Choisissez vos joueurs',

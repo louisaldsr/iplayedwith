@@ -500,6 +500,7 @@ trouvés.
 | Route | Rôle |
 |---|---|
 | `POST /api/:sport/daily/start` | `{ day, visitorId }` → 204 ; horodate le départ (idempotent), 409 si `day` n'est plus aujourd'hui |
+| `POST /api/:sport/daily/stats` | `{ visitorId }` → stats perso du sport (Bloc 19) |
 
 ---
 
@@ -679,6 +680,68 @@ gagnant. Sous la démo, quatre lignes seulement : défi du jour, carrière (indi
 
 ---
 
+## ✅ Bloc 19 terminé — Score du défi (joueurs en trop) + stats perso
+
+Le classement du jour (Bloc 11) triait par tentatives sans rien afficher, et rien ne se comparait
+d'un jour à l'autre. Le score compte désormais les **joueurs en trop** — `src/domain/dailyScore.ts` :
+
+```
+added  = joueurs ajoutés au plateau (coups acceptés)
+needed = optimal_links − 1   (le moins de joueurs possible pour relier A et B)
+score  = added − needed      → « Parfait ! », « +1 », « +2 »…, jamais négatif, sans limite
+```
+
+- **Lisible d'un coup d'œil, sans jargon** : pas de vocabulaire de golf (« par », « coups ») —
+  « Parfait ! » + « Chaîne la plus courte trouvée », ou « +2 » + « 2 joueurs en trop ».
+- **Pas de plafond** : on peut ajouter autant de joueurs qu'on veut ; seules les vies font perdre.
+- **Tout joueur ajouté coûte 1**, sur la chaîne ou en cul-de-sac : ajouter des joueurs ne paie
+  jamais. Classer à la longueur de la chaîne seule récompensait le spam — la chaîne est le plus
+  court chemin *du plateau*, et chaque joueur ajouté ne peut que la raccourcir.
+- **Un raté coûte une vie, jamais un point** : les vies décident gagné/perdu, le score dit à quel
+  point. Pas deux sanctions pour la même faute. Les vies restantes ne départagent **pas**.
+- **Le temps ne départage que les ex-aequo** : le convertir en points le rend dominant ou
+  négligeable, et c'est le seul signal qu'un client forgé peut tordre (sans « start », son chrono
+  part du premier coup).
+- **Classement** (`daily_ranking`, `022_daily_score.sql`) : gagnants par score puis temps ; puis
+  **tous les perdants, au même rang** (gagnants + 1, « Failed ») — un seul gagnant voit que tous
+  les autres ont échoué. Une partie en cours n'est pas listée. Indices affichés, pas classés.
+- **Comparer les jours = les joueurs en trop** : les joueurs ajoutés dépendent de la paire, « +1 »
+  veut toujours dire un de plus que nécessaire. Un jour à 4 joueurs nécessaires reste plus dur à
+  réussir parfaitement qu'un jour à 1 : accepté, comme les mots difficiles de Wordle.
+- ⚠️ Formule écrite **deux fois** (TS + SQL) : les changer ensemble.
+
+### Fame : pas encore tranché, donc les données d'abord
+
+Moins un joueur est connu, plus le trouver devrait valoir — mais : seuls les joueurs **de la
+chaîne** pourraient compter (sinon le spam repaie), certains jours n'offrent aucun chemin par des
+*unsung* (les « +N » cesseraient d'être comparables), et la fame mesure la longévité, pas la
+célébrité. Le score reste les seuls joueurs en trop ; le serveur **stocke la chaîne gagnante**
+(`daily_results.path_player_ids`, A → B) et `daily:ranking` affiche une colonne `chain u/k/f`
+(unsung / known / famous au milieu de la chaîne, à la fame du jour). Pistes à simuler sur de vrais
+jours : départage avant le temps, ou bonus (un *unsung* sur la chaîne retire un joueur en trop). Le classement n'est pas public :
+changer son ordre plus tard ne coûte rien.
+
+### Stats perso
+
+`POST /api/:sport/daily/stats` `{ visitorId }` → `DailyStats` : joués, % de victoires, série
+actuelle, meilleure série, score moyen, répartition (Parfait, +1 … +5, +6+, Perdu), barre du jour
+allumée. Calculé par `dailyStats()` depuis `daily_stats` (une ligne par jour du visiteur). Une
+**série** suit le calendrier (un défi est publié chaque jour) : un jour manqué ou commencé sans
+être fini la casse ; aujourd'hui pas encore fini ne la casse pas. POST pour garder l'id hors des
+URL et des logs (qui le connaît peut renommer le visiteur).
+
+La pop-up de victoire du défi tient en un coup d'œil : le score en or, la chaîne, puis seulement
+le temps et les vies — « votre chaîne », « meilleur possible » et « coups » sont retirés, le score
+les résume (la partie libre, sans score, garde « coups »). Stats affichées dans la pop-up (sous le score), sur l'écran de fin (`DailyFinished`)
+et depuis le menu (« Mes stats » quitte la liste « Bientôt » : une section par sport).
+Décoratives : sans visiteur stocké ou si la requête échoue, le panneau est absent. e2e :
+`/api/:sport/daily/stats` est mocké **vide par défaut** dans `fixtures.ts`.
+
+⚠️ Appliquer `022` **avant** de déployer : `record_daily_move` garde un `p_path` à `DEFAULT NULL`,
+le build actuel continue d'enregistrer ; le nouveau build lit `daily_stats`.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -757,7 +820,8 @@ Saisie user
     rugby par rapprochement de noms
 29. Appliquer `015_daily_results.sql` (contrôles en bas du fichier), jouer quelques jours, lire
     `npm run daily:ranking` — puis afficher le classement aux joueurs
-30. Vrai score du défi : tentatives, temps, vies restantes, fame des joueurs trouvés
+30. ~~Vrai score du défi~~ (joueurs en trop, Bloc 19) ; reste : trancher la fame des joueurs de la
+    chaîne (simuler départage vs bonus sur les chaînes stockées), grille de partage 🟩🟨🟥
 31. Appliquer `016_daily_hints.sql` après `015` ; puis faire entrer les indices dans le vrai score
     (badge « sans indice » ou bonus), et envisager un indice plus fort payant (« un coéquipier de
     X chez C en S », contre une vie) pour les joueurs vraiment bloqués
@@ -769,3 +833,5 @@ Saisie user
 34. Appliquer `018_visitor_number.sql` (après `017`) et ses contrôles
 35. ~~Appliquer `020_visitor_username.sql`~~ ; appliquer `021_visitor_rename.sql` (le renommage
     échoue en prod tant qu'il manque), puis ses contrôles
+36. Appliquer `022_daily_score.sql` **avant** le déploiement, puis ses contrôles ; après quelques
+    jours, lire `npm run daily:ranking` (colonne `chain u/k/f`) pour décider de la fame

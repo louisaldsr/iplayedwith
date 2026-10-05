@@ -8,8 +8,9 @@ import { test as base, expect, Page } from '@playwright/test'
  * recently added route first). After the test, any call that reached the guard fails it — so a
  * page that starts calling a new endpoint is caught here, instead of silently hitting the server.
  *
- * One endpoint is mocked by default: `/api/visitor`, the name the menu shows. Any test can reach
- * the menu, and none should have to care; a test about the name mocks it again (its route wins).
+ * Two endpoints are mocked by default: `/api/visitor`, the name the menu shows, and
+ * `/api/:sport/daily/stats` (empty), which the results and the finished screen show. Any test can
+ * reach them, and none should have to care; a test about either mocks it again (its route wins).
  *
  * The server side is covered separately: the e2e dev server has no real database to reach (see
  * playwright.config.ts). Only requests the server answers WITHOUT the database — input
@@ -26,6 +27,10 @@ export const test = base.extend<{ unmockedApiCalls: string[] }>({
       await page.route(
         (url) => url.pathname === '/api/visitor',
         (route) => route.fulfill({ json: sampleVisitorName }),
+      )
+      await page.route(
+        (url) => /^\/api\/[^/]+\/daily\/stats$/.test(url.pathname),
+        (route) => route.fulfill({ json: emptyDailyStats }),
       )
       await use(calls)
       expect(calls, 'API calls with no mock — add one with mockApi()').toEqual([])
@@ -74,13 +79,38 @@ export const parisToday = () =>
     day: '2-digit',
   }).format(new Date())
 
+/** One player needed: `winningMove` wins it with that one — "Perfect!". */
 export const sampleDailyChallenge = {
   sport: 'rugby',
   day: parisToday(),
   number: 7,
   playerA: samplePlayers[0],
   playerB: samplePlayers[1],
-  optimalLinks: 3,
+  optimalLinks: 2,
+}
+
+/** A visitor who never finished a daily. */
+export const emptyDailyStats = {
+  played: 0,
+  won: 0,
+  currentStreak: 0,
+  bestStreak: 0,
+  averageScore: null,
+  distribution: [0, 0, 0, 0, 0, 0, 0],
+  lost: 0,
+  today: null,
+}
+
+/** Four days: won Perfect twice (today included) and at +2, lost once. */
+export const sampleDailyStats = {
+  played: 4,
+  won: 3,
+  currentStreak: 2,
+  bestStreak: 2,
+  averageScore: 0.6666666666666666,
+  distribution: [2, 0, 1, 0, 0, 0, 0],
+  lost: 1,
+  today: 0,
 }
 
 export const sampleCareer = {

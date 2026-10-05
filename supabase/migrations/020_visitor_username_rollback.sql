@@ -1,10 +1,9 @@
 -- Undoes 020_visitor_username.sql: back to 018's three name columns.
 --
--- Only while every username is a generated one ("adjective:noun:042"): a typed username (a
--- rename) has no three parts to split into, and the SET NOT NULL below fails on it rather than
--- lose it. Find them with:  SELECT id, username FROM visitors WHERE username !~ ':';
+-- Only while every username is a generated one ("adjective:noun:042"): a typed username has no
+-- three parts to split into, and the SET NOT NULL below fails on it rather than lose it.
 --
--- Deploy a build that reads 018's columns BEFORE running this.
+-- Roll back 021_visitor_rename.sql first. Deploy a build that reads 018's columns BEFORE running this.
 
 BEGIN;
 
@@ -26,10 +25,7 @@ ALTER TABLE visitors
 
 CREATE UNIQUE INDEX visitors_name_key ON visitors (name_adjective, name_noun, name_number);
 
-DROP FUNCTION public.rename_visitor(uuid, text);
-DROP FUNCTION public.free_usernames(text[]);
 DROP FUNCTION public.ensure_visitor(uuid, text);
-REVOKE UPDATE (username) ON visitors FROM service_role;
 DROP FUNCTION public.daily_ranking(text, date);
 
 ALTER TABLE visitors DROP COLUMN username;

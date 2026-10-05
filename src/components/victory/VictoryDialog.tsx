@@ -6,6 +6,9 @@ import { Game } from '../../game/game'
 import { useTranslations } from '../../i18n'
 import { Modal } from '../shared/Modal'
 import { Heart } from '../game/LivesBar'
+import { DailyStats } from '../daily/DailyStats'
+import { SportId } from '../../domain/sport'
+import { dailyScore, formatScore } from '../../domain/dailyScore'
 
 type Props = {
   open: boolean
@@ -16,10 +19,12 @@ type Props = {
   moveCount: number
   /** Frozen at the winning move, so reopening the results later shows the same time. */
   elapsedMs: number
-  /** Daily only: the shortest chain possible, shown next to the one the user found. */
+  /** Daily only: the shortest chain possible — the score counts the players added beyond it. */
   optimalLinks?: number
   /** Daily only: the lives the win was achieved with. */
   lives?: { left: number; total: number }
+  /** Daily only: the sport whose stats are shown under the results. */
+  statsSport?: SportId
   /** Free play restarts in place; the daily has one pair a day, so it offers free play instead. */
   onPlayAgain?: () => void
   freePlayHref?: string
@@ -46,12 +51,14 @@ export function VictoryDialog({
   elapsedMs,
   optimalLinks,
   lives,
+  statsSport,
   onPlayAgain,
   freePlayHref,
 }: Props) {
   const t = useTranslations()
   const playerMap = new Map(players.map((p) => [p.id as string, p.name]))
   const pathNames = game.path.map((id) => playerMap.get(id) ?? id)
+  const score = optimalLinks === undefined ? null : dailyScore(moveCount, optimalLinks)
 
   return (
     <Modal open={open} onClose={onClose} labelledBy="victory-title" className="victory-dialog">
@@ -62,6 +69,13 @@ export function VictoryDialog({
         {t.victory.heading}
       </h2>
 
+      {score !== null && (
+        <div className="victory-score">
+          <span className="victory-score__value">{formatScore(score, t.daily.perfect)}</span>
+          <span className="victory-score__hint">{t.daily.scoreHint(score)}</span>
+        </div>
+      )}
+
       <div className="victory-path">
         {pathNames.map((name, i) => (
           <span key={i}>
@@ -71,23 +85,14 @@ export function VictoryDialog({
         ))}
       </div>
 
+      {/* The daily's score already says the chain, the best possible and the moves in one word. */}
       <div className="victory-stats">
-        {optimalLinks !== undefined && (
+        {score === null && (
           <div className="victory-stat">
-            <span className="stat-label">{t.daily.yourChain}</span>
-            <span className="stat-value">{game.path.length - 1}</span>
+            <span className="stat-label">{t.victory.moves}</span>
+            <span className="stat-value">{moveCount}</span>
           </div>
         )}
-        {optimalLinks !== undefined && (
-          <div className="victory-stat">
-            <span className="stat-label">{t.daily.bestPossible}</span>
-            <span className="stat-value">{optimalLinks}</span>
-          </div>
-        )}
-        <div className="victory-stat">
-          <span className="stat-label">{t.victory.moves}</span>
-          <span className="stat-value">{moveCount}</span>
-        </div>
         <div className="victory-stat">
           <span className="stat-label">{t.victory.time}</span>
           <span className="stat-value">{formatTime(elapsedMs)}</span>
@@ -105,6 +110,8 @@ export function VictoryDialog({
           </div>
         )}
       </div>
+
+      {statsSport && <DailyStats sport={statsSport} />}
 
       <div className="victory-dialog__actions">
         <button type="button" className="btn btn--ghost btn--lg" onClick={onClose}>

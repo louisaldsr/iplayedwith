@@ -410,6 +410,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           elapsedMs={victory.elapsedMs}
           optimalLinks={daily?.optimalLinks}
           lives={state.lives === null ? undefined : { left: state.lives, total: DAILY_LIVES }}
+          statsSport={daily?.sport}
           onPlayAgain={daily ? undefined : handlePlayAgain}
           freePlayHref={freePlayHref}
         />

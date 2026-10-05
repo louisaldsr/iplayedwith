@@ -4,6 +4,7 @@ import { ensureUsername } from '@/services/visitorService'
 import { SportId } from '@/domain/sport'
 import { ChallengeDay, challengeDayOf, DAILY_LIVES } from '@/domain/dailyChallenge'
 import { DailyRankingEntry, VisitorId } from '@/domain/dailyResult'
+import { DailyStats, dailyStats } from '@/domain/dailyScore'
 import { MoveResult } from '@/services/moveService'
 import { ConflictError } from '@/services/errors'
 
@@ -54,12 +55,14 @@ export async function recordDailyMove(
   const costsLife = !result.ok && result.code === 'not-connected'
   if (!result.ok && !costsLife) return
 
+  const won = result.ok && result.victory
   await dailyResultsRepo.recordMove(db, {
     sport,
     day: challengeDayOf(now),
     ...move,
     costsLife,
-    links: result.ok && result.victory ? result.path.length - 1 : null,
+    links: won ? result.path.length - 1 : null,
+    path: won ? result.path : null,
     maxLives: DAILY_LIVES,
   })
 }
@@ -80,7 +83,20 @@ export async function recordDailyHint(
   await dailyResultsRepo.recordHint(db, sport, day, visitorId, playerId)
 }
 
-/** The day's ranking: won results, fewest attempts first, then fastest. */
+/**
+ * The day's ranking: winners by score (extra players), then fastest; then everyone who lost, on
+ * one shared rank.
+ */
 export function getDailyRanking(db: SupabaseClient, sport: SportId, day: ChallengeDay): Promise<DailyRankingEntry[]> {
   return dailyResultsRepo.ranking(db, sport, day)
+}
+
+/** The visitor's stats in the sport — played, streaks, score distribution — as of today (Paris). */
+export async function getDailyStats(
+  db: SupabaseClient,
+  sport: SportId,
+  visitorId: VisitorId,
+  now: Date = new Date(),
+): Promise<DailyStats> {
+  return dailyStats(await dailyResultsRepo.visitorDays(db, sport, visitorId), challengeDayOf(now))
 }

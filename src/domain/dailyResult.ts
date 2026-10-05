@@ -15,22 +15,32 @@ export function isVisitorId(raw: unknown): raw is VisitorId {
 }
 
 /**
- * One line of a day's ranking. Won results only, ordered by fewest attempts, then shortest time —
- * a real score (lives left, fame of the players found) comes later.
+ * One line of a day's ranking — every finished result. Winners first, by score (extra players,
+ * `src/domain/dailyScore.ts`) then time; then everyone who lost, all on the rank after the last
+ * winner. Lives lost and hints are shown, not ranked.
  */
 export type DailyRankingEntry = {
   rank: number
   visitorId: VisitorId
   /** The visitor's username — null if it was never created (Start did not reach the server). */
   username: string | null
+  outcome: 'won' | 'lost'
+  /** Extra players beyond the fewest needed — won results only. */
+  score: number | null
+  /** Players added to the board: accepted moves. */
+  added: number
+  /** The fewest players that connect A and B. */
+  needed: number
   /** Every move the server judged: accepted, or refused as linked to nobody. */
   attempts: number
-  /** From Start to the winning move, both stamped by the server's clock. */
+  /** From Start to the final move, both stamped by the server's clock. */
   durationMs: number
   livesLost: number
-  /** Length of the winning chain, in links. */
-  links: number
-  /** Careers opened during the game (A and B excepted). Shown, not ranked — yet. */
+  /** Length of the winning chain, in links. Won results only. */
+  links: number | null
+  /** Careers opened during the game (A and B excepted). Shown, not ranked. */
   hints: number
+  /** The winning chain, A to B — null when lost, or won before chains were stored (022). */
+  pathPlayerIds: string[] | null
   finishedAt: string
 }

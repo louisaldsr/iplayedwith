@@ -101,7 +101,23 @@ const en = {
     start: 'Start',
     freePlayLink: 'Or pick your own players in free play',
     freePlay: 'Free play',
-    yourChain: 'Your chain',
+    perfect: 'Perfect!',
+    perfectBucket: 'Perfect',
+    scoreHint: (extra: number) =>
+      extra === 0 ? 'Shortest chain found' : `${extra} extra ${extra === 1 ? 'player' : 'players'}`,
+    stats: {
+      title: 'Your stats',
+      played: 'Played',
+      winRate: 'Win %',
+      streak: 'Streak',
+      bestStreak: 'Best streak',
+      average: 'Average',
+      distribution: 'Your scores',
+      lost: 'Lost',
+      empty: 'No daily challenge finished yet.',
+      averageValue: (score: number) =>
+        score === 0 ? 'Perfect' : `+${score.toLocaleString('en', { maximumFractionDigits: 1 })}`,
+    },
   },
   setup: {
     title: 'Choose Your Players',

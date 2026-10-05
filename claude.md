@@ -659,6 +659,26 @@ qu'affiché ne change rien (il reste traduisible). Dans la barre du jeu, le nom 
 
 ---
 
+## ✅ Bloc 18 terminé — « Comment jouer » en démo animée
+
+Retours joueurs : les règles étaient floues, et le texte d'ouverture était sauté. La pop-up montre
+désormais une **partie qui se joue toute seule**, en boucle (`RulesDemo`) : un mini-plateau aux
+classes du vrai (`.node-card`, paliers, chaîne dorée gagnée), une saisie qui se tape, et une
+légende par scène — les deux joueurs → un bon coup → un coup sans lien qui coûte une vie → le coup
+gagnant. Sous la démo, quatre lignes seulement : défi du jour, carrière (indice), paliers, partie libre.
+
+- **Une horloge, tout le reste en découle** : chaque instant de la boucle (19 s) se rend pareil ;
+  la barre de progression saute à une scène comme si elle avait été jouée. Pause/lecture (WCAG
+  2.2.2). Repart du début à chaque ouverture, à l'arrêt quand la pop-up est fermée.
+- **Vraie chaîne football**, avec les noms que tout le monde connaît : Messi —FC Barcelona
+  2013-2014— Neymar —PSG 2017-2018— Cavani —Manchester United 2021-2022— Ronaldo ; Haaland ne partage
+  rien avec eux. Changer un nom = revérifier ses memberships : un lien faux enseignerait une fausse règle.
+- `prefers-reduced-motion` : l'histoire défile, sans pop, secousse ni fondu.
+- La démo est en football, quel que soit le sport de la page : Messi et Ronaldo parlent à tout le monde.
+- `RULES_VERSION` inchangé (2) : les règles n'ont pas changé, seulement leur présentation.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :

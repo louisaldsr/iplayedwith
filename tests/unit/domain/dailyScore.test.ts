@@ -34,9 +34,9 @@ describe('dailyScore — the extra players', () => {
 })
 
 describe('score buckets', () => {
-  it('groups +6 and worse in the last bucket', () => {
-    expect([0, 1, 5, 6, 14].map(scoreBucketOf)).toEqual([0, 1, 5, 6, 6])
-    expect([0, 1, 5, 6].map((b) => formatScoreBucket(b, 'Perfect'))).toEqual(['Perfect', '+1', '+5', '+6+'])
+  it('groups +5 and worse in the last bucket', () => {
+    expect([0, 1, 4, 5, 14].map(scoreBucketOf)).toEqual([0, 1, 4, 5, 5])
+    expect([0, 1, 4, 5].map((b) => formatScoreBucket(b, 'Perfect'))).toEqual(['Perfect', '+1', '+4', '+5+'])
   })
 })
 
@@ -48,7 +48,7 @@ describe('dailyStats', () => {
       currentStreak: 0,
       bestStreak: 0,
       averageScore: null,
-      distribution: [0, 0, 0, 0, 0, 0, 0],
+      distribution: [0, 0, 0, 0, 0, 0],
       lost: 0,
       today: null,
     })
@@ -59,7 +59,7 @@ describe('dailyStats', () => {
       [won('2026-10-01', 0), won('2026-10-02', 2), lost('2026-10-03'), won('2026-10-04', 10)],
       today,
     )
-    expect(stats).toMatchObject({ played: 4, won: 3, lost: 1, distribution: [1, 0, 1, 0, 0, 0, 1], averageScore: 4 })
+    expect(stats).toMatchObject({ played: 4, won: 3, lost: 1, distribution: [1, 0, 1, 0, 0, 1], averageScore: 4 })
   })
 
   it('does not count an unfinished day as played', () => {
@@ -95,6 +95,6 @@ describe('dailyStats', () => {
   })
 
   it('puts today in its bucket, overflow included', () => {
-    expect(dailyStats([won('2026-10-05', 9)], today).today).toBe(6)
+    expect(dailyStats([won('2026-10-05', 9)], today).today).toBe(5)
   })
 })

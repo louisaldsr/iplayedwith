@@ -106,16 +106,14 @@ const fr: Translations = {
       extra === 0 ? 'Chaîne la plus courte trouvée' : `${extra} ${extra === 1 ? 'joueur' : 'joueurs'} en trop`,
     stats: {
       title: 'Vos stats',
+      sports: 'Sports',
       played: 'Joués',
       winRate: 'Victoires',
-      streak: 'Série',
-      bestStreak: 'Meilleure série',
-      average: 'Moyenne',
+      winRateValue: (percent: number) => `${percent}\u00a0%`,
       distribution: 'Vos scores',
-      lost: 'Perdus',
+      lost: 'Perdu',
+      today: 'Aujourd’hui',
       empty: 'Aucun défi du jour terminé pour l’instant.',
-      averageValue: (score: number) =>
-        score === 0 ? 'Parfait' : `+${score.toLocaleString('fr', { maximumFractionDigits: 1 })}`,
     },
   },
   setup: {

@@ -154,6 +154,6 @@ describe('getDailyStats', () => {
     const stats = await getDailyStats(db, 'rugby', visitorId, now)
 
     expect(repo.visitorDays).toHaveBeenCalledWith(db, 'rugby', visitorId)
-    expect(stats).toMatchObject({ played: 2, currentStreak: 2, today: 2, distribution: [1, 0, 1, 0, 0, 0, 0] })
+    expect(stats).toMatchObject({ played: 2, currentStreak: 2, today: 2, distribution: [1, 0, 1, 0, 0, 0] })
   })
 })

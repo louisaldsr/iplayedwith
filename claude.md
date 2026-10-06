@@ -757,16 +757,20 @@ le build actuel continue d'enregistrer ; le nouveau build lit `daily_stats`.
 
 ## ✅ Bloc 20 terminé — La solution proposée, posée sur le plateau
 
-Une fois la journée finie, gagnée ou perdue, un bouton **« Voir la solution proposée »** pose sur
-le plateau du joueur **une** des chaînes les plus courtes — celle que le tirage a stockée
+Une fois la journée finie, gagnée ou perdue, une **case à cocher « Voir la solution proposée »**
+pose sur le plateau du joueur **une** des chaînes les plus courtes — celle que le tirage a stockée
 (`daily_challenges.solution`). Pas de panneau à part : la solution vit dans l'arbre.
 
-- **Sur le plateau** : les joueurs de la solution prennent un anneau pointillé **bleu ciel**
-  (`--solution`, une couleur à elle : l'or est la chaîne gagnée, le teal le palier *known*) ; ceux
-  que le joueur n'a jamais ajoutés apparaissent en cartes **« proposées »** (fond bleuté, bordure
-  pointillée) ; ses liens courent en pointillés bleu ciel, cliquables comme les autres (club ·
-  saison). Rien d'elle ne s'estompe, même sur un plateau gagné. Masquable, réaffichée depuis la
-  mémoire (une seule requête).
+- **Décochée, rien** : le plateau est celui du joueur. **Cochée**, le plateau du joueur passe
+  **dans l'ombre** (cartes à 18 %, désaturées ; liens presque effacés — la chaîne dorée d'un plateau
+  gagné aussi) et la solution s'allume par-dessus : ses joueurs prennent un anneau pointillé **bleu
+  ciel** (`--solution`, une couleur à elle : l'or est la chaîne gagnée, le teal le palier *known*),
+  ses liens courent en pointillés bleu ciel, cliquables comme les autres (club · saison).
+- **Jamais en double** : un joueur de la solution déjà sur le plateau du joueur **est** la carte de
+  la solution — même carte, sortie de l'ombre, intégrée à l'arbre soluce. Seuls ceux qu'il n'a
+  jamais ajoutés apparaissent en cartes **« proposées »** (fond bleuté, bordure pointillée).
+- Recochée, la solution revient de la mémoire (une seule requête). Les boutons des pop-ups de fin
+  cochent la case et ferment la pop-up.
 - **Une parmi d'autres, dit tel quel** : légende sous la barre — « Solution proposée : une des
   chaînes les plus courtes (N liens) — il peut y en avoir d'autres. »
 - **Format du plateau** (`DailySolution`, `src/domain/dailySolution.ts`) : `{ path, players, clubs,
@@ -781,8 +785,9 @@ le plateau du joueur **une** des chaînes les plus courtes — celle que le tira
   plateau (perdues avant cette version) : l'arbre du joueur y est **perdu pour de bon** (le
   navigateur l'a jeté, le serveur ne garde que les compteurs) — le bouton y pose donc la solution
   sur un plateau de A et B seuls, avec une mention « votre plateau n'a pas été gardé ».
-- Logique partagée : `useDailySolution` (requête à la demande, mémoire seule) et `SolutionToggle`
-  (bouton + légende), utilisés par la barre de fin et par `DailyFinished`.
+- Logique partagée : `useDailySolution` (requête à la demande, mémoire seule), `SolutionToggle` (la
+  case) et `SolutionLegend` (sa légende, sur une ligne à elle), utilisés par la barre de fin et par
+  `DailyFinished`.
 
 ### Jamais lisible avant la fin
 

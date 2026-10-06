@@ -9,7 +9,7 @@ import { playerKey } from '../../game/graphBuilder'
 import { useTranslations } from '../../i18n'
 import { DailyStats } from './DailyStats'
 import { GameBoard } from '../game/GameBoard'
-import { SolutionToggle } from './SolutionToggle'
+import { SolutionLegend, SolutionToggle } from './SolutionToggle'
 import { useDailySolution } from './useDailySolution'
 
 type Props = {
@@ -62,6 +62,7 @@ export function DailyFinished({ challenge, outcome, livesLeft }: Props) {
       </p>
       <div className="daily-finished__solution">
         <SolutionToggle solution={solution} />
+        <SolutionLegend solution={solution} />
       </div>
       {solution.shown && (
         <>

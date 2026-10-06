@@ -108,7 +108,6 @@ const en = {
       extra === 0 ? 'Shortest chain found' : `${extra} extra ${extra === 1 ? 'player' : 'players'}`,
     solution: {
       show: 'Show the proposed solution',
-      hide: 'Hide the proposed solution',
       legend: (links: number) => `Proposed solution: one of the shortest chains (${links} links) — others may exist.`,
       unavailable: 'The solution could not be loaded — try again.',
     },

@@ -17,7 +17,7 @@ import { DailyIntro } from './daily/DailyIntro'
 import { DailyFinished } from './daily/DailyFinished'
 import { DefeatDialog } from './daily/DefeatDialog'
 import { useDailySolution } from './daily/useDailySolution'
-import { SolutionToggle } from './daily/SolutionToggle'
+import { SolutionLegend, SolutionToggle } from './daily/SolutionToggle'
 import { DailyBoard, DailyOutcome, readDailyRecord, saveDailyRecord } from '../lib/dailyProgress'
 import { readVisitor } from '../lib/visitor'
 import { recordDailyHint, startDailyChallenge } from '../lib/gameApi'
@@ -381,6 +381,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           </button>
         )}
       </div>
+      {dailyOver && <SolutionLegend solution={solution} />}
     </div>
   )
 

@@ -829,6 +829,37 @@ body {
   background: var(--accent-hover);
 }
 
+/* The end bar's "Show the proposed solution": a checkbox, in the solution's colour. */
+.solution-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--solution);
+  border-radius: var(--radius-md);
+  background: var(--solution-tint);
+  color: var(--solution);
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+.solution-toggle input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--solution);
+  cursor: inherit;
+}
+.solution-toggle:has(input:focus-visible) {
+  outline: 2px solid var(--solution);
+  outline-offset: 2px;
+}
+.solution-toggle--loading {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .btn--solution {
   background: var(--solution-tint);
   border: 1px solid var(--solution);
@@ -2237,9 +2268,18 @@ body {
 }
 
 /* ─── Proposed solution, over a finished daily board ────────
-   One shortest chain, laid over the visitor's own cards: its players get a sky-blue dashed ring —
-   those the visitor never added appear as "proposed" cards — and its links run sky-blue dashes.
-   Nothing of it dims, even on a won board. */
+   One shortest chain, laid over the visitor's own cards. The visitor's board steps back into the
+   shadow — its gold chain too — while the solution lights up: its players get a sky-blue dashed
+   ring (the visitor's own cards among them join it, never duplicated; the others appear as
+   "proposed" cards) and its links run sky-blue dashes. */
+.game-board--solution .node-card:not(.node-card--solution) {
+  opacity: 0.18;
+  filter: grayscale(0.7);
+}
+.game-board--solution .graph-edge:not(.graph-edge--solution) {
+  opacity: 0.06;
+}
+
 .game-board--solution .node-card--solution {
   opacity: 1;
   outline: 2px dashed var(--solution);

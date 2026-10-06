@@ -107,7 +107,6 @@ const fr: Translations = {
       extra === 0 ? 'Chaîne la plus courte trouvée' : `${extra} ${extra === 1 ? 'joueur' : 'joueurs'} en trop`,
     solution: {
       show: 'Voir la solution proposée',
-      hide: 'Masquer la solution proposée',
       legend: (links: number) =>
         `Solution proposée : une des chaînes les plus courtes (${links} liens) — il peut y en avoir d’autres.`,
       unavailable: 'Impossible de charger la solution — réessayez.',

@@ -45,7 +45,7 @@ test('a lost day keeps its board, and lays the proposed solution over it on dema
   await page.getByRole('button', { name: 'Start' }).click()
 
   // While the day is played, nothing of the solution: no button, no request.
-  await expect(page.getByRole('button', { name: 'Show the proposed solution' })).toHaveCount(0)
+  await expect(page.getByRole('checkbox', { name: 'Show the proposed solution' })).toHaveCount(0)
   for (let i = 0; i < 3; i++) await guess(page)
   expect(asked).toEqual([])
 
@@ -62,12 +62,54 @@ test('a lost day keeps its board, and lays the proposed solution over it on dema
   ).toBeVisible()
   expect(asked).toHaveLength(1)
 
-  await page.getByRole('button', { name: 'Hide the proposed solution' }).click()
+  // A checkbox: the pop-up's button ticked it; unticked, nothing of the solution stays.
+  const toggle = page.getByRole('checkbox', { name: 'Show the proposed solution' })
+  await expect(toggle).toBeChecked()
+  await toggle.uncheck()
   await expect(page.locator('.node-card--proposed')).toHaveCount(0)
+  await expect(page.locator('.game-board--solution')).toHaveCount(0)
   // Shown again from memory: asked once.
-  await page.getByRole('button', { name: 'Show the proposed solution' }).click()
+  await toggle.check()
   await expect(page.locator('.node-card--proposed')).toHaveCount(1)
   expect(asked).toHaveLength(1)
+})
+
+test("the visitor's own players on the solution join it, once; the rest of the board steps back", async ({ page }) => {
+  // Delta, linked to Alpha, is on the board but not on the solution; Alpha and Bravo are on both.
+  const delta = { id: 'p-delta', name: 'Delta Impasse', sport: 'rugby' }
+  const deltaMove = {
+    ok: true,
+    node: { kind: 'player', player: delta },
+    edges: [
+      { playerId: 'p-delta', clubId: 'c-one', season: '2016-2017' },
+      { playerId: 'p-alpha', clubId: 'c-one', season: '2016-2017' },
+    ],
+    clubs: [sampleSolution.clubs[0]],
+    victory: false,
+    path: [],
+  }
+  let moves = 0
+  await page.route(
+    (url) => url.pathname === '/api/rugby/move',
+    (route) => route.fulfill({ json: moves++ === 0 ? deltaMove : notConnectedMove }),
+  )
+  await mockApi(page, '/api/rugby/daily/solution', sampleSolution)
+  await page.goto('/rugby')
+  await page.getByRole('button', { name: 'Start' }).click()
+  for (let i = 0; i < 4; i++) await guess(page)
+
+  await page.getByRole('dialog', { name: 'Out of lives' }).getByRole('button', { name: 'See the board' }).click()
+  await page.getByRole('checkbox', { name: 'Show the proposed solution' }).check()
+
+  // One card per player: Alpha and Bravo are not doubled, Charlie is the only proposed one.
+  await expect(page.locator('.node-card')).toHaveCount(4)
+  await expect(page.locator('.node-card--proposed')).toHaveText(/Charlie Lien/)
+  const card = (name: string) => page.locator('.game-board .node-card', { hasText: name })
+  await expect(card('Alpha Testeur')).toHaveClass(/node-card--solution/)
+  await expect(card('Alpha Testeur')).toHaveCSS('opacity', '1')
+  // Delta is the visitor's own, off the solution: in the shadow.
+  await expect(card('Delta Impasse')).not.toHaveClass(/node-card--solution/)
+  await expect(card('Delta Impasse')).toHaveCSS('opacity', '0.18')
 })
 
 test('a winner lays the proposed solution over the winning board from the results', async ({ page }) => {
@@ -110,13 +152,13 @@ test('a day lost before boards were kept still shows the proposed solution, over
   await page.goto('/rugby')
   await expect(page.getByRole('heading', { name: 'Out of lives' })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Show the proposed solution' }).click()
+  await page.getByRole('checkbox', { name: 'Show the proposed solution' }).check()
   const board = page.locator('.daily-finished__board')
   await expect(board.locator('.node-card--proposed')).toHaveText(/Charlie Lien/)
   await expect(board.locator('.node-card--solution')).toHaveCount(3)
   await expect(page.getByText('Your board from this game was not kept')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Hide the proposed solution' }).click()
+  await page.getByRole('checkbox', { name: 'Show the proposed solution' }).uncheck()
   await expect(board).toHaveCount(0)
 })
 

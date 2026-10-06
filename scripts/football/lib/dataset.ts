@@ -1,6 +1,6 @@
 import { isAfterLatestSeason, Season } from '@/domain/season'
 import { alpha2ForEnglishCountryName } from '../../common/nationalities'
-import type { Appearance, Club, Game, Player } from './transfermarktDataset'
+import type { Appearance, Club, Game, NationalTeam, Player } from './transfermarktDataset'
 
 /**
  * The Big 5 domestic leagues, mapped to the display name stored on each membership.
@@ -96,6 +96,8 @@ export type DerivedMembership = {
   competition: string | null
   /** Appearances for this club in this season — the `memberships.games` contract. */
   games: number
+  /** Minutes over those appearances — `memberships.minutes`, the club performance's share. */
+  minutes: number
 }
 
 /**
@@ -123,6 +125,7 @@ export function createMembershipCollector(index: GameIndex) {
       const existing = seen.get(key)
       if (existing) {
         existing.games++
+        existing.minutes += appearance.minutesPlayed
         return
       }
 
@@ -132,6 +135,7 @@ export function createMembershipCollector(index: GameIndex) {
         season,
         competition: index.domesticLeagueByClubSeason.get(clubSeasonKey(appearance.playerClubId, season)) ?? null,
         games: 1,
+        minutes: appearance.minutesPlayed,
       })
     },
     /** Distinct memberships, ordered for a stable, diffable output file. */
@@ -153,12 +157,21 @@ export type DatasetPlayer = {
   nationality: string | null
   /** Fame signal memberships cannot carry — see src/domain/fame.ts. */
   caps: number
+  /**
+   * The national team the caps were won for, by its name in `nationalTeams`: the player's
+   * current national team, else the team of his country of citizenship (most retired players
+   * have no current one). Null when neither resolves — the caps then weigh as a minor nation's.
+   */
+  nationalTeam: string | null
 }
+/** A national team and its FIFA ranking at build time — the fame score's nation tiers. */
+export type DatasetNationalTeam = { name: string; fifaRanking: number }
 export type FootballDataset = {
   generatedAt: string
   clubs: DatasetClub[]
   players: DatasetPlayer[]
   memberships: DerivedMembership[]
+  nationalTeams: DatasetNationalTeam[]
 }
 
 export type BuildWarning = { kind: 'unknown-club' | 'unknown-player' | 'unmapped-nationality'; detail: string }
@@ -176,7 +189,9 @@ export function buildDataset(
   memberships: DerivedMembership[],
   clubsById: Map<string, Club>,
   playersById: Map<string, Player>,
+  nationalTeamsById: Map<string, NationalTeam> = new Map(),
 ): { dataset: FootballDataset; warnings: BuildWarning[] } {
+  const teamByCountry = new Map([...nationalTeamsById.values()].map((t) => [t.countryName, t]))
   const warnings: BuildWarning[] = []
   const clubIds = new Set(memberships.map((m) => m.clubTransfermarktId))
   const playerIds = new Set(memberships.map((m) => m.playerTransfermarktId))
@@ -208,11 +223,14 @@ export function buildDataset(
       const seen = unmappedNationalities.get(raw)
       unmappedNationalities.set(raw, { count: (seen?.count ?? 0) + 1, example: seen?.example ?? player.name })
     }
+    const team =
+      nationalTeamsById.get(player.currentNationalTeamId) ?? teamByCountry.get(player.countryOfCitizenship) ?? null
     players.push({
       transfermarktId: playerId,
       name: player.name,
       nationality,
       caps: player.caps,
+      nationalTeam: player.caps > 0 && team ? team.name : null,
     })
   }
 
@@ -231,5 +249,13 @@ export function buildDataset(
     (m) => knownClubs.has(m.clubTransfermarktId) && knownPlayers.has(m.playerTransfermarktId),
   )
 
-  return { dataset: { generatedAt: new Date().toISOString(), clubs, players, memberships: kept }, warnings }
+  const nationalTeams = [...nationalTeamsById.values()]
+    .filter((t): t is NationalTeam & { fifaRanking: number } => t.fifaRanking !== null)
+    .map((t) => ({ name: t.name, fifaRanking: t.fifaRanking }))
+    .sort((a, b) => a.fifaRanking - b.fifaRanking)
+
+  return {
+    dataset: { generatedAt: new Date().toISOString(), clubs, players, memberships: kept, nationalTeams },
+    warnings,
+  }
 }

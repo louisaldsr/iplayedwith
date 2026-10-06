@@ -73,8 +73,16 @@ function seasonToRange(text: string): string | null {
  * line, with the club/season carried over from the last `sepSaison`/`sepClub` row.
  *
  * `matches` is the table's "Matchs" column, or null when the cell is empty or unparseable.
+ * `wins` is the first figure of the next column, "V/N/D" (wins, draws, losses: "8 0 4").
+ * `starts` is "Titulaire", `minutes` the last column ("984'").
  */
-export type CareerTableRow = Omit<CareerRow, 'games'> & { isInternational: boolean; matches: number | null }
+export type CareerTableRow = Omit<CareerRow, 'games'> & {
+  isInternational: boolean
+  matches: number | null
+  wins: number | null
+  starts: number | null
+  minutes: number | null
+}
 
 /**
  * Walks the season-by-season table under `#saison_ov` on a player's allrugby.com profile
@@ -86,7 +94,8 @@ export type CareerTableRow = Omit<CareerRow, 'games'> & { isInternational: boole
  * Scoping here is also what keeps the match counts honest: the other two tbodies hold the
  * same matches already summed, so a wider selector would double-count them.
  *
- * The column layout is `Saison | (logos) | Club | Compétition | Matchs | V/N/D | …`, but the
+ * The column layout is `Saison | (logos) | Club | Compétition | Matchs | V/N/D | Titulaire | E |
+ * D | P | T | Points | Cartons | Min.`, but the
  * first three cells are only present on the row that opens a season or a club (they carry a
  * `rowspan` over the rows below) — hence the running `offset`.
  *
@@ -134,10 +143,25 @@ function walkCareerTable(html: string): CareerTableRow[] {
       competition: $(tds.get(offset)).text().trim(),
       isInternational: currentIsInternational,
       matches: parseCount($(tds.get(offset + 1)).text()),
+      wins: parseWins($(tds.get(offset + 2)).text()),
+      starts: parseCount($(tds.get(offset + 3)).text()),
+      minutes: parseMinutes($(tds.get(offset + 10)).text()),
     })
   })
 
   return rows
+}
+
+/** "8 0 4" (wins, draws, losses) -> 8; anything else -> null. */
+function parseWins(text: string): number | null {
+  const match = text.trim().match(/^(\d+)\s+\d+\s+\d+$/)
+  return match ? parseInt(match[1], 10) : null
+}
+
+/** "984'" -> 984; anything else -> null. */
+function parseMinutes(text: string): number | null {
+  const match = text.trim().match(/^(\d+)'?$/)
+  return match ? parseInt(match[1], 10) : null
 }
 
 /** "12" -> 12; an empty, non-numeric or negative cell -> null. */
@@ -182,6 +206,37 @@ export function parseCareerRows(html: string): CareerRow[] {
   return rows
 }
 
+/** One competition line of a club season — "Toulouse · 23/24 · Champions Cup · 8 games, 8 wins". */
+export type CompetitionRow = {
+  season: string
+  clubName: string
+  competition: string
+  matches: number | null
+  wins: number | null
+  starts: number | null
+  minutes: number | null
+}
+
+/**
+ * Every competition line of the player's club career, NOT collapsed: where `parseCareerRows`
+ * keeps one row per season+club, this keeps "Top 14: 22" and "Champions Cup: 8" apart, which is
+ * what the season prestige needs (scripts/rugby/lib/prestige.ts). National teams are excluded,
+ * as in `parseCareerRows`.
+ */
+export function parseCompetitionRows(html: string): CompetitionRow[] {
+  return walkCareerTable(html)
+    .filter((row) => !row.isInternational)
+    .map(({ season, clubName, competition, matches, wins, starts, minutes }) => ({
+      season,
+      clubName,
+      competition,
+      matches,
+      wins,
+      starts,
+      minutes,
+    }))
+}
+
 /**
  * The career table lists every national side a player turned out for, not only the senior one:
  * "France U20", "Angleterre A", "All Blacks XV", "France Développement", the Barbarians, the
@@ -198,8 +253,12 @@ export function isSeniorNationalTeam(label: string): boolean {
   return !NON_SENIOR_SIDE.test(label.trim())
 }
 
-/** Raw fame signals read off a profile that memberships cannot carry — see src/domain/fame.ts. */
-export type CareerStats = { caps: number }
+/**
+ * Raw fame signals read off a profile that memberships cannot carry — see src/domain/fame.ts.
+ * `capsByNation` splits `caps` by national side, as the profile labels it ("France", "Géorgie"):
+ * the fame score weighs a cap by its nation (`nation_tiers`).
+ */
+export type CareerStats = { caps: number; capsByNation: Record<string, number> }
 
 /**
  * Counts senior international caps: the national-team lines of the career table ("Géorgie · Test
@@ -211,10 +270,48 @@ export type CareerStats = { caps: number }
  */
 export function parseCareerStats(html: string): CareerStats {
   let caps = 0
+  const capsByNation: Record<string, number> = {}
 
   for (const row of walkCareerTable(html)) {
-    if (row.isInternational && row.matches !== null && isSeniorNationalTeam(row.clubName)) caps += row.matches
+    if (row.isInternational && row.matches !== null && isSeniorNationalTeam(row.clubName)) {
+      caps += row.matches
+      capsByNation[row.clubName] = (capsByNation[row.clubName] ?? 0) + row.matches
+    }
   }
 
-  return { caps }
+  return { caps, capsByNation }
+}
+
+/** A club season's starts and minutes, every competition line summed — the `games` contract. */
+export type SeasonStats = { season: string; clubName: string; starts: number | null; minutes: number | null }
+
+/**
+ * Starts and minutes per season+club, every competition line summed — the same lines
+ * `parseCareerRows` sums into `games`, so the three describe the same membership. Null when no
+ * line of that season+club gives the figure. National teams are excluded.
+ */
+export function parseSeasonStats(html: string): SeasonStats[] {
+  const bySeasonClub = new Map<string, SeasonStats>()
+  for (const row of walkCareerTable(html)) {
+    if (row.isInternational) continue
+    const key = `${row.season}||${row.clubName}`
+    const stats = bySeasonClub.get(key) ?? { season: row.season, clubName: row.clubName, starts: null, minutes: null }
+    if (row.starts !== null) stats.starts = (stats.starts ?? 0) + row.starts
+    if (row.minutes !== null) stats.minutes = (stats.minutes ?? 0) + row.minutes
+    bySeasonClub.set(key, stats)
+  }
+  return [...bySeasonClub.values()]
+}
+
+/**
+ * The player's All.Rugby ID: the slug of the all.rugby page an allrugby.com profile links to
+ * (`<link rel="alternate" hreflang="en" href="https://all.rugby/player/tom-wood">`), and an
+ * all.rugby profile's own slug. It is the key Wikidata stores (P9903, "All.Rugby player ID") —
+ * unlike our URL slug, it tells homonyms apart: the two Tom Woods are `tom-wood` and `tom-wood-`.
+ */
+export function parseAllRugbyId(html: string): string | null {
+  const $ = cheerio.load(html)
+  const href = $('link[rel="alternate"][hreflang="en"]').attr('href') ?? $('link[rel="canonical"]').attr('href') ?? ''
+  const match = href.match(/^https:\/\/all\.rugby\/player\/([^/?#]+)$/)
+  return match ? decodeURIComponent(match[1]) : null
 }

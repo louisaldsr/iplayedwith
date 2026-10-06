@@ -5,6 +5,7 @@ import { BIG5_LEAGUES, buildDataset, createMembershipCollector, indexGames, type
 import {
   loadClubs,
   loadCompetitions,
+  loadNationalTeams,
   loadPlayers,
   streamAppearances,
   streamGames,
@@ -59,13 +60,16 @@ async function main() {
   const playerIds = new Set(memberships.map((m) => m.playerTransfermarktId))
   const playersById = await loadPlayers((id) => playerIds.has(id))
 
-  const { dataset, warnings } = buildDataset(memberships, clubsById, playersById)
+  const nationalTeamsById = await loadNationalTeams()
+  const { dataset, warnings } = buildDataset(memberships, clubsById, playersById, nationalTeamsById)
   reportWarnings(warnings)
 
   const withCaps = dataset.players.filter((p) => p.caps > 0).length
+  const withTeam = dataset.players.filter((p) => p.caps > 0 && p.nationalTeam).length
   console.log(
     `Fame signals: international caps for ${withCaps}/${dataset.players.length} players ` +
-      `(${((100 * withCaps) / dataset.players.length).toFixed(1)}%)`,
+      `(${((100 * withCaps) / dataset.players.length).toFixed(1)}%), national team known for ${withTeam}; ` +
+      `${dataset.nationalTeams.length} national teams ranked`,
   )
 
   const outPath = outputPath('football-dataset.json')

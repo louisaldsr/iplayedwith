@@ -292,3 +292,167 @@ Simulated on live data, then checked in a local Postgres against the SQL itself:
 Media and generation fame. Kinghorn stays ahead of Dupont on every signal we hold. Next step: a
 Wikidata sitelinks spike (how many Wikipedia editions have an article on the player). It is
 stable, unlike the pageviews rejected earlier, and football can match on the Transfermarkt ID.
+
+## Revision 3 — four pillars: longevity, club performance, international performance, exposure
+
+*October 2026 — `supabase/migrations/023_season_prestige.sql`, `024_seed_rugby_titles.sql`,
+`025_fame_v3.sql`, and the `fame:exposure` import.*
+
+Revision 2 gave caps more than half the score, so performance meant "picked by your country". A Top
+14 star with few England caps (Jack Willis) stayed `known`, 22 caps for Spain counted like 22 for
+New Zealand, and nothing measured how much the public reads about a player. Revision 3 was designed
+on a **prototype of both full rosters** (6,855 rugby and 11,455 football players), judged by name,
+and only then written as a migration — which reproduces the prototype's scores to within ±1
+(rounding) on every player but 24 marginal rugby players the prototype credited with seasons
+outside the graph.
+
+```
+score  = round(100 × [ 0.15·L + 0.20·P_club + 0.20·P_intl + 0.45·E ])
+         no Wikipedia match → round(100 × [ 0.15·L + 0.20·P_club + 0.20·P_intl ] / 0.55)
+L      = min(1, career games / k_games)
+P_club = min(1, mean of the best ≤5 (role × squad-season prestige) / k_club)
+P_intl = min(1, √(caps × nation tier per season / k_rate))
+E      = clamp((log10(fr + en Wikipedia views per year) − 2) / (log10(v_max) − 2))
+```
+
+The first part of this work scored the squads; it still holds.
+
+### Why club-seasons
+
+People remember a season: its big European nights, its title, and the squad that played them. A
+title stays attached to its own season. The squads before and after it do not get it, and an old
+title needs no decay because it still belongs to the players who won it. The value is the same
+for every player of a squad, so it lives on the club-season (`club_season_prestige`), not on
+`memberships`.
+
+### Signals measured
+
+| Signal | Verdict |
+|---|---|
+| Continental games (UCL/EL, Champions/Challenge Cup) | Best source held, but see "games → wins" below. Summed 2012-2025: Real 170, Bayern 160, PSG 148 / Leinster 97, Toulouse 81, Munster 81 |
+| Titles, from Wikidata (`P3450` season → `P1346` winner) | Covers the southern hemisphere, but **incomplete**: the Crusaders show 7 Super Rugby titles, not 11+. Titles are curated for rugby and derived from the results for football |
+| Wikipedia editions per club | **Rejected**: flat in rugby (Toulouse = Leinster = Crusaders = 21, Zebre 15); inflated for English football (Luton 56) |
+| Attendance, stadium size | **Rejected**: football only |
+| Squad caps | Already rejected in revision 2 |
+
+### Games → wins
+
+The first version counted continental **games**, and on a local copy of both sports it rewarded
+taking part. Zebre 2016-17 (6 Champions Cup games, 0 wins) scored 48, next to Munster. Every Super
+Rugby franchise sat at 35-46 for playing its ~15 league games, so the Sunwolves ranked above Pau and
+Bayonne. **Wins** tell these squads apart:
+
+| | games | wins |
+|---|---|---|
+| Zebre 2016-17, Champions Cup | 6 | 0 |
+| Toulouse 2023-24, Champions Cup | 8 | 8 |
+| Sunwolves 2018, Super Rugby | 12 | 2 |
+| Crusaders 2017, Super Rugby | 19 | 17 |
+
+Average Super Rugby wins per season rank the franchises in their real order (Crusaders 12.1,
+Hurricanes 10.8, Chiefs 10.3 … Waratahs 6.5), where games are flat at ~15. After the switch: Zebre
+2016-17 scores 4, the Sunwolves 18, Moana Pasifika 22, Pau 25.
+
+### Brand
+
+A season alone is not enough. Man Utd 2014-15, Chelsea 2016-17 (league champions) and AC Milan
+2014 to 2016 played no European game. So 30% of a club-season's prestige is the club's average over
+the window, and Chelsea 2016-17 scores 29, not 0. This stays absolute: the average reads only the
+club's own seasons.
+
+### Club performance: first choice in a strong squad
+
+Each membership is worth `role × prestige`: the player's share of his squad's **starts** that
+season (the most any squad member started = 1) times the squad-season's prestige. The club pillar
+averages his 5 best.
+
+- **Starts, not minutes.** Props, hookers and scrum-halves are replaced around the hour: minutes
+  made them part-timers. Starts lifted Atonio's club value 0.39 → 0.48 and Healy's 0.39 → 0.47;
+  backs barely moved. Football has no starts in the dataset and uses minutes (goalkeepers, who
+  play every minute, are slightly favoured — noted).
+- The rev 2 spike rejected "share of the team's games" as a standalone signal: it crowned club
+  pillars and penalised internationals away on Test duty. Inside this formula the caps pillar
+  gives that time back.
+
+An earlier draft added `stage`, a games-weighted career average of the squads' prestige, to the rev
+2 formula. It lifted the role players of the dominant squads (Leinster's Toner 88, McGrath 85,
+ahead of Dupont 84) and never separated performance from exposure. Abandoned before shipping.
+
+### International performance: caps weighted by nation
+
+`nation_tiers`: rugby curated (World Rugby's top 10 + Lions 1; Fiji, Samoa, Tonga, Georgia, Japan
+0.5; the next nine 0.2; the rest 0.1), football from the dataset's FIFA ranking (top 10 / 11–30 /
+31–60 / rest). Inside one Pro D2 squad (Biarritz 2025-26), raw caps correlated **negatively** with
+Wikipedia views (−0.36): Imaz and Aurrekoetxea, 22 caps each for Spain, ranked #3–4 on rev 2.
+
+The FIFA ranking is a snapshot (September 2026): Italy (12th) and Croatia (11th) weigh 0.5 for a
+2012–2026 career. Citizenship stands in for the national team of retired players (the field is
+mostly empty for them), so a dual national counts for his citizenship.
+
+### Exposure: Wikipedia views, matched by a shared ID
+
+**Matching.** The prototype first matched players to Wikidata by name; the names that matter are
+exactly the ambiguous ones (17 Wikidata items are called "Tom Wood"). Wikidata stores the IDs of our
+own sources: All.Rugby ID (P9903) and Transfermarkt ID (P2446). On Biarritz, 49 of 49 matched
+players carried the All.Rugby ID and it equalled our slug every time. Two traps:
+
+- our URL slug drops the number allrugby.com uses for homonyms, so two Tom Woods shared
+  `tom-wood` — the real ID is in each profile's `hreflang="en"` link (`tom-wood` / `tom-wood-`);
+- Wikidata keeps accents (`aurélien-rougerie`): compare without them.
+
+Players with 100+ games whose item lacks the ID are matched by a **unique** name (115 in rugby; 15
+random ones checked by hand, all right). Coverage: rugby 93% (100–199 games) and 95% (200+), 59%
+overall — most players without an article are genuinely obscure; football 98%.
+
+**Views.** French + English (the game's audience), averaged over 36 months. The batched action API
+only covers 60 days, which follows the news: Ma'a Nonu, retired, read at 789,000 views a year — 149,000
+over three years. Exposure is local (Dupont: 70% of his views are French; Vinícius is read
+everywhere): weighting the game's languages is the deliberate choice, one score per player because
+the daily challenge is the same pair for everyone.
+
+**Rate limits.** Wikimedia gives an unidentified client 10 requests a minute and a client whose
+User-Agent follows its format 200 — the same as a new account with a token, so none is needed.
+Without the format, the first runs spent their time in 429s ("days" at that pace); with it,
+26,731 article histories took three hours with 4 refusals.
+
+### Ceilings, and spreading the top
+
+Every term saturates at a per-sport ceiling. With ceilings at "what the 10th star reaches", the top
+tied (four football players at 100); at the maximum ever observed, nobody reached 90 in rugby. The
+rule kept: the per-season measures saturate at the sport's **p99**, views at the level of its
+**single biggest star** (log scale keeps the spread below it). Football's career games stay at 550:
+at its p99 (440), 14-season veterans all saturated and Messi and Ronaldo tied at 100.
+
+### Performance per season played
+
+The cumulative version held young stars down: Yamal 68 with 10.5 million views a year, Bellingham
+76, Haaland 71. Per season (club: best ≤5 seasons averaged, floor 3; caps: per season, floor 3),
+longevity is the only career total: Yamal 85, Bellingham 89, Haaland 79 (Norway's tier holds him
+back).
+
+### What it produces
+
+| | rev 2 | rev 3 |
+|---|---|---|
+| Rugby top | Russell 98, Fickou 97, Ford 97 | **Dupont 94**, Farrell 93, Russell 91, Atonio 89 |
+| Football top | Modrić 100, Lewandowski 99, Messi 98 | **Messi 99, Ronaldo 98**, Mbappé 95, Kane 95 |
+| Jack Willis / Blair Kinghorn | 52 / 89 | 73 / 83 |
+| Yann Lesgourgues / Yann David (0 caps, known in France) | 25 / 20 | 49 / 46 |
+| Ekain Imaz (22 caps, Spain) | 61 | 17 |
+| Celso Borges / Guillermo Ochoa | 84 / 85 | 44 / 59 |
+| Lamine Yamal / Jude Bellingham | 64 / 74 | 85 / 89 |
+| 90+ / famous (70+) / known / unsung — rugby | — / 297 / 1,279 / 5,279 | 3 / 124 / 1,831 / 4,900 |
+| same — football | — / 426 / 2,507 / 8,522 | 14 / 201 / 3,277 / 7,977 |
+
+The 70 / 30 floor thresholds and the daily draw band (60–80: 307 rugby, 339 football players on
+the new scale) are to review on the live data.
+
+### Still open
+
+- Awards as an exposure multiplier (needs a curated list); views in other languages; the
+  goalkeepers' minutes bias.
+- The rugby graph effectively starts in 2013-14 (69 memberships in 2012-13, ~1,800 a season
+  after): `025` removes the five 2012-13 titles that have no squad to land on.
+- The cached Transfermarkt download stopped at the 2025-26 European semi-finals: re-fetch before
+  deriving the football titles.
+- The `appearance` signal, once the game produces games, to fit the weights instead of choosing them.

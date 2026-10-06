@@ -1,4 +1,4 @@
-import { parseFameDetails } from '@/domain/fame'
+import { parseFameDetails, parseFameTerms } from '@/domain/fame'
 
 /**
  * `player_fame.details` is an open jsonb bag written by import scripts, so a row can carry a
@@ -39,5 +39,50 @@ describe('parseFameDetails', () => {
     expect(parseFameDetails(undefined)).toEqual({})
     expect(parseFameDetails('{"caps":12}')).toEqual({})
     expect(parseFameDetails(42)).toEqual({})
+  })
+})
+
+describe('parseFameDetails — revision 3 signals', () => {
+  it('reads caps by nation and the exposure signals', () => {
+    expect(
+      parseFameDetails({
+        capsByNation: { France: 64, bad: 'x' },
+        wikidataId: 'Q20666534',
+        wikidataMatch: 'id',
+        viewsPerYear: 1096808,
+        viewsWindow: '202310-202609',
+      }),
+    ).toEqual({
+      capsByNation: { France: 64 },
+      wikidataId: 'Q20666534',
+      wikidataMatch: 'id',
+      viewsPerYear: 1096808,
+      viewsWindow: '202310-202609',
+    })
+  })
+
+  it('keeps an explicit null — no match, or no article — apart from a missing key', () => {
+    expect(parseFameDetails({ wikidataId: null, wikidataMatch: null, viewsPerYear: null })).toEqual({
+      wikidataId: null,
+      wikidataMatch: null,
+      viewsPerYear: null,
+    })
+    expect(parseFameDetails({ wikidataMatch: 'guess', viewsPerYear: 'many' })).toEqual({})
+  })
+})
+
+describe('parseFameTerms', () => {
+  it('reads the four pillars, exposure possibly null', () => {
+    expect(parseFameTerms({ longevity: 0.84, club: 1, intl: 0.89, exposure: null })).toEqual({
+      longevity: 0.84,
+      club: 1,
+      intl: 0.89,
+      exposure: null,
+    })
+  })
+
+  it('returns null for a row not scored by revision 3', () => {
+    expect(parseFameTerms(null)).toBeNull()
+    expect(parseFameTerms({ longevity: 0.5 })).toBeNull()
   })
 })

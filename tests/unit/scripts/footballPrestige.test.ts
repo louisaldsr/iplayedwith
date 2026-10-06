@@ -69,6 +69,32 @@ describe('collectContinentalRuns', () => {
   })
 })
 
+describe('deriveTitles — known titles', () => {
+  const known = [{ clubId: 'real', season: '2016-2017', competition: 'Champions League' }]
+
+  it('adds a known title the data does not settle', () => {
+    const { titles } = deriveTitles([], inScope, known)
+    expect(titles).toEqual(known)
+  })
+
+  it('never overrides a final the data holds, and says the entry can go', () => {
+    const final = game('CL', '2016', 'juve', 'real', { round: 'Final', homeGoals: 2, awayGoals: 1 })
+    const { titles, warnings } = deriveTitles([final], inScope, known)
+    expect(titles).toEqual([{ clubId: 'juve', season: '2016-2017', competition: 'Champions League' }])
+    expect(warnings).toEqual([{ kind: 'final', detail: expect.stringContaining('drop it from KNOWN_TITLES') }])
+  })
+
+  it('ships the 2025-26 European finals the dataset stops before', () => {
+    const { titles } = deriveTitles([], (id) => ['583', '405'].includes(id))
+    expect(titles).toEqual(
+      expect.arrayContaining([
+        { clubId: '583', season: '2025-2026', competition: 'Champions League' },
+        { clubId: '405', season: '2025-2026', competition: 'Europa League' },
+      ]),
+    )
+  })
+})
+
 describe('deriveTitles', () => {
   it('crowns the winner of a continental final, shoot-out included', () => {
     // The 2016 final reads 6:4 in the data: the shoot-out is in the score.

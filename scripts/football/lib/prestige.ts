@@ -13,6 +13,19 @@ export const CONTINENTAL_COMPETITIONS: Record<string, string> = {
   UCOL: 'Conference League',
 }
 
+/**
+ * Titles the dataset cannot show, by Transfermarkt club id. `deriveTitles` adds one only when it
+ * derived no winner for that competition-season itself — so when a later dataset holds the
+ * result, the derivation takes over, and a wrong entry here can never override a played final.
+ *
+ * The 2025-26 European finals were played after the dataset build (it stops at the semi-finals,
+ * which do send these four clubs to the finals).
+ */
+export const KNOWN_TITLES: DerivedTitle[] = [
+  { clubId: '583', season: '2025-2026', competition: 'Champions League' }, // PSG, final v Arsenal
+  { clubId: '405', season: '2025-2026', competition: 'Europa League' }, // Aston Villa, final v Freiburg
+]
+
 /** A club's continental run in one season — its wins — keyed by Transfermarkt club id. */
 export type ContinentalRun = { clubId: string; season: string; wins: ContinentalWins }
 export type DerivedTitle = { clubId: string; season: string; competition: string }
@@ -63,6 +76,7 @@ export function collectContinentalRuns(
 export function deriveTitles(
   games: Iterable<GameResult>,
   inScope: (clubId: string) => boolean,
+  known: DerivedTitle[] = KNOWN_TITLES,
 ): { titles: DerivedTitle[]; warnings: TitleWarning[] } {
   const titles: DerivedTitle[] = []
   const warnings: TitleWarning[] = []
@@ -133,6 +147,20 @@ export function deriveTitles(
       continue
     }
     if (inScope(champions[0])) titles.push({ clubId: champions[0], season, competition })
+  }
+
+  // What the data could not decide, from the known list — never over a derived winner. A known
+  // title whose competition-season the data did settle is reported, so the list can be pruned.
+  const derived = new Set(titles.map((t) => `${t.competition}||${t.season}`))
+  for (const title of known) {
+    if (derived.has(`${title.competition}||${title.season}`)) {
+      warnings.push({
+        kind: 'final',
+        detail: `${title.competition} ${title.season}: now in the data — drop it from KNOWN_TITLES`,
+      })
+      continue
+    }
+    if (inScope(title.clubId)) titles.push(title)
   }
 
   return { titles, warnings }

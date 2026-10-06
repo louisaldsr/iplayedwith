@@ -7,9 +7,10 @@ import { parse } from 'csv-parse'
 import { inputPath } from '../../common/paths'
 
 /**
- * The five tables of the dcaribou/transfermarkt-datasets build that the football import
+ * The six tables of the dcaribou/transfermarkt-datasets build that the football import
  * reads. The archive holds twelve; the rest (game_lineups, game_events, valuations,
- * transfers, club_games, countries, national_teams) carry nothing this game needs.
+ * transfers, club_games, countries) carry nothing this game needs. `national_teams` gives the
+ * FIFA ranking the fame score weighs caps by.
  */
 export const DATASET_FILES = [
   'competitions.csv.gz',
@@ -17,6 +18,7 @@ export const DATASET_FILES = [
   'games.csv.gz',
   'appearances.csv.gz',
   'players.csv.gz',
+  'national_teams.csv.gz',
 ] as const
 
 export type DatasetFile = (typeof DATASET_FILES)[number]
@@ -61,8 +63,16 @@ async function streamCsv(file: DatasetFile, onRow: (row: Record<string, string>)
 export type Competition = { competitionId: string; slug: string; type: string; countryName: string }
 export type Club = { clubId: string; name: string }
 export type Game = { gameId: string; competitionId: string; season: string; homeClubId: string; awayClubId: string }
-export type Player = { playerId: string; name: string; countryOfCitizenship: string; caps: number }
-export type Appearance = { playerId: string; playerClubId: string; gameId: string }
+export type Player = {
+  playerId: string
+  name: string
+  countryOfCitizenship: string
+  caps: number
+  /** The national team the player last played for; empty for most retired players. */
+  currentNationalTeamId: string
+}
+export type Appearance = { playerId: string; playerClubId: string; gameId: string; minutesPlayed: number }
+export type NationalTeam = { nationalTeamId: string; name: string; countryName: string; fifaRanking: number | null }
 
 /**
  * Note on the `name` column: in `competitions.csv` it holds a slug ("premier-league"),
@@ -145,6 +155,7 @@ export async function streamAppearances(onAppearance: (appearance: Appearance) =
       playerId: row.player_id,
       playerClubId: row.player_club_id,
       gameId: row.game_id,
+      minutesPlayed: parseOptionalInt(row.minutes_played) ?? 0,
     })
   })
 }
@@ -166,6 +177,21 @@ export async function loadPlayers(keep?: (playerId: string) => boolean): Promise
       name: row.name,
       countryOfCitizenship: row.country_of_citizenship,
       caps: Number.isFinite(caps) && caps > 0 ? caps : 0,
+      currentNationalTeamId: row.current_national_team_id,
+    })
+  })
+  return byId
+}
+
+/** The national teams, with the FIFA ranking as of the dataset build. */
+export async function loadNationalTeams(): Promise<Map<string, NationalTeam>> {
+  const byId = new Map<string, NationalTeam>()
+  await streamCsv('national_teams.csv.gz', (row) => {
+    byId.set(row.national_team_id, {
+      nationalTeamId: row.national_team_id,
+      name: row.name,
+      countryName: row.country_name,
+      fifaRanking: parseOptionalInt(row.fifa_ranking),
     })
   })
   return byId

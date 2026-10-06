@@ -4,7 +4,14 @@ import { Player } from '@/domain/player'
 import { SportId } from '@/domain/sport'
 import { Nationality } from '@/domain/nationality'
 import { FameBand } from '@/domain/drawFameBand'
-import { FameDetails, ImportedFameDetails, parseFameDetails } from '@/domain/fame'
+import {
+  FameDetails,
+  FameTerms,
+  ImportedExposureDetails,
+  ImportedFameDetails,
+  parseFameDetails,
+  parseFameTerms,
+} from '@/domain/fame'
 import { fetchAllRows } from '@/lib/supabasePagination'
 
 type PlayerRow = { id: string; name: string; sport: SportId; nationality: string | null }
@@ -192,7 +199,7 @@ export async function insertMany(db: SupabaseClient, players: Player[]): Promise
 /** Rows per RPC call — same reasoning as INSERT_CHUNK_SIZE, applied to a jsonb payload. */
 const FAME_CHUNK_SIZE = 1000
 
-export type FameDetailsRow = { playerId: PlayerId; details: ImportedFameDetails }
+export type FameDetailsRow = { playerId: PlayerId; details: ImportedFameDetails | ImportedExposureDetails }
 
 /**
  * Writes the raw fame signals an import produced, merging them into each player's existing
@@ -222,16 +229,32 @@ export async function applyFameDetails(db: SupabaseClient, sport: SportId, rows:
 }
 
 /**
- * Recomputes `player_fame.score` for every player of the sport, from `details.caps`, the games
- * summed over `memberships` and the season prestige of those memberships — which the SQL
- * function rescores first. Returns the number of players scored.
+ * Recomputes `player_fame.score` (and its `terms`) for every player of the sport: longevity from
+ * `memberships.games`, club performance from starts/minutes and the season prestige — which the
+ * SQL function rescores first — international performance from `details.capsByNation`, exposure
+ * from `details.viewsPerYear`. Returns the number of players scored.
  *
  * The formula and its per-sport constants live only in SQL — see
- * supabase/migrations/025_fame_stage.sql. One call rewrites the whole sport, so a partial run
+ * supabase/migrations/025_fame_v3.sql. One call rewrites the whole sport, so a partial run
  * cannot leave it on two revisions.
  */
 export async function computeFameScores(db: SupabaseClient, sport: SportId): Promise<number> {
   const { data, error } = await db.rpc('compute_fame_scores', { p_sport: sport })
+  if (error) throw new Error(error.message)
+  return typeof data === 'number' ? data : 0
+}
+
+/**
+ * Replaces every nation tier `source` owns in the sport (`replace_nation_tiers`, 025): the
+ * football import writes them from the dataset's FIFA ranking on each run. Returns rows written.
+ */
+export async function replaceNationTiers(
+  db: SupabaseClient,
+  sport: SportId,
+  source: string,
+  rows: { nation: string; weight: number }[],
+): Promise<number> {
+  const { data, error } = await db.rpc('replace_nation_tiers', { p_sport: sport, p_source: source, p_rows: rows })
   if (error) throw new Error(error.message)
   return typeof data === 'number' ? data : 0
 }
@@ -263,13 +286,8 @@ export type PlayerFame = {
   games: number | null
   /** Distinct seasons across the player's memberships; 0 means unreachable in any puzzle. */
   seasons: number
-  /**
-   * The fame term `stage` (revision 3), 0..1: the season prestige of the player's memberships,
-   * averaged by games — each membership equally when none has a count. Null without memberships.
-   * Recomputed here the way compute_fame_scores does (supabase/migrations/025_fame_stage.sql),
-   * for display only.
-   */
-  stage: number | null
+  /** The four pillars `compute_fame_scores` wrote with the score; null before revision 3. */
+  terms: FameTerms | null
 }
 
 /**
@@ -291,18 +309,17 @@ export type PlayerFame = {
  */
 export async function listFameBySport(db: SupabaseClient, sport: SportId): Promise<PlayerFame[]> {
   type PlayerRow = { id: string; name: string }
-  type FameRow = { player_id: string; score: number | null; revision: number | null; details: unknown }
-  type MembershipRow = { player_id: string; club_id: string; season: string; games: number | null }
-  type PrestigeRow = { club_id: string; season: string; score: number | null }
+  type FameRow = { player_id: string; score: number | null; revision: number | null; details: unknown; terms: unknown }
+  type MembershipRow = { player_id: string; season: string; games: number | null }
 
-  const [players, fame, memberships, prestige] = await Promise.all([
+  const [players, fame, memberships] = await Promise.all([
     fetchAllRows<PlayerRow>((from, to) =>
       db.from('players').select('id, name').eq('sport', sport).order('id').range(from, to),
     ),
     fetchAllRows<FameRow>((from, to) =>
       db
         .from('player_fame')
-        .select('player_id, score, revision, details')
+        .select('player_id, score, revision, details, terms')
         .eq('sport', sport)
         .order('player_id')
         .range(from, to),
@@ -310,18 +327,9 @@ export async function listFameBySport(db: SupabaseClient, sport: SportId): Promi
     fetchAllRows<MembershipRow>((from, to) =>
       db
         .from('memberships')
-        .select('player_id, club_id, season, games')
+        .select('player_id, season, games')
         .eq('sport', sport)
         .order('player_id')
-        .order('club_id')
-        .order('season')
-        .range(from, to),
-    ),
-    fetchAllRows<PrestigeRow>((from, to) =>
-      db
-        .from('club_season_prestige')
-        .select('club_id, season, score')
-        .eq('sport', sport)
         .order('club_id')
         .order('season')
         .range(from, to),
@@ -330,38 +338,12 @@ export async function listFameBySport(db: SupabaseClient, sport: SportId): Promi
 
   const signalsByPlayerId = new Map(fame.map((row) => [row.player_id, row]))
 
-  const prestigeByClubSeason = new Map(prestige.map((row) => [`${row.club_id}||${row.season}`, row.score ?? 0]))
-
-  type Career = {
-    games: number | null
-    seasons: Set<string>
-    weighted: number
-    weight: number
-    sum: number
-    count: number
-  }
-  const careerByPlayerId = new Map<string, Career>()
+  const careerByPlayerId = new Map<string, { games: number | null; seasons: Set<string> }>()
   for (const m of memberships) {
-    const career = careerByPlayerId.get(m.player_id) ?? {
-      games: null,
-      seasons: new Set<string>(),
-      weighted: 0,
-      weight: 0,
-      sum: 0,
-      count: 0,
-    }
+    const career = careerByPlayerId.get(m.player_id) ?? { games: null, seasons: new Set<string>() }
     if (m.games !== null) career.games = (career.games ?? 0) + m.games
     career.seasons.add(m.season)
-    const score = prestigeByClubSeason.get(`${m.club_id}||${m.season}`) ?? 0
-    career.weighted += score * (m.games ?? 0)
-    career.weight += m.games ?? 0
-    career.sum += score
-    career.count++
     careerByPlayerId.set(m.player_id, career)
-  }
-  const stageOf = (career: Career | undefined): number | null => {
-    if (!career) return null
-    return (career.weight > 0 ? career.weighted / career.weight : career.sum / career.count) / 100
   }
 
   return players.map((row) => {
@@ -375,7 +357,7 @@ export async function listFameBySport(db: SupabaseClient, sport: SportId): Promi
       details: parseFameDetails(signals?.details),
       games: career?.games ?? null,
       seasons: career?.seasons.size ?? 0,
-      stage: stageOf(career),
+      terms: parseFameTerms(signals?.terms),
     }
   })
 }

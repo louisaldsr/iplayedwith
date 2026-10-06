@@ -5,7 +5,13 @@
  * to its ESM browser build and cannot parse it. These parsers only ever run in a seed script,
  * so node is also the honest environment for them.
  */
-import { isSeniorNationalTeam, parseCareerRows, parseCareerStats } from '../../../scripts/rugby/lib/playerProfileParser'
+import {
+  isSeniorNationalTeam,
+  parseAllRugbyId,
+  parseCareerRows,
+  parseCareerStats,
+  parseSeasonStats,
+} from '../../../scripts/rugby/lib/playerProfileParser'
 
 /**
  * Faithful but reduced copies of an allrugby.com profile's `#saison_ov` table.
@@ -14,7 +20,8 @@ import { isSeniorNationalTeam, parseCareerRows, parseCareerStats } from '../../.
  * Titulaire | … | Min.` — because the parser reads the match count by position, so a fixture
  * with the columns collapsed would test nothing.
  */
-const CELLS_AFTER_MATCHES = "<td>8 0 4</td><td>9</td><td></td><td></td><td></td><td></td><td></td><td>590'</td>"
+const CELLS_AFTER_MATCHES =
+  "<td>8 0 4</td><td>9</td><td></td><td></td><td></td><td></td><td></td><td></td><td>590'</td>"
 
 const seasonRow = (season: string, club: string, competition: string, matches: string, cls = 'sepSaison') =>
   `<tr class="${cls}">` +
@@ -46,7 +53,7 @@ describe('parseCareerStats', () => {
     const html = profile(
       seasonRow('19/20', 'Clermont', 'Top 14', '12') + clubRow('Géorgie', 'Test Matchs', '2', 'international sepClub'),
     )
-    expect(parseCareerStats(html)).toEqual({ caps: 2 })
+    expect(parseCareerStats(html).caps).toBe(2)
   })
 
   it('sums caps across seasons', () => {
@@ -56,7 +63,7 @@ describe('parseCareerStats', () => {
         seasonRow('18/19', 'Clermont', 'Top 14', '20') +
         clubRow('France', 'Autumn Nations Series', '3', 'international sepClub'),
     )
-    expect(parseCareerStats(html)).toEqual({ caps: 8 })
+    expect(parseCareerStats(html).caps).toBe(8)
   })
 
   it('never counts club games as caps, even right after a national-team row', () => {
@@ -67,7 +74,7 @@ describe('parseCareerStats', () => {
         clubRow('France', 'Autumn Nations Series', '2', 'international sepClub') +
         seasonRow('18/19', 'Clermont', 'Top 14', '20'),
     )
-    expect(parseCareerStats(html)).toEqual({ caps: 2 })
+    expect(parseCareerStats(html).caps).toBe(2)
   })
 
   it('ignores the career-total tbodies that follow the season detail', () => {
@@ -77,7 +84,7 @@ describe('parseCareerStats', () => {
       clubRow('France', 'Six Nations', '5', 'international sepClub'),
       clubRow('France', 'Total', '5', 'international sepClub'),
     )
-    expect(parseCareerStats(html)).toEqual({ caps: 0 })
+    expect(parseCareerStats(html).caps).toBe(0)
   })
 
   it('skips youth, A and invitational sides — only senior Tests are caps', () => {
@@ -88,11 +95,11 @@ describe('parseCareerStats', () => {
         seasonRow('23/24', 'Toulouse', 'Top 14', '20') +
         clubRow('Barbarians FR', 'Test Matchs', '1', 'international sepClub'),
     )
-    expect(parseCareerStats(html)).toEqual({ caps: 3 })
+    expect(parseCareerStats(html).caps).toBe(3)
   })
 
   it('returns zero caps for a profile with no season table', () => {
-    expect(parseCareerStats('<html><body>no career here</body></html>')).toEqual({ caps: 0 })
+    expect(parseCareerStats('<html><body>no career here</body></html>').caps).toBe(0)
   })
 })
 
@@ -190,5 +197,80 @@ describe('parseCareerRows', () => {
 
   it('returns nothing for a profile with no season table', () => {
     expect(parseCareerRows('<html><body>no career here</body></html>')).toEqual([])
+  })
+})
+
+describe('parseCareerStats — caps by nation', () => {
+  it('splits the senior caps by national side, as the profile labels it', () => {
+    const html = profile(
+      seasonRow('19/20', 'Clermont', 'Top 14', '12') +
+        clubRow('Géorgie', 'Test Matchs', '2', 'international sepClub') +
+        seasonRow('20/21', 'Clermont', 'Top 14', '10') +
+        clubRow('Géorgie', 'Test Matchs', '5', 'international sepClub') +
+        clubRow('Lions', 'Test Matchs', '1', 'international sepClub') +
+        clubRow('Géorgie U20', 'Championnat du Monde U20', '4', 'international sepClub'),
+    )
+    expect(parseCareerStats(html)).toEqual({ caps: 8, capsByNation: { Géorgie: 7, Lions: 1 } })
+  })
+})
+
+describe('parseSeasonStats', () => {
+  // The real layout — `Compétition | Matchs | V/N/D | Titulaire | E | D | P | T | Points | Cartons | Min.`.
+  const row = (competition: string, matches: string, starts: string, minutes: string) =>
+    `<td>${competition}</td><td>${matches}</td><td>8 0 4</td><td>${starts}</td>` +
+    `<td></td><td></td><td></td><td></td><td></td><td></td><td>${minutes}</td>`
+  const html = (rows: string) =>
+    `<html><body><div id="saison_ov"><table class="rtable JOverall"><tbody>${rows}</tbody></table></div></body></html>`
+
+  it('sums starts and minutes over every competition line of a season at a club', () => {
+    const page = html(
+      `<tr class="sepSaison"><td class="tdsaison" rowspan="2">23/24</td><td rowspan="2"></td>` +
+        `<td rowspan="2" class="tdclub"> Toulouse </td>${row('Top 14', '18', '13', "984'")}</tr>` +
+        `<tr class="">${row('Champions Cup', '6', '3', "305'")}</tr>`,
+    )
+    expect(parseSeasonStats(page)).toEqual([{ season: '2023-2024', clubName: 'Toulouse', starts: 16, minutes: 1289 }])
+  })
+
+  it('keeps a figure the profile does not give as null, not 0', () => {
+    const page = html(
+      `<tr class="sepSaison"><td class="tdsaison" rowspan="1">23/24</td><td rowspan="1"></td>` +
+        `<td rowspan="1" class="tdclub"> Toulouse </td>${row('Top 14', '3', '', '')}</tr>`,
+    )
+    expect(parseSeasonStats(page)).toEqual([{ season: '2023-2024', clubName: 'Toulouse', starts: null, minutes: null }])
+  })
+
+  it('leaves the national teams out', () => {
+    const page = html(
+      `<tr class="sepSaison international"><td class="tdsaison" rowspan="1">23/24</td><td rowspan="1"></td>` +
+        `<td rowspan="1" class="tdclub"> France </td>${row('Test Matchs', '9', '9', "720'")}</tr>`,
+    )
+    expect(parseSeasonStats(page)).toEqual([])
+  })
+})
+
+describe('parseAllRugbyId', () => {
+  const head = (links: string) => `<html><head>${links}</head><body></body></html>`
+
+  it('reads the all.rugby slug an allrugby.com profile links to', () => {
+    const html = head(
+      '<link rel="alternate" href="https://www.allrugby.com/joueurs/tom-wood-2109.html" hreflang="fr"/>' +
+        '<link rel="alternate" href="https://all.rugby/player/tom-wood" hreflang="en"/>',
+    )
+    expect(parseAllRugbyId(html)).toBe('tom-wood')
+  })
+
+  it('keeps the trailing hyphen that tells homonyms apart, and decodes accents', () => {
+    expect(
+      parseAllRugbyId(head('<link rel="alternate" href="https://all.rugby/player/tom-wood-" hreflang="en"/>')),
+    ).toBe('tom-wood-')
+    expect(
+      parseAllRugbyId(
+        head('<link rel="alternate" href="https://all.rugby/player/aur%C3%A9lien-rougerie" hreflang="en"/>'),
+      ),
+    ).toBe('aurélien-rougerie')
+  })
+
+  it('returns null when the page links to no all.rugby player', () => {
+    expect(parseAllRugbyId(head('<link rel="alternate" href="https://www.allrugby.com/rss/rss.xml"/>'))).toBeNull()
   })
 })

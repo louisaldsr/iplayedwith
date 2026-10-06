@@ -78,7 +78,8 @@ describe('createSquadRunCollector', () => {
 describe('parseCompetitionRows', () => {
   // The real column layout, as in rugbyCareerStats.test.ts: the parser reads by position —
   // `Compétition | Matchs | V/N/D | Titulaire | …`.
-  const after = (wdl: string) => `<td>${wdl}</td><td>9</td><td></td><td></td><td></td><td></td><td></td><td>590'</td>`
+  const after = (wdl: string) =>
+    `<td>${wdl}</td><td>9</td><td></td><td></td><td></td><td></td><td></td><td></td><td>590'</td>`
   const seasonRow = (season: string, club: string, competition: string, matches: string, wdl: string) =>
     `<tr class="sepSaison"><td class="gras tdsaison" rowspan="2">${season}</td>` +
     `<td rowspan="2"><img alt="logo ${club}"/></td><td rowspan="2" class="tdclub"> ${club} </td>` +
@@ -100,15 +101,39 @@ describe('parseCompetitionRows', () => {
         clubRow('France', 'Test Matchs', '9', '7 0 2', 'international sepClub'),
     )
     expect(parseCompetitionRows(html)).toEqual([
-      { season: '2023-2024', clubName: 'Toulouse', competition: 'Top 14', matches: 22, wins: 17 },
-      { season: '2023-2024', clubName: 'Toulouse', competition: 'Champions Cup', matches: 8, wins: 8 },
+      {
+        season: '2023-2024',
+        clubName: 'Toulouse',
+        competition: 'Top 14',
+        matches: 22,
+        wins: 17,
+        starts: 9,
+        minutes: 590,
+      },
+      {
+        season: '2023-2024',
+        clubName: 'Toulouse',
+        competition: 'Champions Cup',
+        matches: 8,
+        wins: 8,
+        starts: 9,
+        minutes: 590,
+      },
     ])
   })
 
   it('reads no wins from a malformed W/D/L cell rather than a wrong number', () => {
     const html = profile(seasonRow('23/24', 'Toulouse', 'Champions Cup', '8', ''))
     expect(parseCompetitionRows(html)).toEqual([
-      { season: '2023-2024', clubName: 'Toulouse', competition: 'Champions Cup', matches: 8, wins: null },
+      {
+        season: '2023-2024',
+        clubName: 'Toulouse',
+        competition: 'Champions Cup',
+        matches: 8,
+        wins: null,
+        starts: 9,
+        minutes: 590,
+      },
     ])
   })
 })

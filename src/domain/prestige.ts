@@ -1,9 +1,10 @@
 /**
- * How much of a spotlight a club-season was under — the stage a player played on.
+ * How much of a spotlight a club-season was under — the level of a squad.
  *
  * Scored per club-SEASON, not per club: people remember a season, its big European nights and
  * its title, and the squad that played them (docs/spikes/fame.md, "Revision 3"). Player fame
- * reads it as `stage`, the games-weighted average over the player's memberships.
+ * reads it in its club performance: a player's share of his squad's starts that season, times
+ * the squad's prestige (supabase/migrations/025_fame_v3.sql).
  *
  * `PrestigeDetails` mirrors `club_season_prestige.details` (jsonb): the imported signals.
  * Titles are not in it — they have their own table (`club_titles`) and their own writers.

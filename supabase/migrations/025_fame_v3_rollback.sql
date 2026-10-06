@@ -1,15 +1,14 @@
--- Undoes 025_fame_stage.sql, back to fame revision 2 (014_fame_rate.sql).
+-- Undoes 025_fame_v3.sql, back to fame revision 2 (014_fame_rate.sql).
 --
--- Not destructive: scores are derived, and the season prestige of 023 stays in place. After
--- this, recompute both sports to bring every row back to revision 2:
+-- DESTRUCTIVE for imported inputs: memberships.starts/minutes and the football nation tiers are
+-- rebuilt only by re-running seed:fame (both sports). player_fame.details keeps the keys revision
+-- 3 imports wrote (capsByNation, wikidataId, viewsPerYear…): revision 2 never reads them.
+--
+-- Roll this back BEFORE 023: revision 3 calls compute_season_prestige. After this, recompute both
+-- sports to bring every row back to revision 2:
 --   SELECT compute_fame_scores('rugby');  SELECT compute_fame_scores('football');
---
--- Roll this back BEFORE 023: the revision 3 function reads what 023 creates.
 
 BEGIN;
-
-ALTER TABLE fame_calibration DROP CONSTRAINT IF EXISTS fame_calibration_k_stage_range_check;
-ALTER TABLE fame_calibration DROP COLUMN IF EXISTS k_stage;
 
 CREATE OR REPLACE FUNCTION public.compute_fame_scores(p_sport text)
 RETURNS integer
@@ -66,4 +65,25 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS public.apply_membership_stats(text, jsonb);
+DROP FUNCTION IF EXISTS public.replace_nation_tiers(text, text, jsonb);
+DROP TABLE IF EXISTS nation_tiers;
+
+ALTER TABLE memberships DROP CONSTRAINT IF EXISTS memberships_starts_check;
+ALTER TABLE memberships DROP CONSTRAINT IF EXISTS memberships_minutes_check;
+ALTER TABLE memberships DROP COLUMN IF EXISTS starts;
+ALTER TABLE memberships DROP COLUMN IF EXISTS minutes;
+
+ALTER TABLE player_fame DROP COLUMN IF EXISTS terms;
+
+ALTER TABLE fame_calibration DROP CONSTRAINT IF EXISTS fame_calibration_k_club_positive_check;
+ALTER TABLE fame_calibration DROP CONSTRAINT IF EXISTS fame_calibration_v_max_check;
+ALTER TABLE fame_calibration DROP COLUMN IF EXISTS k_club;
+ALTER TABLE fame_calibration DROP COLUMN IF EXISTS v_max;
+-- Revision 2's constants (012 and 014).
+UPDATE fame_calibration SET k_games = 300, k_rate = 6 WHERE sport = 'rugby';
+UPDATE fame_calibration SET k_games = 600, k_rate = 8 WHERE sport = 'football';
+
 COMMIT;
+
+NOTIFY pgrst, 'reload schema';

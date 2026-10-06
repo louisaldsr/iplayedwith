@@ -3,7 +3,8 @@
 -- Fame v2 reads caps, games and caps per season: it measures a career, not where it was played.
 -- A long-serving player at a small club ranks like one at a giant, and nothing says that
 -- Toulouse 2023-24 or Real Madrid 2016-17 were watched by everyone (docs/spikes/fame.md,
--- "Revision 3"). This migration scores the stage; 025_fame_stage.sql feeds it into player fame.
+-- "Revision 3"). This migration scores the squads; 025_fame_v3.sql reads that score as the level
+-- of the squad a player was first choice in (club performance).
 --
 -- ─── Why a club-SEASON, not a club ────────────────────────────────────────────
 --
@@ -55,7 +56,7 @@
 -- Depends on 006_sport_space.sql (clubs_id_sport_key) and 014_fame_rate.sql (fame_calibration).
 -- Apply as ONE transaction. Rollback: 023_season_prestige_rollback.sql.
 --
--- Then: 024_seed_rugby_titles.sql, then 025_fame_stage.sql, then the imports
+-- Then: 024_seed_rugby_titles.sql, then 025_fame_v3.sql, then the imports
 --   rugby    : npm run seed:prestige            (run from the checkout with the profile cache)
 --   football : npm run seed:football:prestige
 

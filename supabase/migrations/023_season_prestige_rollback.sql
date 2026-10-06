@@ -1,6 +1,6 @@
 -- Undoes 023_season_prestige.sql (and 024, whose rows live in club_titles).
 --
--- Roll 025_fame_stage.sql back FIRST: its compute_fame_scores reads club_season_prestige and
+-- Roll 025_fame_v3.sql back FIRST: its compute_fame_scores reads club_season_prestige and
 -- calls compute_season_prestige, and would fail on every run once they are gone.
 --
 -- DESTRUCTIVE for the imported inputs: `club_season_prestige.details` (the continental runs)

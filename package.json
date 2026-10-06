@@ -29,6 +29,7 @@
     "seed:football:prestige": "tsx --env-file=.env.local scripts/football/seedPrestige.ts",
     "fame:compute": "tsx --env-file=.env.local scripts/common/computeFame.ts",
     "fame:report": "tsx --env-file=.env.local scripts/common/fameReport.ts",
+    "fame:exposure": "tsx --env-file=.env.local scripts/common/fameExposure.ts",
     "prestige:report": "tsx --env-file=.env.local scripts/common/prestigeReport.ts",
     "daily:ranking": "tsx --env-file=.env.local scripts/common/dailyRanking.ts",
     "brand:render": "tsx scripts/brand/renderIcons.ts"

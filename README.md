@@ -29,36 +29,15 @@ Two sports for now: **🏉 rugby** and **⚽ football**.
 
 ## How to play
 
-1. **Two players are drawn**: A and B. The same pair for everyone, every day.
+1. **Two players are drawn**: A and B.
 2. **Name a player** who shared a club and a season with someone already on the board. They join
    the board, linked to their teammates.
-3. **Build your chain** until A and B are connected. The chain is complete — you win.
+3. **Build your chain** until A and B are connected — you win.
 
-### The rules of the daily challenge
+**The daily challenge** is one pair a day, the same for everyone, with 3 lives: the fewer players
+you need, the better your score. A new pair arrives every midnight (Paris time).
 
-- **❤️ 3 lives.** A player who shared no club and season with anyone on the board costs a life.
-  Lose all three and the day is over.
-- **🎯 Your score: extra players.** The game knows the shortest possible chain. Find it and you score
-  **Perfect!** — every player added beyond it counts **+1**, dead ends included. No limit: only lives
-  can end the day.
-- **🏆 A daily ranking is coming**: best score first, then fastest.
-- **🔍 Stuck?** Tap any player card to see their career, club by club.
-- **✨ Fame.** Players are tagged *Famous*, *Known* or *Unsung*: the less known the player, the rarer
-  the find.
-- **💡 Proposed solution.** Once the day is over — won or lost — switch on *Proposed Solution* to see
-  one of the shortest chains laid over your own board.
-- **🆕 A new pair every day** at midnight (Paris time).
-
-### Free play
-
-Pick any two players yourself, no lives, as many games as you like. In **Hard** mode you also name
-the club and the season of every link.
-
-### Your stats
-
-Games played, win rate and how your scores spread from *Perfect* to *+5+* — per sport, kept from one
-day to the next. No account needed: you get a generated name (*Hasty Prop 042*), and you can rename
-yourself from the menu.
+**Free play** lets you pick any two players yourself, as often as you like.
 
 ## Where does the data come from?
 
@@ -124,7 +103,7 @@ once we agree on the change.
 
 ## Contact
 
-- [GitHub issues](https://github.com/louisaldsr/iplayedwith/issues) for anything about the game.
-- ✉️ [contact@iplayedwith.com](mailto:contact@iplayedwith.com) for the rest.
+Open a [GitHub issue](https://github.com/louisaldsr/iplayedwith/issues) — bug, data error, idea or
+just a question.
 
 Made by [**louisaldsr**](https://github.com/louisaldsr).

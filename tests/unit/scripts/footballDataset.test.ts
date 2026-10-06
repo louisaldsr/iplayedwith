@@ -5,7 +5,7 @@ import {
   indexGames,
   seasonFromDatasetYear,
 } from '../../../scripts/football/lib/dataset'
-import type { Appearance, Club, Game, Player } from '../../../scripts/football/lib/transfermarktDataset'
+import type { Appearance, Club, Game, NationalTeam, Player } from '../../../scripts/football/lib/transfermarktDataset'
 import { LATEST_SEASON } from '@/domain/season'
 
 const game = (gameId: string, competitionId: string, season: string, homeClubId: string, awayClubId: string): Game => ({
@@ -16,10 +16,11 @@ const game = (gameId: string, competitionId: string, season: string, homeClubId:
   awayClubId,
 })
 
-const appearance = (playerId: string, playerClubId: string, gameId: string): Appearance => ({
+const appearance = (playerId: string, playerClubId: string, gameId: string, minutesPlayed = 90): Appearance => ({
   playerId,
   playerClubId,
   gameId,
+  minutesPlayed,
 })
 
 /**
@@ -92,7 +93,11 @@ describe('createMembershipCollector', () => {
 
   it('folds the appearances of one club-season into a single membership, counting them as games', () => {
     // g1 twice: the source has one row per player per game, so a repeated row is two games.
-    const rows = collect([appearance('p1', 'c1', 'g1'), appearance('p1', 'c1', 'g1'), appearance('p1', 'c1', 'g2')])
+    const rows = collect([
+      appearance('p1', 'c1', 'g1'),
+      appearance('p1', 'c1', 'g1', 30),
+      appearance('p1', 'c1', 'g2', 0),
+    ])
     expect(rows).toEqual([
       {
         playerTransfermarktId: 'p1',
@@ -100,6 +105,7 @@ describe('createMembershipCollector', () => {
         season: '2015-2016',
         competition: 'Premier League',
         games: 3,
+        minutes: 120,
       },
     ])
   })
@@ -118,6 +124,7 @@ describe('createMembershipCollector', () => {
         season: '2015-2016',
         competition: 'Premier League',
         games: 1,
+        minutes: 90,
       },
     ])
   })
@@ -125,7 +132,14 @@ describe('createMembershipCollector', () => {
   it('leaves the competition null when the club played no domestic league game that season', () => {
     const rows = collect([appearance('p7', 'c3', 'g8')])
     expect(rows).toEqual([
-      { playerTransfermarktId: 'p7', clubTransfermarktId: 'c3', season: '2015-2016', competition: null, games: 1 },
+      {
+        playerTransfermarktId: 'p7',
+        clubTransfermarktId: 'c3',
+        season: '2015-2016',
+        competition: null,
+        games: 1,
+        minutes: 90,
+      },
     ])
   })
 
@@ -163,11 +177,12 @@ describe('buildDataset', () => {
     ['c1', { clubId: 'c1', name: 'Arsenal FC' }],
     ['c2', { clubId: 'c2', name: 'Chelsea FC' }],
   ])
-  const player = (playerId: string, name: string, countryOfCitizenship: string, caps = 0): Player => ({
+  const player = (playerId: string, name: string, countryOfCitizenship: string, caps = 0, team = ''): Player => ({
     playerId,
     name,
     countryOfCitizenship,
     caps,
+    currentNationalTeamId: team,
   })
   const players = new Map<string, Player>([
     ['p1', player('p1', 'Alex Iwobi', 'Nigeria', 77)],
@@ -181,12 +196,51 @@ describe('buildDataset', () => {
     season: '2015-2016' as never,
     competition: 'Premier League',
     games: 1,
+    minutes: 90,
   })
 
   it('emits only the clubs and players its memberships reference, with crest urls', () => {
     const { dataset } = buildDataset([membership('p1', 'c1')], clubs, players)
     expect(dataset.clubs).toEqual([{ transfermarktId: 'c1', name: 'Arsenal FC', logoUrl: clubLogoUrl('c1') }])
-    expect(dataset.players).toEqual([{ transfermarktId: 'p1', name: 'Alex Iwobi', nationality: 'NG', caps: 77 }])
+    expect(dataset.players).toEqual([
+      { transfermarktId: 'p1', name: 'Alex Iwobi', nationality: 'NG', caps: 77, nationalTeam: null },
+    ])
+  })
+
+  describe('national team', () => {
+    const teams = new Map<string, NationalTeam>([
+      ['t1', { nationalTeamId: 't1', name: 'Nigeria', countryName: 'Nigeria', fifaRanking: 38 }],
+      ['t2', { nationalTeamId: 't2', name: 'England', countryName: 'England', fifaRanking: 4 }],
+      ['t3', { nationalTeamId: 't3', name: 'Atlantis', countryName: 'Atlantis', fifaRanking: null }],
+    ])
+    const capped = new Map<string, Player>([
+      ['p1', player('p1', 'Alex Iwobi', 'Nigeria', 77)],
+      ['p2', player('p2', 'Dual National', 'Nigeria', 10, 't2')],
+      ['p3', player('p3', 'Uncapped', 'England', 0)],
+    ])
+
+    it('falls back on citizenship when the player has no current national team', () => {
+      const { dataset } = buildDataset([membership('p1', 'c1')], clubs, capped, teams)
+      expect(dataset.players[0].nationalTeam).toBe('Nigeria')
+    })
+
+    it('prefers the current national team over citizenship', () => {
+      const { dataset } = buildDataset([membership('p2', 'c1')], clubs, capped, teams)
+      expect(dataset.players[0].nationalTeam).toBe('England')
+    })
+
+    it('gives an uncapped player no national team', () => {
+      const { dataset } = buildDataset([membership('p3', 'c1')], clubs, capped, teams)
+      expect(dataset.players[0].nationalTeam).toBeNull()
+    })
+
+    it('lists the ranked national teams, best first, and leaves the unranked out', () => {
+      const { dataset } = buildDataset([membership('p1', 'c1')], clubs, capped, teams)
+      expect(dataset.nationalTeams).toEqual([
+        { name: 'England', fifaRanking: 4 },
+        { name: 'Nigeria', fifaRanking: 38 },
+      ])
+    })
   })
 
   it('maps Transfermarkt country spellings to alpha-2 codes', () => {

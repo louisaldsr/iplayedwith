@@ -61,6 +61,50 @@ async function upsertGroup(db: SupabaseClient, rows: UpsertRow[]): Promise<Membe
   }))
 }
 
+/** Rows per `apply_membership_stats` call — same reasoning as the fame details chunks. */
+const STATS_CHUNK_SIZE = 1000
+
+export type MembershipStatsRow = {
+  playerId: PlayerId
+  clubId: ClubId
+  season: Season
+  /** Omitted: left as stored. Null: the source does not say. */
+  starts?: number | null
+  minutes?: number | null
+}
+
+/**
+ * Writes starts and minutes onto existing memberships (`apply_membership_stats`, 025) — UPDATE
+ * only: a membership is created by the membership import, never by a stats write. A row for a
+ * membership that does not exist is skipped; the count returned shows the gap.
+ *
+ * A bulk RPC rather than `upsertMany`: the fame imports already hold every player's figures, and
+ * the upsert path restates competition and games, which is not theirs to write.
+ */
+export async function applyMembershipStats(
+  db: SupabaseClient,
+  sport: SportId,
+  rows: MembershipStatsRow[],
+): Promise<number> {
+  let written = 0
+  for (let i = 0; i < rows.length; i += STATS_CHUNK_SIZE) {
+    const chunk = rows.slice(i, i + STATS_CHUNK_SIZE)
+    const { data, error } = await db.rpc('apply_membership_stats', {
+      p_sport: sport,
+      p_rows: chunk.map((r) => ({
+        player_id: r.playerId,
+        club_id: r.clubId,
+        season: r.season,
+        ...(r.starts !== undefined && { starts: r.starts }),
+        ...(r.minutes !== undefined && { minutes: r.minutes }),
+      })),
+    })
+    if (error) throw new Error(error.message)
+    written += typeof data === 'number' ? data : 0
+  }
+  return written
+}
+
 export async function deleteOne(db: SupabaseClient, playerId: PlayerId, clubId: ClubId, season: Season): Promise<void> {
   const { error } = await db
     .from('memberships')

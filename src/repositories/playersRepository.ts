@@ -4,7 +4,14 @@ import { Player } from '@/domain/player'
 import { SportId } from '@/domain/sport'
 import { Nationality } from '@/domain/nationality'
 import { FameBand } from '@/domain/drawFameBand'
-import { FameDetails, ImportedFameDetails, parseFameDetails } from '@/domain/fame'
+import {
+  FameDetails,
+  FameTerms,
+  ImportedExposureDetails,
+  ImportedFameDetails,
+  parseFameDetails,
+  parseFameTerms,
+} from '@/domain/fame'
 import { fetchAllRows } from '@/lib/supabasePagination'
 
 type PlayerRow = { id: string; name: string; sport: SportId; nationality: string | null }
@@ -192,7 +199,7 @@ export async function insertMany(db: SupabaseClient, players: Player[]): Promise
 /** Rows per RPC call — same reasoning as INSERT_CHUNK_SIZE, applied to a jsonb payload. */
 const FAME_CHUNK_SIZE = 1000
 
-export type FameDetailsRow = { playerId: PlayerId; details: ImportedFameDetails }
+export type FameDetailsRow = { playerId: PlayerId; details: ImportedFameDetails | ImportedExposureDetails }
 
 /**
  * Writes the raw fame signals an import produced, merging them into each player's existing
@@ -222,15 +229,32 @@ export async function applyFameDetails(db: SupabaseClient, sport: SportId, rows:
 }
 
 /**
- * Recomputes `player_fame.score` for every player of the sport, from `details.caps` and the
- * games summed over `memberships`. Returns the number of rows scored.
+ * Recomputes `player_fame.score` (and its `terms`) for every player of the sport: longevity from
+ * `memberships.games`, club performance from starts/minutes and the season prestige — which the
+ * SQL function rescores first — international performance from `details.capsByNation`, exposure
+ * from `details.viewsPerYear`. Returns the number of players scored.
  *
  * The formula and its per-sport constants live only in SQL — see
- * supabase/migrations/012_fame_score.sql. One call rewrites the whole sport, so a partial run
+ * supabase/migrations/025_fame_v3.sql. One call rewrites the whole sport, so a partial run
  * cannot leave it on two revisions.
  */
 export async function computeFameScores(db: SupabaseClient, sport: SportId): Promise<number> {
   const { data, error } = await db.rpc('compute_fame_scores', { p_sport: sport })
+  if (error) throw new Error(error.message)
+  return typeof data === 'number' ? data : 0
+}
+
+/**
+ * Replaces every nation tier `source` owns in the sport (`replace_nation_tiers`, 025): the
+ * football import writes them from the dataset's FIFA ranking on each run. Returns rows written.
+ */
+export async function replaceNationTiers(
+  db: SupabaseClient,
+  sport: SportId,
+  source: string,
+  rows: { nation: string; weight: number }[],
+): Promise<number> {
+  const { data, error } = await db.rpc('replace_nation_tiers', { p_sport: sport, p_source: source, p_rows: rows })
   if (error) throw new Error(error.message)
   return typeof data === 'number' ? data : 0
 }
@@ -262,6 +286,8 @@ export type PlayerFame = {
   games: number | null
   /** Distinct seasons across the player's memberships; 0 means unreachable in any puzzle. */
   seasons: number
+  /** The four pillars `compute_fame_scores` wrote with the score; null before revision 3. */
+  terms: FameTerms | null
 }
 
 /**
@@ -283,7 +309,7 @@ export type PlayerFame = {
  */
 export async function listFameBySport(db: SupabaseClient, sport: SportId): Promise<PlayerFame[]> {
   type PlayerRow = { id: string; name: string }
-  type FameRow = { player_id: string; score: number | null; revision: number | null; details: unknown }
+  type FameRow = { player_id: string; score: number | null; revision: number | null; details: unknown; terms: unknown }
   type MembershipRow = { player_id: string; season: string; games: number | null }
 
   const [players, fame, memberships] = await Promise.all([
@@ -293,7 +319,7 @@ export async function listFameBySport(db: SupabaseClient, sport: SportId): Promi
     fetchAllRows<FameRow>((from, to) =>
       db
         .from('player_fame')
-        .select('player_id, score, revision, details')
+        .select('player_id, score, revision, details, terms')
         .eq('sport', sport)
         .order('player_id')
         .range(from, to),
@@ -331,6 +357,7 @@ export async function listFameBySport(db: SupabaseClient, sport: SportId): Promi
       details: parseFameDetails(signals?.details),
       games: career?.games ?? null,
       seasons: career?.seasons.size ?? 0,
+      terms: parseFameTerms(signals?.terms),
     }
   })
 }

@@ -15,13 +15,8 @@ import { getDb } from './env'
 const TOP_N = 30
 const BOUNDARY_N = 5
 
-/**
- * Caps per season as revision 2 reads it — mirrors MIN_RATE_SEASONS in compute_fame_scores
- * (supabase/migrations/014_fame_rate.sql). Display only: the score is computed in SQL.
- */
-const MIN_RATE_SEASONS = 3
-const capsRate = (p: { details: { caps?: number }; seasons: number }) =>
-  (p.details.caps ?? 0) / Math.max(p.seasons, MIN_RATE_SEASONS)
+/** A pillar as the line prints it: 0..1 with two decimals, "  -" when unknown. */
+const pillar = (v: number | null | undefined) => (v === null || v === undefined ? '   -' : v.toFixed(2))
 
 function bar(count: number, max: number, width = 32): string {
   return '█'.repeat(Math.max(1, Math.round((count / Math.max(max, 1)) * width)))
@@ -50,6 +45,8 @@ async function main() {
   const withGames = players.filter((p) => (p.games ?? 0) > 0).length
   const gamesUnknown = players.filter((p) => p.seasons > 0 && p.games === null).length
   const withCaps = players.filter((p) => (p.details.caps ?? 0) > 0).length
+  const matched = players.filter((p) => typeof p.details.wikidataId === 'string').length
+  const measured = players.filter((p) => typeof p.details.viewsPerYear === 'number').length
   const noMemberships = players.filter((p) => p.seasons === 0).length
   const pct = (n: number) => `${((100 * n) / players.length).toFixed(1)}%`
 
@@ -67,6 +64,10 @@ async function main() {
   // `memberships.games`, or the source has no count. Re-running that import fixes the former.
   console.log(`  memberships, games unknown  : ${gamesUnknown} (${pct(gamesUnknown)})`)
   console.log(`  international caps > 0      : ${withCaps} (${pct(withCaps)})`)
+  // Exposure: matched to a Wikidata item (fame:exposure), and with French or English views.
+  // Unmeasured players are scored without the exposure pillar, not with a zero.
+  console.log(`  wikidata match              : ${matched} (${pct(matched)})`)
+  console.log(`  exposure measured           : ${measured} (${pct(measured)})`)
   // Scored but unreachable in a puzzle: a career, but no membership landed — usually club-name
   // matching failing during the import. A health check on the import as much as on fame.
   console.log(`  no memberships (unreachable): ${noMemberships} (${pct(noMemberships)})`)
@@ -107,7 +108,9 @@ async function main() {
   const line = (p: (typeof sorted)[number], rank: number) =>
     `  ${String(rank).padStart(5)}. ${String(p.score).padStart(3)}  ${p.name.padEnd(28).slice(0, 28)} ` +
     `games=${String(p.games ?? '-').padStart(4)} caps=${String(p.details.caps ?? 0).padStart(3)} ` +
-    `seasons=${String(p.seasons).padStart(2)} rate=${capsRate(p).toFixed(1).padStart(4)}`
+    `seasons=${String(p.seasons).padStart(2)} | L ${pillar(p.terms?.longevity)} club ${pillar(p.terms?.club)} ` +
+    `intl ${pillar(p.terms?.intl)} expo ${pillar(p.terms?.exposure)} ` +
+    `views/yr=${p.details.viewsPerYear === undefined || p.details.viewsPerYear === null ? '-' : p.details.viewsPerYear}`
 
   // What the game actually reads. Sizes alone say little; the names either side of each
   // threshold are what tell whether it sits in the right place.

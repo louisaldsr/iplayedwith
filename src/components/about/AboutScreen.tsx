@@ -7,7 +7,7 @@ const GITHUB_URL = 'https://github.com/louisaldsr'
 
 const external = { target: '_blank', rel: 'noopener noreferrer' } as const
 
-/** Where the data comes from, and who made the game. */
+/** Where the data comes from, what is counted of a visit, and who made the game. */
 export function AboutScreen() {
   const t = useTranslations()
 
@@ -37,6 +37,11 @@ export function AboutScreen() {
           </li>
         </ul>
         <p>{t.about.dataCaveat}</p>
+      </section>
+
+      <section className="about-screen__section">
+        <h2>{t.about.privacyTitle}</h2>
+        <p>{t.about.privacy}</p>
       </section>
 
       <section className="about-screen__section">

@@ -50,6 +50,9 @@ const fr: Translations = {
     dataTitle: 'Données',
     and: 'et',
     dataCaveat: 'Un projet indépendant de fan. Les fiches peuvent être incomplètes.',
+    privacyTitle: 'Vie privée',
+    privacy:
+      'Ni compte, ni cookie. Les visites sont comptées anonymement (pages, pays, provenance), jamais reliées à vous.',
     madeByTitle: 'Réalisé par',
     contactSoon: 'formulaire de contact bientôt.',
     back: 'Retour au menu',

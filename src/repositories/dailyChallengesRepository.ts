@@ -12,7 +12,7 @@ type DailyChallengeRow = {
   optimal_links: number
 }
 
-/** A stored challenge, players as ids. The solution column is never selected into this. */
+/** A stored challenge, players as ids. The solution column is never selected into this — see `findSolution`. */
 export type StoredDailyChallenge = {
   sport: SportId
   day: ChallengeDay
@@ -49,4 +49,19 @@ export async function getOrGenerate(
     playerBId: PlayerId(row.player_b_id),
     optimalLinks: row.optimal_links,
   }
+}
+
+/**
+ * The day's stored solution — one shortest chain, A to B — or null for a day without a challenge.
+ * The only read of the column: the service hands it out only once a visitor's day is over.
+ */
+export async function findSolution(db: SupabaseClient, sport: SportId, day: ChallengeDay): Promise<PlayerId[] | null> {
+  const { data, error } = await db
+    .from('daily_challenges')
+    .select('solution')
+    .eq('sport', sport)
+    .eq('day', day)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  return data ? (data.solution as string[]).map(PlayerId) : null
 }

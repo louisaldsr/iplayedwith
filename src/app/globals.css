@@ -2629,6 +2629,106 @@ body {
   color: var(--text-muted);
 }
 
+/* ─── Daily solution: one shortest chain, once the day is over ─── */
+.daily-solution {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 18px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.daily-solution__title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.daily-solution__note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.daily-solution__chain {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.daily-solution__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.daily-solution__player {
+  padding: 6px 14px;
+  border: 1px solid var(--player-border);
+  border-radius: var(--radius-md);
+  background: var(--player-tint);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* A and B, in the gold of the board's targets. */
+.daily-solution__player--end {
+  border-color: var(--target-border);
+  box-shadow: 0 0 10px var(--target-glow);
+}
+
+/* What links two players, on a dotted line joining their cards through the middle. */
+.daily-solution__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: var(--win-gold-text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+}
+.daily-solution__link::before,
+.daily-solution__link::after {
+  content: '';
+  height: 10px;
+  border-left: 2px dotted var(--win-gold);
+}
+
+/* In the victory pop-up the solution waits behind a toggle: winners have their own chain. */
+.daily-solution-toggle {
+  width: 100%;
+  max-width: 420px;
+}
+
+.daily-solution-toggle > summary {
+  width: fit-content;
+  margin: 0 auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: var(--accent-hover);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.daily-solution-toggle > summary:focus-visible {
+  outline: 2px solid var(--accent-hover);
+  outline-offset: 2px;
+}
+
+.daily-solution-toggle[open] > summary {
+  margin-bottom: 12px;
+}
+
 /* ─── Daily stats: results pop-up, finished screen, menu ─── */
 .daily-stats {
   display: flex;

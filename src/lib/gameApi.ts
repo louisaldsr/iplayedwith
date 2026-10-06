@@ -7,6 +7,7 @@ import { SportId } from '@/domain/sport'
 import { DailyChallenge } from '@/domain/dailyChallenge'
 import { CareerStint } from '@/domain/career'
 import { DailyStats } from '@/domain/dailyScore'
+import { DailySolution } from '@/domain/dailySolution'
 
 /**
  * Browser-side calls the game makes.
@@ -73,6 +74,26 @@ export async function getDailyStats(sport: SportId, visitorId: string, signal?: 
     signal,
   })
   if (!res.ok) throw new Error(`/api/${sport}/daily/stats failed with ${res.status}`)
+  return res.json()
+}
+
+/**
+ * The day's stored solution — one shortest chain — once this visitor's day is over on the server.
+ * Throws before that (403), and on any failure: the caller simply shows nothing.
+ */
+export async function getDailySolution(
+  sport: SportId,
+  day: string,
+  visitorId: string,
+  signal?: AbortSignal,
+): Promise<DailySolution> {
+  const res = await fetch(`/api/${sport}/daily/solution`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ day, visitorId }),
+    signal,
+  })
+  if (!res.ok) throw new Error(`/api/${sport}/daily/solution failed with ${res.status}`)
   return res.json()
 }
 

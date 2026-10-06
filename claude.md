@@ -424,8 +424,8 @@ le serveur revalide chaque arête au coup suivant. Un plateau malformé est jet�
 restent) ; gagné, il est gardé avec sa chaîne (voir Bloc 10) ; perdu, il est jeté. **Contournable** en effaçant les données du site — la vraie garantie
 viendra des résultats stockés côté serveur (étape 17).
 
-**Pas de solution affichée** en cas de défaite : le serveur la garde, mais sans compte rien ne
-dit qui a vraiment perdu — l'exposer, c'est la donner à tout le monde avant de jouer.
+~~Pas de solution affichée en cas de défaite~~ : depuis le Bloc 20, le serveur la révèle à un
+visiteur dont il a **enregistré** la fin de journée.
 
 ### Game design
 
@@ -501,6 +501,7 @@ trouvés.
 |---|---|
 | `POST /api/:sport/daily/start` | `{ day, visitorId }` → 204 ; horodate le départ (idempotent), 409 si `day` n'est plus aujourd'hui |
 | `POST /api/:sport/daily/stats` | `{ visitorId }` → stats perso du sport (Bloc 19) |
+| `POST /api/:sport/daily/solution` | `{ day, visitorId }` → une chaîne la plus courte, liens détaillés (Bloc 20) ; 403 tant que la journée n'est pas finie côté serveur |
 
 ---
 
@@ -754,6 +755,33 @@ le build actuel continue d'enregistrer ; le nouveau build lit `daily_stats`.
 
 ---
 
+## ✅ Bloc 20 terminé — La solution du jour, une fois la journée finie
+
+Gagné ou perdu, la fin du défi montre **une** des chaînes les plus courtes — celle que le tirage a
+stockée (`daily_challenges.solution`), présentée comme telle : « Une des chaînes les plus courtes —
+d'autres de N liens peuvent exister, voici celle que nous avons trouvée ». Surtout pour ceux qui
+ont perdu : ils voient enfin le chemin.
+
+- **Détaillée lien par lien** : chaque paire avec le club et la saison qu'elle a partagés
+  (Messi — FC Barcelona · 2013-2014 — Neymar…), retrouvés depuis les memberships
+  (`linksOfChain`, `src/domain/dailySolution.ts`) : la saison **la plus récente** quand une paire en
+  a partagé plusieurs, l'id du club départage — la réponse est stable. Une paire qui ne partage plus
+  rien (données changées depuis le tirage) fait échouer la requête : 500 logué, panneau absent.
+- **Le serveur décide, pas le navigateur** : `POST /api/:sport/daily/solution` ne répond qu'à un
+  visiteur dont `daily_results` porte une issue (`won` / `lost`) pour ce jour — sinon **403**. Le
+  coup final est enregistré avant la réponse du coup : la solution est disponible dès l'écran de fin.
+- ⚠️ **Faille connue, acceptée jusqu'aux comptes** : un visiteur est un navigateur. Perdre exprès
+  dans une fenêtre privée (trois mauvaises réponses) montre la solution, à rejouer parfaitement
+  ailleurs. Choix explicite : la révéler le lendemain seulement aurait été inviolable, mais les
+  perdants auraient attendu.
+- **Où** : sur l'écran de fin (`DailyFinished`, perdu ou ancien gagné), en clair ; dans la pop-up de
+  victoire derrière « Voir une des chaînes les plus courtes », chargée **à l'ouverture** — un
+  gagnant a déjà sa chaîne. Décorative : refusée ou en échec, rien ne s'affiche. A et B en or, liens
+  en pointillés dorés (`DailySolution`).
+- e2e : `/api/:sport/daily/solution` est mocké **refusé (403) par défaut** dans `fixtures.ts`.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -820,7 +848,7 @@ Saisie user
 22. Formulaire de contact ; dons (plateforme à choisir) ; plateau lisible sur mobile (A et B se
     chevauchent à 390 px)
 23. ~~Vies dans le défi du jour~~
-24. Révéler la solution du jour — le lendemain, ou après une défaite vérifiée côté serveur ;
+24. ~~Révéler la solution du jour~~ (une fois la journée finie côté serveur, Bloc 20) ;
     ~~sauver le plateau en cours~~ ; ajuster les vies à la distance si les longs jours s'avèrent durs
 25. ~~Fame v2 — caps seniors uniquement + caps par saison (revision 2)~~
 26. `014_fame_rate.sql` appliqué — reste à relancer, depuis le checkout qui a le cache des

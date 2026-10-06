@@ -105,6 +105,11 @@ const en = {
     perfectBucket: 'Perfect',
     scoreHint: (extra: number) =>
       extra === 0 ? 'Shortest chain found' : `${extra} extra ${extra === 1 ? 'player' : 'players'}`,
+    solution: {
+      title: 'One of the shortest chains',
+      note: (links: number) => `Other chains of ${links} links may exist — this is the one we found.`,
+      show: 'See one of the shortest chains',
+    },
     stats: {
       title: 'Your stats',
       sports: 'Sports',

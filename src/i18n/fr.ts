@@ -104,6 +104,12 @@ const fr: Translations = {
     perfectBucket: 'Parfait',
     scoreHint: (extra: number) =>
       extra === 0 ? 'Chaîne la plus courte trouvée' : `${extra} ${extra === 1 ? 'joueur' : 'joueurs'} en trop`,
+    solution: {
+      title: 'Une des chaînes les plus courtes',
+      note: (links: number) =>
+        `D’autres chaînes de ${links} liens peuvent exister — voici celle que nous avons trouvée.`,
+      show: 'Voir une des chaînes les plus courtes',
+    },
     stats: {
       title: 'Vos stats',
       sports: 'Sports',

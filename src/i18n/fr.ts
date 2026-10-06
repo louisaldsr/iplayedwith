@@ -87,6 +87,7 @@ const fr: Translations = {
     lostTitle: 'Plus de vies',
     wonText: (livesLeft: number) => `Chaîne complète avec ${livesLeft} vie${livesLeft > 1 ? 's' : ''} en réserve.`,
     lostText: (links: number) => `Une chaîne de ${links} liens existait. Revanche demain !`,
+    boardNotKept: 'Votre plateau de cette partie n’a pas été gardé (ancienne version du jeu) — désormais, il l’est.',
     comeBackTomorrow: 'Une nouvelle paire arrive à minuit (heure de Paris).',
     title: 'Défi du jour',
     viewCareer: 'Voir la carrière',
@@ -104,6 +105,11 @@ const fr: Translations = {
     perfectBucket: 'Parfait',
     scoreHint: (extra: number) =>
       extra === 0 ? 'Chaîne la plus courte trouvée' : `${extra} ${extra === 1 ? 'joueur' : 'joueurs'} en trop`,
+    solution: {
+      show: 'Voir la solution proposée',
+      toggle: 'Solution proposée',
+      unavailable: 'Impossible de charger la solution — réessayez.',
+    },
     stats: {
       title: 'Vos stats',
       sports: 'Sports',

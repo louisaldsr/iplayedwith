@@ -8,9 +8,10 @@ import { test as base, expect, Page } from '@playwright/test'
  * recently added route first). After the test, any call that reached the guard fails it — so a
  * page that starts calling a new endpoint is caught here, instead of silently hitting the server.
  *
- * Two endpoints are mocked by default: `/api/visitor`, the name the menu shows, and
- * `/api/:sport/daily/stats` (empty), which the results and the finished screen show. Any test can
- * reach them, and none should have to care; a test about either mocks it again (its route wins).
+ * Three endpoints are mocked by default: `/api/visitor`, the name the menu shows;
+ * `/api/:sport/daily/stats` (empty), which the results and the finished screen show; and
+ * `/api/:sport/daily/solution`, refused (403) as for a day the server never saw finished. Any test
+ * can reach them, and none should have to care; a test about one mocks it again (its route wins).
  *
  * The server side is covered separately: the e2e dev server has no real database to reach (see
  * playwright.config.ts). Only requests the server answers WITHOUT the database — input
@@ -31,6 +32,10 @@ export const test = base.extend<{ unmockedApiCalls: string[] }>({
       await page.route(
         (url) => /^\/api\/[^/]+\/daily\/stats$/.test(url.pathname),
         (route) => route.fulfill({ json: emptyDailyStats }),
+      )
+      await page.route(
+        (url) => /^\/api\/[^/]+\/daily\/solution$/.test(url.pathname),
+        (route) => route.fulfill({ status: 403, json: { error: 'not over for this visitor' } }),
       )
       await use(calls)
       expect(calls, 'API calls with no mock — add one with mockApi()').toEqual([])
@@ -148,4 +153,20 @@ export const notConnectedMove = {
   ok: false,
   code: 'not-connected',
   reason: 'Ce joueur ne partage aucun club/saison avec les joueurs déjà dans le graphe.',
+}
+
+/**
+ * The day's stored solution for `sampleDailyChallenge`, in the board's shape:
+ * Alpha — Club Un 2016-2017 — Charlie — Club Deux 2019-2020 — Bravo.
+ */
+export const sampleSolution = {
+  path: ['p-alpha', 'p-charlie', 'p-bravo'],
+  players: [samplePlayers[0], linkingPlayer, samplePlayers[1]],
+  clubs: [sampleCareer.stints[0].club, sampleCareer.stints[1].club],
+  edges: [
+    { playerId: 'p-alpha', clubId: 'c-one', season: '2016-2017' },
+    { playerId: 'p-charlie', clubId: 'c-one', season: '2016-2017' },
+    { playerId: 'p-charlie', clubId: 'c-two', season: '2019-2020' },
+    { playerId: 'p-bravo', clubId: 'c-two', season: '2019-2020' },
+  ],
 }

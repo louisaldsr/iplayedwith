@@ -421,11 +421,11 @@ sur une nouvelle partie. Dès le premier « Commencer », le plateau (`board` : 
 clubs, coups, heure de départ) est gardé : quitter la page et revenir rouvre **la même partie**, sans
 repasser par l'intro — `createRemoteEngine(…, resume)` reconstruit le moteur. Sûr sans confiance :
 le serveur revalide chaque arête au coup suivant. Un plateau malformé est jeté entier (les vies
-restent) ; gagné, il est gardé avec sa chaîne (voir Bloc 10) ; perdu, il est jeté. **Contournable** en effaçant les données du site — la vraie garantie
+restent) ; gagné, il est gardé avec sa chaîne (voir Bloc 10) ; perdu, il est gardé aussi (Bloc 20). **Contournable** en effaçant les données du site — la vraie garantie
 viendra des résultats stockés côté serveur (étape 17).
 
-**Pas de solution affichée** en cas de défaite : le serveur la garde, mais sans compte rien ne
-dit qui a vraiment perdu — l'exposer, c'est la donner à tout le monde avant de jouer.
+~~Pas de solution affichée en cas de défaite~~ : depuis le Bloc 20, le serveur la révèle à un
+visiteur dont il a **enregistré** la fin de journée.
 
 ### Game design
 
@@ -501,6 +501,7 @@ trouvés.
 |---|---|
 | `POST /api/:sport/daily/start` | `{ day, visitorId }` → 204 ; horodate le départ (idempotent), 409 si `day` n'est plus aujourd'hui |
 | `POST /api/:sport/daily/stats` | `{ visitorId }` → stats perso du sport (Bloc 19) |
+| `POST /api/:sport/daily/solution` | `{ day, visitorId }` → une chaîne la plus courte, au format du plateau (Bloc 20) ; 403 tant que la journée n'est pas finie côté serveur |
 
 ---
 
@@ -754,6 +755,66 @@ le build actuel continue d'enregistrer ; le nouveau build lit `daily_stats`.
 
 ---
 
+## ✅ Bloc 20 terminé — La solution proposée, posée sur le plateau
+
+Une fois la journée finie, gagnée ou perdue, un **interrupteur « Solution proposée »** (« Proposed
+Solution »), **sur le plateau, en haut au centre** — pendant des cœurs en bas —, pose sur le plateau
+du joueur **une** des chaînes les plus courtes, celle que le tirage a stockée
+(`daily_challenges.solution`). Pas de panneau à part, pas de légende : la solution vit dans l'arbre.
+
+- **L'interrupteur** est une vraie case à cocher (`role="switch"`, clavier et lecteurs d'écran),
+  dessinée en pilule à bouton glissant, bleue une fois allumée. En chargement, le bouton pulse ; en
+  échec, une seule ligne « Impossible de charger la solution » apparaît dessous.
+- **Éteint, rien** : le plateau est celui du joueur. **Allumé**, le plateau du joueur passe **dans
+  l'ombre** (cartes à 18 %, désaturées ; liens presque effacés — la chaîne dorée d'un plateau gagné
+  aussi) et la solution s'allume : ses joueurs prennent un **anneau bleu lumineux**, ses liens
+  courent en **trait plein bleu**, avec un halo, cliquables comme les autres (club · saison). Bleu
+  `--solution` = `#60a5fa`, une couleur à elle (l'or est la chaîne gagnée, le teal le palier *known*,
+  le violet l'accent).
+- **Jamais en double** : un joueur de la solution déjà sur le plateau **est** la carte de la
+  solution — même carte, sortie de l'ombre. Seuls ceux que le joueur n'a jamais ajoutés apparaissent
+  en cartes **« proposées »** : fond plein, bordure pointillée bleue, **jamais estompées** (les
+  sélecteurs doublent `.node-card` pour passer devant l'atténuation du plateau gagné).
+- **Placées sur la chaîne** (`chainSpot`, `GameBoard`) : une carte proposée se pose entre ses
+  voisins de chaîne déjà placés, au prorata de son rang — la solution se lit d'un trait, de A à B —
+  puis au plus proche emplacement libre.
+- Rallumée, la solution revient de la mémoire (une seule requête). Les boutons des pop-ups de fin
+  l'allument et ferment la pop-up.
+- **Format du plateau** (`DailySolution`, `src/domain/dailySolution.ts`) : `{ path, players, clubs,
+  edges }`, deux arêtes par lien vers le (club, saison) partagé — `linksOfChain` choisit la saison
+  **la plus récente** quand une paire en a partagé plusieurs (l'id du club départage), puis
+  `edgesOfChain`. Une paire qui ne partage plus rien (données changées depuis le tirage) : 500 logué,
+  message d'échec.
+- **Une journée perdue garde son plateau** (phase `lost`) : la dernière vie ouvre une pop-up
+  « Plus de vies » par-dessus (`DefeatDialog`, jumelle de `VictoryDialog` : stats, voir le plateau,
+  voir la solution, partie libre), puis une barre de fin rouge. Le plateau perdu est sauvé
+  (`ipw.daily.<sport>`) et rouvert au retour. `DailyFinished` ne sert plus qu'aux journées sans
+  plateau (perdues avant cette version) : l'arbre du joueur y est **perdu pour de bon** (le
+  navigateur l'a jeté, le serveur ne garde que les compteurs) — l'écran y montre donc un plateau de
+  A et B seuls, le même interrupteur en haut, avec une mention « votre plateau n'a pas été gardé ».
+- Logique partagée : `useDailySolution` (requête à la demande, mémoire seule) et `SolutionOverlay`
+  (l'interrupteur, posé sur le plateau ; `GameScreen` le reçoit en `boardOverlay`), utilisés par le
+  plateau de jeu et par `DailyFinished`.
+
+### Jamais lisible avant la fin
+
+- **Ni dans les fichiers ni dans le bundle** : la solution n'existe qu'en base, jamais dans le code.
+- **Ni dans l'API du jour** : `generate_daily_challenge` renvoie toute la ligne, solution comprise —
+  le repository la jette ; `GET /api/:sport/daily` n'envoie que la paire et sa longueur (test
+  `dailyChallengesSecret`).
+- **Ni avant la fin, ni sans le demander** : le bouton n'existe qu'une fois la partie finie, et le
+  serveur (`POST /api/:sport/daily/solution`) ne répond qu'à un visiteur dont `daily_results` porte
+  une issue (`won` / `lost`) — sinon **403**. Le coup final est enregistré avant la réponse du coup.
+- **Ni dans le stockage** : gardée en mémoire seulement, jamais dans `localStorage` (testé).
+- ⚠️ **Faille connue, acceptée jusqu'aux comptes** : un visiteur est un navigateur. Perdre exprès
+  dans une fenêtre privée (trois mauvaises réponses) montre la solution, à rejouer parfaitement
+  ailleurs. Choix explicite : la révéler le lendemain seulement aurait été inviolable, mais les
+  perdants auraient attendu.
+
+e2e : `/api/:sport/daily/solution` est mocké **refusé (403) par défaut** dans `fixtures.ts`.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -820,7 +881,7 @@ Saisie user
 22. Formulaire de contact ; dons (plateforme à choisir) ; plateau lisible sur mobile (A et B se
     chevauchent à 390 px)
 23. ~~Vies dans le défi du jour~~
-24. Révéler la solution du jour — le lendemain, ou après une défaite vérifiée côté serveur ;
+24. ~~Révéler la solution du jour~~ (une fois la journée finie côté serveur, Bloc 20) ;
     ~~sauver le plateau en cours~~ ; ajuster les vies à la distance si les longs jours s'avèrent durs
 25. ~~Fame v2 — caps seniors uniquement + caps par saison (revision 2)~~
 26. `014_fame_rate.sql` appliqué — reste à relancer, depuis le checkout qui a le cache des

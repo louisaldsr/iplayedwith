@@ -23,8 +23,10 @@ type Props = {
   optimalLinks?: number
   /** Daily only: the lives the win was achieved with. */
   lives?: { left: number; total: number }
-  /** Daily only: the sport whose stats are shown under the results. */
-  statsSport?: SportId
+  /** Daily only: whose stats are shown under the results. */
+  daily?: { sport: SportId; day: string }
+  /** Daily only: closes the results and lays the proposed solution over the board. */
+  onShowSolution?: () => void
   /** Free play restarts in place; the daily has one pair a day, so it offers free play instead. */
   onPlayAgain?: () => void
   freePlayHref?: string
@@ -51,7 +53,8 @@ export function VictoryDialog({
   elapsedMs,
   optimalLinks,
   lives,
-  statsSport,
+  daily,
+  onShowSolution,
   onPlayAgain,
   freePlayHref,
 }: Props) {
@@ -111,12 +114,17 @@ export function VictoryDialog({
         )}
       </div>
 
-      {statsSport && <DailyStats sport={statsSport} />}
+      {daily && <DailyStats sport={daily.sport} />}
 
       <div className="victory-dialog__actions">
         <button type="button" className="btn btn--ghost btn--lg" onClick={onClose}>
           {t.victory.viewBoard}
         </button>
+        {onShowSolution && (
+          <button type="button" className="btn btn--ghost btn--lg" onClick={onShowSolution}>
+            {t.daily.solution.show}
+          </button>
+        )}
         {onPlayAgain && (
           <button type="button" className="btn btn--primary btn--lg" onClick={onPlayAgain}>
             {t.victory.playAgain}

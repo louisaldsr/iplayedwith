@@ -15,6 +15,7 @@ import { LivesBar } from './LivesBar'
 import { PlayerCareerDialog } from '../shared/PlayerCareerDialog'
 import { useUsername } from '../shared/useUsername'
 import { formatUsername } from '../../domain/visitorName'
+import { DailySolution } from '../../domain/dailySolution'
 
 type Props = {
   game: Game
@@ -31,10 +32,14 @@ type Props = {
   /** Changes when the input should start empty again — after a refused move. */
   inputResetKey?: number
   /**
-   * Set once the game is won: the board stays, its winning chain lit, the clock stops at the
-   * winning time and `bar` takes the place of the move input.
+   * Set once the game is over — won, or a daily lost: the board stays (a won one with its chain
+   * lit), the clock stops at the final move and `bar` takes the place of the move input.
    */
-  victory?: { elapsedMs: number; bar: ReactNode }
+  over?: { elapsedMs: number; bar: ReactNode }
+  /** Daily, once over and asked for: the proposed solution, laid over the board. */
+  solution?: DailySolution
+  /** Floats at the top of the board, centred — the daily's "Proposed Solution" checkbox. */
+  boardOverlay?: ReactNode
   /** Every career opened from the board — the daily records the ones that are hints. */
   onCareerOpened?: (player: Player) => void
 }
@@ -57,7 +62,9 @@ export function GameScreen({
   onDismissError,
   lives,
   inputResetKey = 0,
-  victory,
+  over,
+  solution,
+  boardOverlay,
   onCareerOpened,
 }: Props) {
   const t = useTranslations()
@@ -70,16 +77,16 @@ export function GameScreen({
   const [elapsed, setElapsed] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const won = victory !== undefined
+  const ended = over !== undefined
   useEffect(() => {
-    if (won) return
+    if (ended) return
     intervalRef.current = setInterval(() => {
       setElapsed(Date.now() - game.startedAt.getTime())
     }, 1000)
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [game.startedAt, won])
+  }, [game.startedAt, ended])
 
   const alreadyInGraph = useMemo(() => {
     const ids = new Set<PlayerId>()
@@ -99,7 +106,7 @@ export function GameScreen({
           <span className="game-topbar__arrow"></span>
           <span className="game-topbar__player">{game.playerB.name}</span>
         </div>
-        <span className="game-topbar__chrono">{formatTime(victory?.elapsedMs ?? elapsed)}</span>
+        <span className="game-topbar__chrono">{formatTime(over?.elapsedMs ?? elapsed)}</span>
         {/* One group on wide screens; on phones the name drops to a row of its own (see CSS). */}
         <div className="game-topbar__end">
           {username && (
@@ -114,15 +121,16 @@ export function GameScreen({
       </div>
 
       <div className="game-screen-board">
-        <GameBoard game={game} players={players} clubs={clubs} onOpenPlayer={openCareer} />
+        <GameBoard game={game} players={players} clubs={clubs} onOpenPlayer={openCareer} solution={solution} />
+        {boardOverlay}
         {lives && <LivesBar left={lives.left} total={lives.total} lostCount={lives.lostCount} />}
       </div>
 
       <PlayerCareerDialog player={careerOf} onClose={() => setCareerOf(null)} />
 
       <div className="game-screen-controls">
-        {victory ? (
-          victory.bar
+        {over ? (
+          over.bar
         ) : (
           <>
             {lastError && <ErrorBanner message={lastError} onDismiss={onDismissError} />}

@@ -114,3 +114,21 @@ export async function visitorDays(db: SupabaseClient, sport: SportId, visitorId:
   if (error) throw new Error(error.message)
   return (data as StatsRow[]).map((r) => ({ day: ChallengeDay(r.day), outcome: r.outcome, score: r.score }))
 }
+
+/** How the visitor's day ended — null while it is being played, or never started. */
+export async function findOutcome(
+  db: SupabaseClient,
+  sport: SportId,
+  day: ChallengeDay,
+  visitorId: VisitorId,
+): Promise<'won' | 'lost' | null> {
+  const { data, error } = await db
+    .from('daily_results')
+    .select('outcome')
+    .eq('sport', sport)
+    .eq('day', day)
+    .eq('visitor_id', visitorId)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  return data?.outcome ?? null
+}

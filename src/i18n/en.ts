@@ -89,6 +89,7 @@ const en = {
     wonText: (livesLeft: number) => `Chain complete with ${livesLeft} ${livesLeft === 1 ? 'life' : 'lives'} to spare.`,
     lostText: (links: number) => `A chain of ${links} links existed. Better luck tomorrow!`,
     comeBackTomorrow: 'A new pair arrives at midnight (Paris time).',
+    boardNotKept: 'Your board from this game was not kept (older version of the game) — from now on, it is.',
     title: 'Daily Challenge',
     viewCareer: 'View career',
     games: 'games',
@@ -105,6 +106,11 @@ const en = {
     perfectBucket: 'Perfect',
     scoreHint: (extra: number) =>
       extra === 0 ? 'Shortest chain found' : `${extra} extra ${extra === 1 ? 'player' : 'players'}`,
+    solution: {
+      show: 'Show the proposed solution',
+      toggle: 'Proposed Solution',
+      unavailable: 'The solution could not be loaded — try again.',
+    },
     stats: {
       title: 'Your stats',
       sports: 'Sports',

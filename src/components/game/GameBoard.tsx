@@ -5,6 +5,8 @@ import { Player } from '../../domain/player'
 import { PlayerId, ClubId } from '../../domain/ids'
 import { Season } from '../../domain/season'
 import { nationalTeamFor } from '../../domain/nationalTeam'
+import { DailySolution } from '../../domain/dailySolution'
+import { GameNode } from '../../graph/node'
 import { playerKey, clubKey } from '../../game/graphBuilder'
 import { NodeCard } from './NodeCard'
 
@@ -36,11 +38,22 @@ type Props = {
   clubs: Club[]
   /** A player card was clicked, not dragged — the board opens their career. */
   onOpenPlayer?: (player: Player) => void
+  /**
+   * Daily, once over: the proposed solution, laid over the visitor's own cards — its players the
+   * visitor never added appear as "proposed" cards, its links dashed. Easy mode only.
+   */
+  solution?: DailySolution
 }
 
-function findFreePosition(existing: Map<string, Position>, boardW: number, boardH: number): Position {
-  const cx = boardW / 2
-  const cy = boardH / 2
+/** The free spot nearest to `around` (a card's centre) — by default, the board's centre. */
+function findFreePosition(
+  existing: Map<string, Position>,
+  boardW: number,
+  boardH: number,
+  around: { x: number; y: number } = { x: boardW / 2, y: boardH / 2 },
+): Position {
+  const cx = around.x
+  const cy = around.y
   for (let r = 0; r <= Math.max(boardW, boardH); r += MIN_GAP / 2) {
     const steps = r === 0 ? 1 : Math.max(6, Math.ceil((2 * Math.PI * r) / (MIN_GAP / 2)))
     for (let s = 0; s < steps; s++) {
@@ -63,6 +76,27 @@ function findFreePosition(existing: Map<string, Position>, boardW: number, board
     }
   }
   return { x: 8, y: 8 }
+}
+
+/**
+ * Where a proposed solution player belongs: on the chain, between the nearest of its neighbours
+ * already placed — so the solution reads as one line, A to B. Null when no neighbour is placed.
+ */
+function chainSpot(path: PlayerId[], i: number, placed: Map<string, Position>): { x: number; y: number } | null {
+  const centreOf = (j: number) => {
+    const p = placed.get(playerKey(path[j]))
+    return p && { x: p.x + NODE_WIDTH / 2, y: p.y + NODE_HEIGHT / 2 }
+  }
+  let before = -1
+  for (let j = i - 1; j >= 0 && before < 0; j--) if (centreOf(j)) before = j
+  let after = -1
+  for (let j = i + 1; j < path.length && after < 0; j++) if (centreOf(j)) after = j
+  if (before < 0 && after < 0) return null
+  if (before < 0 || after < 0) return centreOf(before < 0 ? after : before)!
+  const t = (i - before) / (after - before)
+  const a = centreOf(before)!
+  const b = centreOf(after)!
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }
 }
 
 function resolveOverlap(key: string, positions: Map<string, Position>): Map<string, Position> {
@@ -113,7 +147,7 @@ function computePlayerPairEdges(edges: { playerId: PlayerId; clubId: ClubId; sea
   return [...pairMap.values()]
 }
 
-export function GameBoard({ game, players, clubs, onOpenPlayer }: Props) {
+export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Props) {
   const boardRef = useRef<HTMLDivElement>(null)
   const [positions, setPositions] = useState<Map<string, Position>>(new Map())
   const [dragging, setDragging] = useState<DragState | null>(null)
@@ -124,12 +158,21 @@ export function GameBoard({ game, players, clubs, onOpenPlayer }: Props) {
     setSelectedEdge(null)
   }, [game.edges.length])
 
+  // The board's cards: the visitor's, then the proposed solution's players it does not have yet.
+  const nodes = useMemo(() => {
+    const all = new Map<string, GameNode>(game.nodes)
+    for (const id of solution?.path ?? []) {
+      if (!all.has(playerKey(id))) all.set(playerKey(id), { kind: 'player', id })
+    }
+    return all
+  }, [game, solution])
+
   useEffect(() => {
     const pAKey = playerKey(game.playerA.id)
     const pBKey = playerKey(game.playerB.id)
 
     setPositions((prev) => {
-      const newKeys = [...game.nodes.keys()].filter((k) => !prev.has(k))
+      const newKeys = [...nodes.keys()].filter((k) => !prev.has(k))
       if (newKeys.length === 0) return prev
 
       const boardW = boardRef.current?.clientWidth ?? 800
@@ -150,13 +193,17 @@ export function GameBoard({ game, players, clubs, onOpenPlayer }: Props) {
         } else if (key === pBKey) {
           next.set(key, { x: boardW * 0.82 - NODE_WIDTH, y: boardH / 2 - NODE_HEIGHT / 2 })
         } else {
-          next.set(key, findFreePosition(next, boardW, boardH))
+          // A proposed solution player goes on the chain; any other card, near the centre.
+          const node = nodes.get(key)
+          const onChain = node?.kind === 'player' && !game.nodes.has(key) ? (solution?.path.indexOf(node.id) ?? -1) : -1
+          const spot = onChain >= 0 ? chainSpot(solution!.path, onChain, next) : null
+          next.set(key, findFreePosition(next, boardW, boardH, spot ?? undefined))
         }
       }
 
       return next
     })
-  }, [game])
+  }, [game, nodes, solution])
 
   const handlePointerDown = (e: React.PointerEvent, key: string) => {
     e.preventDefault()
@@ -191,15 +238,17 @@ export function GameBoard({ game, players, clubs, onOpenPlayer }: Props) {
   }
 
   const openCareer = (key: string) => {
-    const node = game.nodes.get(key)
+    const node = nodes.get(key)
     const player = node?.kind === 'player' ? playerById.get(node.id) : undefined
     if (player && onOpenPlayer) onOpenPlayer(player)
   }
 
-  const playerMap = new Map(players.map((p) => [p.id as string, p.name]))
-  const playerById = new Map(players.map((p) => [p.id as string, p]))
-  const clubById = new Map(clubs.map((c) => [c.id as string, c]))
-  const clubMap = new Map(clubs.map((c) => [c.id as string, c.name]))
+  const allPlayers = [...players, ...(solution?.players ?? [])]
+  const allClubs = [...clubs, ...(solution?.clubs ?? [])]
+  const playerMap = new Map(allPlayers.map((p) => [p.id as string, p.name]))
+  const playerById = new Map(allPlayers.map((p) => [p.id as string, p]))
+  const clubById = new Map(allClubs.map((c) => [c.id as string, c]))
+  const clubMap = new Map(allClubs.map((c) => [c.id as string, c.name]))
   const isTarget = (id: string) => id === game.playerA.id || id === game.playerB.id
 
   const center = (key: string): { x: number; y: number } | null => {
@@ -222,8 +271,20 @@ export function GameBoard({ game, players, clubs, onOpenPlayer }: Props) {
     return set
   }, [game.path])
 
+  // The proposed solution's links, and those of the visitor's that it shares.
+  const solutionPairEdges = useMemo(() => (solution ? computePlayerPairEdges(solution.edges) : []), [solution])
+  const solutionPairKeys = useMemo(() => new Set(solutionPairEdges.map((e) => e.key)), [solutionPairEdges])
+  const solutionOnly = solutionPairEdges.filter((e) => !playerPairEdges.some((own) => own.key === e.key))
+  const onSolution = (id: PlayerId) => solution?.path.includes(id) ?? false
+
   // A path only exists once A and B are connected: the board is then a won board, its chain lit up.
-  const boardClass = game.path.length > 0 ? 'game-board game-board--won' : 'game-board'
+  const boardClass = [
+    'game-board',
+    game.path.length > 0 ? 'game-board--won' : '',
+    solution ? 'game-board--solution' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
   const pathStep = (id: PlayerId) => {
     const i = game.path.indexOf(id)
     return i < 0 ? undefined : i
@@ -239,12 +300,13 @@ export function GameBoard({ game, players, clubs, onOpenPlayer }: Props) {
         onPointerCancel={handlePointerCancel}
       >
         <svg className="game-board-svg" aria-hidden="true">
-          {playerPairEdges.map((edge) => {
+          {[...playerPairEdges, ...solutionOnly].map((edge) => {
             const p1 = center(playerKey(edge.playerAId))
             const p2 = center(playerKey(edge.playerBId))
             if (!p1 || !p2) return null
             const isHovered = hoveredEdge === edge.key
             const isOnPath = pathPairKeys.has(edge.key)
+            const isOnSolution = solutionPairKeys.has(edge.key)
             return (
               <g
                 key={edge.key}
@@ -259,7 +321,12 @@ export function GameBoard({ game, players, clubs, onOpenPlayer }: Props) {
                   y1={p1.y}
                   x2={p2.x}
                   y2={p2.y}
-                  className={['graph-edge', isOnPath ? 'graph-edge--path' : '', isHovered ? 'graph-edge--hovered' : '']
+                  className={[
+                    'graph-edge',
+                    isOnPath ? 'graph-edge--path' : '',
+                    isOnSolution ? 'graph-edge--solution' : '',
+                    isHovered ? 'graph-edge--hovered' : '',
+                  ]
                     .filter(Boolean)
                     .join(' ')}
                 />
@@ -268,7 +335,7 @@ export function GameBoard({ game, players, clubs, onOpenPlayer }: Props) {
           })}
         </svg>
 
-        {[...game.nodes.entries()].map(([key, node]) => {
+        {[...nodes.entries()].map(([key, node]) => {
           if (node.kind !== 'player') return null
           const pos = positions.get(key)
           if (!pos) return null
@@ -288,6 +355,8 @@ export function GameBoard({ game, players, clubs, onOpenPlayer }: Props) {
               pathStep={pathStep(node.id)}
               target={isTarget(node.id)}
               fameFloor={isTarget(node.id) ? undefined : p?.fameFloor}
+              solution={onSolution(node.id)}
+              proposed={!game.nodes.has(key)}
             />
           )
         })}

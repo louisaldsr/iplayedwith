@@ -44,14 +44,15 @@ test('a guess linked to nobody costs a life and flashes the screen; the third en
   await expect(lives(page)).toHaveAccessibleName('1 of 3 lives left')
 
   await guess(page)
-  await expect(page.getByRole('heading', { name: 'Out of lives' })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Out of lives' })).toBeVisible()
 
-  // The day is over: coming back shows the result, not a fresh game.
+  // The day is over: coming back shows the lost board, not a fresh game — no input, no Start.
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Out of lives' })).toBeVisible()
+  await expect(page.locator('.won-bar--lost')).toContainText('Out of lives')
+  await expect(page.getByRole('button', { name: 'Submit' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Start' })).toHaveCount(0)
 
-  await page.getByRole('link', { name: 'Back to the menu' }).click()
+  await page.getByRole('link', { name: 'Menu' }).click()
   await expect(page.getByRole('link', { name: 'Rugby — Daily challenge (lost today)' })).toBeVisible()
 })
 

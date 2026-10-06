@@ -26,3 +26,9 @@ export class ConflictError extends ServiceError {
     super(message, 409)
   }
 }
+
+export class ForbiddenError extends ServiceError {
+  constructor(message: string) {
+    super(message, 403)
+  }
+}

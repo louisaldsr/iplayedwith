@@ -84,14 +84,26 @@ describe('deriveTitles — known titles', () => {
     expect(warnings).toEqual([{ kind: 'final', detail: expect.stringContaining('drop it from KNOWN_TITLES') }])
   })
 
-  it('ships the 2025-26 European finals the dataset stops before', () => {
-    const { titles } = deriveTitles([], (id) => ['583', '405'].includes(id))
+  it('ships the 2025-26 European finals and the stopped 2019-20 Ligue 1', () => {
+    const { titles } = deriveTitles([], (id) => ['583', '405', '873'].includes(id))
     expect(titles).toEqual(
       expect.arrayContaining([
         { clubId: '583', season: '2025-2026', competition: 'Champions League' },
         { clubId: '405', season: '2025-2026', competition: 'Europa League' },
+        { clubId: '873', season: '2025-2026', competition: 'Conference League' },
+        { clubId: '583', season: '2019-2020', competition: 'Ligue 1' },
       ]),
     )
+  })
+
+  it('fills a league season the derivation refused as unfinished', () => {
+    // The real case: Ligue 1 2019-20, stopped before anyone played all their games.
+    const stopped = [game('FR1', '2019', 'real', 'barca', { date: '2020-03-08', homePosition: 1, awayPosition: 2 })]
+    const { titles, warnings } = deriveTitles(stopped, inScope, [
+      { clubId: 'real', season: '2019-2020', competition: 'Ligue 1' },
+    ])
+    expect(warnings).toEqual([{ kind: 'league', detail: expect.stringContaining('short of') }])
+    expect(titles).toEqual([{ clubId: 'real', season: '2019-2020', competition: 'Ligue 1' }])
   })
 })
 

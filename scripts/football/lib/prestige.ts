@@ -18,12 +18,16 @@ export const CONTINENTAL_COMPETITIONS: Record<string, string> = {
  * derived no winner for that competition-season itself — so when a later dataset holds the
  * result, the derivation takes over, and a wrong entry here can never override a played final.
  *
- * The 2025-26 European finals were played after the dataset build (it stops at the semi-finals,
- * which do send these four clubs to the finals).
+ * - The 2025-26 European finals were played after the dataset build (it stops at the
+ *   semi-finals, which do send these six clubs to the finals).
+ * - Ligue 1 2019-20 was stopped by COVID and PSG declared champions: no club played its 38
+ *   games, so the derivation, which only crowns a season played to the end, finds no winner.
  */
 export const KNOWN_TITLES: DerivedTitle[] = [
   { clubId: '583', season: '2025-2026', competition: 'Champions League' }, // PSG, final v Arsenal
   { clubId: '405', season: '2025-2026', competition: 'Europa League' }, // Aston Villa, final v Freiburg
+  { clubId: '873', season: '2025-2026', competition: 'Conference League' }, // Crystal Palace, 1-0 v Rayo Vallecano
+  { clubId: '583', season: '2019-2020', competition: 'Ligue 1' }, // PSG, declared champions
 ]
 
 /** A club's continental run in one season — its wins — keyed by Transfermarkt club id. */

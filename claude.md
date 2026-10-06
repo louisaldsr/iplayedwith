@@ -242,7 +242,8 @@ E      = clamp((log10(vues par an) − 2) / (log10(v_max) − 2))      vues Wiki
 - **Plafonds par sport, en données** : les mesures par saison saturent au p99 du sport, les vues au
   niveau de sa plus grande star — seule une poignée de stars complètes atteint 90+.
 - **Club-saison** (`club_season_prestige`, `023`) : victoires européennes pondérées + titres de la
-  saison + 30 % de la moyenne du club ; titres rugby curés dans `024` (⚠️ 2025-26 non rempli),
+  saison + 30 % de la moyenne du club ; titres rugby curés dans `024` (⚠️ 2025-26 non rempli ;
+  le graphe rugby commence en fait en 2013-14 — `025` retire les 5 titres 2012-13 sans effectif),
   football dérivés des résultats.
 - `compute_fame_scores` appelle `compute_season_prestige` d'abord, et écrit les **quatre piliers**
   (`player_fame.terms`) avec le score : `fame:report` les affiche.

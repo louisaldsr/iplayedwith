@@ -57,6 +57,23 @@
 
 BEGIN;
 
+-- ─── The rugby titles no squad can carry ──────────────────────────────────────
+
+-- 024 seeded the rugby titles from 2012-13, but the rugby graph effectively starts in 2013-14:
+-- production holds 69 memberships for 2012-13 (stray squads) against ~1,800 a season after. Five
+-- of the 2012-13 titles land on a club-season with no membership at all (Castres' Top 14,
+-- Leicester's Premiership, Leinster's league and Challenge Cup, the Chiefs' Super Rugby): a
+-- title no player of the graph can carry. The score already ignores them; they are removed so
+-- 024's own check reads 0. The 2012-13 titles that do have a squad stay (Toulon's European Cup).
+--
+-- Re-applying 024 (it replaces its own rows) brings them back: re-run this DELETE after it.
+DELETE FROM club_titles t
+ WHERE t.sport = 'rugby'
+   AND t.source = 'seed:024'
+   AND t.season = '2012-2013'
+   AND NOT EXISTS (SELECT 1 FROM memberships m
+                    WHERE m.sport = t.sport AND m.club_id = t.club_id AND m.season = t.season);
+
 -- ─── Starts and minutes, per membership ───────────────────────────────────────
 
 ALTER TABLE memberships ADD COLUMN starts integer;
@@ -308,6 +325,9 @@ NOTIFY pgrst, 'reload schema';
 --   SELECT * FROM fame_calibration;
 --     -- rugby 260 / 7.5 / 0.45 / 1000000 ; football 550 / 9 / 0.47 / 15000000
 --   SELECT sport, count(*) FROM nation_tiers GROUP BY sport;   -- rugby 43 before any import
+--   SELECT count(*) FROM club_titles t WHERE t.sport = 'rugby' AND NOT EXISTS
+--     (SELECT 1 FROM memberships m WHERE m.sport = t.sport AND m.club_id = t.club_id AND m.season = t.season);
+--     -- 0: every rugby title sits on a squad of the graph
 --
 -- After seed:fame, seed:prestige and fame:exposure of each sport (in that order of usefulness:
 -- each recomputes the scores, so the last one leaves the final state):

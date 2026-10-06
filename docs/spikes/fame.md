@@ -453,6 +453,6 @@ the new scale) are to review on the live data.
   goalkeepers' minutes bias.
 - The rugby graph effectively starts in 2013-14 (69 memberships in 2012-13, ~1,800 a season
   after): `025` removes the five 2012-13 titles that have no squad to land on.
-- 2025-26 titles are not in `024`; the cached Transfermarkt download stopped at the 2025-26 European
-  semi-finals.
+- The cached Transfermarkt download stopped at the 2025-26 European semi-finals: re-fetch before
+  deriving the football titles.
 - The `appearance` signal, once the game produces games, to fit the weights instead of choosing them.

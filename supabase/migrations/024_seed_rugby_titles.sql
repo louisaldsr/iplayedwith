@@ -14,8 +14,9 @@
 -- - 2019-20 Top 14: not awarded (season stopped by COVID).
 -- - Super Rugby 2020 and 2021 (seasons 2019-2020, 2020-2021): replaced by national competitions
 --   (Aotearoa, AU, Trans-Tasman), none of which is Super Rugby.
--- - 2025-2026 (the latest season in the data): NOT FILLED IN. Add its six winners below once
---   checked, then re-apply this file (it is idempotent).
+--
+-- 2025-2026 (the latest season in the data) was added after a first application: re-applying
+-- this file is idempotent, and 025 then removes the 2012-13 titles that have no squad.
 --
 -- Clubs are resolved BY NAME through `search_normalize`, like 009: ids are import-generated and
 -- differ per environment. A name that resolves to nothing is silently skipped — RUN THE
@@ -44,6 +45,7 @@ FROM (VALUES
   ('Champions Cup', '2022-2023', 'Stade Rochelais'),
   ('Champions Cup', '2023-2024', 'Stade Toulousain'),
   ('Champions Cup', '2024-2025', 'Union Bordeaux-Bègles'),
+  ('Champions Cup', '2025-2026', 'Union Bordeaux-Bègles'),
 
   -- ── European Rugby Challenge Cup (Amlin Challenge Cup until 2013-14) ──
   ('Challenge Cup', '2012-2013', 'Leinster Rugby'),
@@ -59,6 +61,7 @@ FROM (VALUES
   ('Challenge Cup', '2022-2023', 'RC Toulon'),
   ('Challenge Cup', '2023-2024', 'Sharks Durban'),
   ('Challenge Cup', '2024-2025', 'Bath Rugby'),
+  ('Challenge Cup', '2025-2026', 'Montpellier Hérault Rugby'),
 
   -- ── Top 14 ──
   ('Top 14', '2012-2013', 'Castres Olympique'),
@@ -73,6 +76,7 @@ FROM (VALUES
   ('Top 14', '2022-2023', 'Stade Toulousain'),
   ('Top 14', '2023-2024', 'Stade Toulousain'),
   ('Top 14', '2024-2025', 'Stade Toulousain'),
+  ('Top 14', '2025-2026', 'Stade Toulousain'),
 
   -- ── Premiership ──
   ('Premiership', '2012-2013', 'Leicester Tigers'),
@@ -88,6 +92,7 @@ FROM (VALUES
   ('Premiership', '2022-2023', 'Saracens Football Club'),
   ('Premiership', '2023-2024', 'Northampton Saints'),
   ('Premiership', '2024-2025', 'Bath Rugby'),
+  ('Premiership', '2025-2026', 'Northampton Saints'),
 
   -- ── United Rugby Championship (Pro12 until 2016-17, then Pro14) ──
   ('United Rugby Championship', '2012-2013', 'Leinster Rugby'),
@@ -103,6 +108,7 @@ FROM (VALUES
   ('United Rugby Championship', '2022-2023', 'Munster Rugby'),
   ('United Rugby Championship', '2023-2024', 'Glasgow Warriors'),
   ('United Rugby Championship', '2024-2025', 'Leinster Rugby'),
+  ('United Rugby Championship', '2025-2026', 'Leinster Rugby'),
 
   -- ── Super Rugby (calendar year Y → season (Y-1)-Y) ──
   ('Super Rugby', '2012-2013', 'Waikato Chiefs'),           -- 2013
@@ -115,7 +121,8 @@ FROM (VALUES
   ('Super Rugby', '2021-2022', 'Crusaders'),                -- 2022
   ('Super Rugby', '2022-2023', 'Crusaders'),                -- 2023
   ('Super Rugby', '2023-2024', 'Blues'),                    -- 2024
-  ('Super Rugby', '2024-2025', 'Crusaders')                 -- 2025
+  ('Super Rugby', '2024-2025', 'Crusaders'),                 -- 2025
+  ('Super Rugby', '2025-2026', 'Hurricanes')                 -- 2026
 ) AS v(competition, season, club_name)
 JOIN clubs c
   ON c.sport = 'rugby'
@@ -125,8 +132,9 @@ COMMIT;
 
 -- ─── Post-apply checks ────────────────────────────────────────────────────────
 --
--- 1. Every title landed — expect 75 rows (13 seasons × 5 northern competitions, minus the
---    2019-20 Top 14, plus 11 Super Rugby seasons):
+-- 1. Every title landed — expect 81 rows (14 seasons × 5 northern competitions, minus the
+--    2019-20 Top 14, plus 12 Super Rugby seasons); 76 once 025 removed the five 2012-13 titles
+--    with no squad:
 --
 --   SELECT competition, count(*) FROM club_titles WHERE sport = 'rugby' GROUP BY competition;
 --

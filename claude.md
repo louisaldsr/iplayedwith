@@ -242,7 +242,7 @@ E      = clamp((log10(vues par an) − 2) / (log10(v_max) − 2))      vues Wiki
 - **Plafonds par sport, en données** : les mesures par saison saturent au p99 du sport, les vues au
   niveau de sa plus grande star — seule une poignée de stars complètes atteint 90+.
 - **Club-saison** (`club_season_prestige`, `023`) : victoires européennes pondérées + titres de la
-  saison + 30 % de la moyenne du club ; titres rugby curés dans `024` (⚠️ 2025-26 non rempli ;
+  saison + 30 % de la moyenne du club ; titres rugby curés dans `024` (2012-13 → 2025-26 ;
   le graphe rugby commence en fait en 2013-14 — `025` retire les 5 titres 2012-13 sans effectif),
   football dérivés des résultats.
 - `compute_fame_scores` appelle `compute_season_prestige` d'abord, et écrit les **quatre piliers**
@@ -901,8 +901,8 @@ Saisie user
     échoue en prod tant qu'il manque), puis ses contrôles
 36. Appliquer `022_daily_score.sql` **avant** le déploiement, puis ses contrôles ; après quelques
     jours, lire `npm run daily:ranking` (colonne `chain u/k/f`) pour décider de la fame
-37. Fame v3 : compléter les vainqueurs 2025-26 dans `024`, appliquer `023` → `024` → `025` (contrôles
-    en bas de chaque fichier) ; `seed:football:fetch` (nouvelle table) puis `:build` ; puis, sport
+37. Fame v3 : ~~compléter les vainqueurs 2025-26 dans `024`, appliquer `023` → `024`~~, appliquer
+    `025` (contrôles en bas du fichier) ; `seed:football:fetch` (nouvelle table) puis `:build` ; puis, sport
     par sport, `seed:fame`, `seed:prestige`, `fame:exposure` (rugby depuis le checkout qui a le
     cache des profils) ; lire `prestige:report` et `fame:report`, et revoir les paliers 70 / 30 et
     la bande du tirage 60-80 sur la nouvelle échelle

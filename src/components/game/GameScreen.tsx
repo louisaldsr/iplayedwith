@@ -38,6 +38,8 @@ type Props = {
   over?: { elapsedMs: number; bar: ReactNode }
   /** Daily, once over and asked for: the proposed solution, laid over the board. */
   solution?: DailySolution
+  /** Floats at the top of the board, centred — the daily's "Proposed Solution" checkbox. */
+  boardOverlay?: ReactNode
   /** Every career opened from the board — the daily records the ones that are hints. */
   onCareerOpened?: (player: Player) => void
 }
@@ -62,6 +64,7 @@ export function GameScreen({
   inputResetKey = 0,
   over,
   solution,
+  boardOverlay,
   onCareerOpened,
 }: Props) {
   const t = useTranslations()
@@ -119,6 +122,7 @@ export function GameScreen({
 
       <div className="game-screen-board">
         <GameBoard game={game} players={players} clubs={clubs} onOpenPlayer={openCareer} solution={solution} />
+        {boardOverlay}
         {lives && <LivesBar left={lives.left} total={lives.total} lostCount={lives.lostCount} />}
       </div>
 

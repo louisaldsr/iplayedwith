@@ -757,8 +757,9 @@ le build actuel continue d'enregistrer ; le nouveau build lit `daily_stats`.
 
 ## ✅ Bloc 20 terminé — La solution proposée, posée sur le plateau
 
-Une fois la journée finie, gagnée ou perdue, une **case à cocher « Voir la solution proposée »**
-pose sur le plateau du joueur **une** des chaînes les plus courtes — celle que le tirage a stockée
+Une fois la journée finie, gagnée ou perdue, une **case à cocher « Solution proposée »** (« Proposed
+Solution »), **sur le plateau, en haut au centre** — pendant des cœurs en bas —, pose sur le plateau
+du joueur **une** des chaînes les plus courtes — celle que le tirage a stockée
 (`daily_challenges.solution`). Pas de panneau à part : la solution vit dans l'arbre.
 
 - **Décochée, rien** : le plateau est celui du joueur. **Cochée**, le plateau du joueur passe
@@ -771,7 +772,7 @@ pose sur le plateau du joueur **une** des chaînes les plus courtes — celle qu
   jamais ajoutés apparaissent en cartes **« proposées »** (fond bleuté, bordure pointillée).
 - Recochée, la solution revient de la mémoire (une seule requête). Les boutons des pop-ups de fin
   cochent la case et ferment la pop-up.
-- **Une parmi d'autres, dit tel quel** : légende sous la barre — « Solution proposée : une des
+- **Une parmi d'autres, dit tel quel** : légende juste sous la case — « Solution proposée : une des
   chaînes les plus courtes (N liens) — il peut y en avoir d'autres. »
 - **Format du plateau** (`DailySolution`, `src/domain/dailySolution.ts`) : `{ path, players, clubs,
   edges }`, deux arêtes par lien vers le (club, saison) partagé — `linksOfChain` choisit la saison
@@ -783,11 +784,11 @@ pose sur le plateau du joueur **une** des chaînes les plus courtes — celle qu
   voir la solution, partie libre), puis une barre de fin rouge. Le plateau perdu est sauvé
   (`ipw.daily.<sport>`) et rouvert au retour. `DailyFinished` ne sert plus qu'aux journées sans
   plateau (perdues avant cette version) : l'arbre du joueur y est **perdu pour de bon** (le
-  navigateur l'a jeté, le serveur ne garde que les compteurs) — le bouton y pose donc la solution
-  sur un plateau de A et B seuls, avec une mention « votre plateau n'a pas été gardé ».
-- Logique partagée : `useDailySolution` (requête à la demande, mémoire seule), `SolutionToggle` (la
-  case) et `SolutionLegend` (sa légende, sur une ligne à elle), utilisés par la barre de fin et par
-  `DailyFinished`.
+  navigateur l'a jeté, le serveur ne garde que les compteurs) — l'écran y montre donc un plateau de
+  A et B seuls, la même case en haut, avec une mention « votre plateau n'a pas été gardé ».
+- Logique partagée : `useDailySolution` (requête à la demande, mémoire seule) et `SolutionOverlay`
+  (la case + sa légende, posées sur le plateau ; `GameScreen` la reçoit en `boardOverlay`), utilisés
+  par le plateau de jeu et par `DailyFinished`.
 
 ### Jamais lisible avant la fin
 

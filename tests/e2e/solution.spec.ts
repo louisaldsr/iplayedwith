@@ -45,7 +45,7 @@ test('a lost day keeps its board, and lays the proposed solution over it on dema
   await page.getByRole('button', { name: 'Start' }).click()
 
   // While the day is played, nothing of the solution: no button, no request.
-  await expect(page.getByRole('checkbox', { name: 'Show the proposed solution' })).toHaveCount(0)
+  await expect(page.getByRole('checkbox', { name: 'Proposed Solution' })).toHaveCount(0)
   for (let i = 0; i < 3; i++) await guess(page)
   expect(asked).toEqual([])
 
@@ -63,8 +63,11 @@ test('a lost day keeps its board, and lays the proposed solution over it on dema
   expect(asked).toHaveLength(1)
 
   // A checkbox: the pop-up's button ticked it; unticked, nothing of the solution stays.
-  const toggle = page.getByRole('checkbox', { name: 'Show the proposed solution' })
+  const toggle = page.getByRole('checkbox', { name: 'Proposed Solution' })
   await expect(toggle).toBeChecked()
+  // On the board itself, at its top — not in the bar under it.
+  await expect(page.locator('.game-screen-board .solution-overlay')).toContainText('Proposed Solution')
+  await expect(page.locator('.game-screen-controls').getByRole('checkbox')).toHaveCount(0)
   await toggle.uncheck()
   await expect(page.locator('.node-card--proposed')).toHaveCount(0)
   await expect(page.locator('.game-board--solution')).toHaveCount(0)
@@ -99,7 +102,7 @@ test("the visitor's own players on the solution join it, once; the rest of the b
   for (let i = 0; i < 4; i++) await guess(page)
 
   await page.getByRole('dialog', { name: 'Out of lives' }).getByRole('button', { name: 'See the board' }).click()
-  await page.getByRole('checkbox', { name: 'Show the proposed solution' }).check()
+  await page.getByRole('checkbox', { name: 'Proposed Solution' }).check()
 
   // One card per player: Alpha and Bravo are not doubled, Charlie is the only proposed one.
   await expect(page.locator('.node-card')).toHaveCount(4)
@@ -152,14 +155,16 @@ test('a day lost before boards were kept still shows the proposed solution, over
   await page.goto('/rugby')
   await expect(page.getByRole('heading', { name: 'Out of lives' })).toBeVisible()
 
-  await page.getByRole('checkbox', { name: 'Show the proposed solution' }).check()
+  await page.getByRole('checkbox', { name: 'Proposed Solution' }).check()
   const board = page.locator('.daily-finished__board')
   await expect(board.locator('.node-card--proposed')).toHaveText(/Charlie Lien/)
   await expect(board.locator('.node-card--solution')).toHaveCount(3)
   await expect(page.getByText('Your board from this game was not kept')).toBeVisible()
 
-  await page.getByRole('checkbox', { name: 'Show the proposed solution' }).uncheck()
-  await expect(board).toHaveCount(0)
+  // Unchecked: the board of A and B, nothing of the solution.
+  await page.getByRole('checkbox', { name: 'Proposed Solution' }).uncheck()
+  await expect(board.locator('.node-card--proposed')).toHaveCount(0)
+  await expect(board.locator('.node-card')).toHaveCount(2)
 })
 
 test('the solution is never stored in the browser', async ({ page }) => {

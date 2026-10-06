@@ -4,9 +4,20 @@ import { useTranslations } from '../../i18n'
 import { DailySolutionState } from './useDailySolution'
 
 /**
- * "Show the proposed solution", for a finished daily — a checkbox: unchecked, the board is the
- * visitor's own; checked, it steps back into the shadow and the solution lights up over it.
+ * "Proposed Solution", for a finished daily — a checkbox floating at the top of the board:
+ * unchecked, the board is the visitor's own; checked, it steps back into the shadow and the
+ * solution lights up over it. The legend comes right under it.
  */
+export function SolutionOverlay({ solution }: { solution: DailySolutionState }) {
+  return (
+    <div className="solution-overlay">
+      <SolutionToggle solution={solution} />
+      <SolutionLegend solution={solution} />
+    </div>
+  )
+}
+
+/** The checkbox itself. */
 export function SolutionToggle({ solution }: { solution: DailySolutionState }) {
   const t = useTranslations()
   const loading = solution.status === 'loading'
@@ -18,13 +29,13 @@ export function SolutionToggle({ solution }: { solution: DailySolutionState }) {
         disabled={loading}
         onChange={(e) => (e.currentTarget.checked ? void solution.show() : solution.hide())}
       />
-      <span>{t.daily.solution.show}</span>
+      <span>{t.daily.solution.toggle}</span>
     </label>
   )
 }
 
 /**
- * Under the toggle, on a line of its own: what the sky-blue cards and links are — ONE of the
+ * Under the checkbox: what the sky-blue cards and links are — ONE of the
  * shortest chains, others may exist — or why they did not come.
  */
 export function SolutionLegend({ solution }: { solution: DailySolutionState }) {

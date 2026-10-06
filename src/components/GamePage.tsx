@@ -17,7 +17,7 @@ import { DailyIntro } from './daily/DailyIntro'
 import { DailyFinished } from './daily/DailyFinished'
 import { DefeatDialog } from './daily/DefeatDialog'
 import { useDailySolution } from './daily/useDailySolution'
-import { SolutionLegend, SolutionToggle } from './daily/SolutionToggle'
+import { SolutionOverlay } from './daily/SolutionToggle'
 import { DailyBoard, DailyOutcome, readDailyRecord, saveDailyRecord } from '../lib/dailyProgress'
 import { readVisitor } from '../lib/visitor'
 import { recordDailyHint, startDailyChallenge } from '../lib/gameApi'
@@ -370,7 +370,6 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
         <button type="button" className="btn btn--ghost" onClick={() => dispatch({ type: 'SHOW_RESULTS', open: true })}>
           {t.victory.results}
         </button>
-        {dailyOver && <SolutionToggle solution={solution} />}
         {daily ? (
           <Link href={freePlayHref!} className="btn btn--primary">
             {t.daily.freePlay}
@@ -381,7 +380,6 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           </button>
         )}
       </div>
-      {dailyOver && <SolutionLegend solution={solution} />}
     </div>
   )
 
@@ -418,6 +416,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           inputResetKey={state.rejectedCount}
           over={ended ? { elapsedMs: ended.elapsedMs, bar: endBar } : undefined}
           solution={solution.shown ?? undefined}
+          boardOverlay={dailyOver ? <SolutionOverlay solution={solution} /> : undefined}
           onCareerOpened={handleCareerOpened}
         />
       )}

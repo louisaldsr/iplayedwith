@@ -9,7 +9,7 @@ import { playerKey } from '../../game/graphBuilder'
 import { useTranslations } from '../../i18n'
 import { DailyStats } from './DailyStats'
 import { GameBoard } from '../game/GameBoard'
-import { SolutionLegend, SolutionToggle } from './SolutionToggle'
+import { SolutionOverlay } from './SolutionToggle'
 import { useDailySolution } from './useDailySolution'
 
 type Props = {
@@ -26,7 +26,7 @@ type Props = {
  * ones were. Otherwise the board stays, and the proposed solution is laid over it.
  *
  * The visitor's own tree of that day is gone (the browser dropped it, the server never had it), so
- * the proposed solution is laid over a board of A and B alone.
+ * the board shows A and B alone, the "Proposed Solution" checkbox on top of it.
  */
 export function DailyFinished({ challenge, outcome, livesLeft }: Props) {
   const t = useTranslations()
@@ -60,23 +60,16 @@ export function DailyFinished({ challenge, outcome, livesLeft }: Props) {
       <p className="daily-finished__text">
         {won ? t.daily.wonText(livesLeft) : t.daily.lostText(challenge.optimalLinks)}
       </p>
-      <div className="daily-finished__solution">
-        <SolutionToggle solution={solution} />
-        <SolutionLegend solution={solution} />
+      <div className="daily-finished__board">
+        <GameBoard
+          game={board}
+          players={[challenge.playerA, challenge.playerB]}
+          clubs={[]}
+          solution={solution.shown ?? undefined}
+        />
+        <SolutionOverlay solution={solution} />
       </div>
-      {solution.shown && (
-        <>
-          <div className="daily-finished__board">
-            <GameBoard
-              game={board}
-              players={[challenge.playerA, challenge.playerB]}
-              clubs={[]}
-              solution={solution.shown}
-            />
-          </div>
-          <p className="daily-finished__note">{t.daily.boardNotKept}</p>
-        </>
-      )}
+      <p className="daily-finished__note">{t.daily.boardNotKept}</p>
       <p className="daily-finished__tomorrow">{t.daily.comeBackTomorrow}</p>
       <DailyStats sport={challenge.sport} />
       <div className="daily-finished__actions">

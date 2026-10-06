@@ -45,9 +45,15 @@ type Props = {
   solution?: DailySolution
 }
 
-function findFreePosition(existing: Map<string, Position>, boardW: number, boardH: number): Position {
-  const cx = boardW / 2
-  const cy = boardH / 2
+/** The free spot nearest to `around` (a card's centre) — by default, the board's centre. */
+function findFreePosition(
+  existing: Map<string, Position>,
+  boardW: number,
+  boardH: number,
+  around: { x: number; y: number } = { x: boardW / 2, y: boardH / 2 },
+): Position {
+  const cx = around.x
+  const cy = around.y
   for (let r = 0; r <= Math.max(boardW, boardH); r += MIN_GAP / 2) {
     const steps = r === 0 ? 1 : Math.max(6, Math.ceil((2 * Math.PI * r) / (MIN_GAP / 2)))
     for (let s = 0; s < steps; s++) {
@@ -70,6 +76,27 @@ function findFreePosition(existing: Map<string, Position>, boardW: number, board
     }
   }
   return { x: 8, y: 8 }
+}
+
+/**
+ * Where a proposed solution player belongs: on the chain, between the nearest of its neighbours
+ * already placed — so the solution reads as one line, A to B. Null when no neighbour is placed.
+ */
+function chainSpot(path: PlayerId[], i: number, placed: Map<string, Position>): { x: number; y: number } | null {
+  const centreOf = (j: number) => {
+    const p = placed.get(playerKey(path[j]))
+    return p && { x: p.x + NODE_WIDTH / 2, y: p.y + NODE_HEIGHT / 2 }
+  }
+  let before = -1
+  for (let j = i - 1; j >= 0 && before < 0; j--) if (centreOf(j)) before = j
+  let after = -1
+  for (let j = i + 1; j < path.length && after < 0; j++) if (centreOf(j)) after = j
+  if (before < 0 && after < 0) return null
+  if (before < 0 || after < 0) return centreOf(before < 0 ? after : before)!
+  const t = (i - before) / (after - before)
+  const a = centreOf(before)!
+  const b = centreOf(after)!
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }
 }
 
 function resolveOverlap(key: string, positions: Map<string, Position>): Map<string, Position> {
@@ -166,13 +193,17 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
         } else if (key === pBKey) {
           next.set(key, { x: boardW * 0.82 - NODE_WIDTH, y: boardH / 2 - NODE_HEIGHT / 2 })
         } else {
-          next.set(key, findFreePosition(next, boardW, boardH))
+          // A proposed solution player goes on the chain; any other card, near the centre.
+          const node = nodes.get(key)
+          const onChain = node?.kind === 'player' && !game.nodes.has(key) ? (solution?.path.indexOf(node.id) ?? -1) : -1
+          const spot = onChain >= 0 ? chainSpot(solution!.path, onChain, next) : null
+          next.set(key, findFreePosition(next, boardW, boardH, spot ?? undefined))
         }
       }
 
       return next
     })
-  }, [game, nodes])
+  }, [game, nodes, solution])
 
   const handlePointerDown = (e: React.PointerEvent, key: string) => {
     e.preventDefault()

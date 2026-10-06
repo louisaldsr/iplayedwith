@@ -45,7 +45,7 @@ test('a lost day keeps its board, and lays the proposed solution over it on dema
   await page.getByRole('button', { name: 'Start' }).click()
 
   // While the day is played, nothing of the solution: no button, no request.
-  await expect(page.getByRole('checkbox', { name: 'Proposed Solution' })).toHaveCount(0)
+  await expect(page.getByRole('switch', { name: 'Proposed Solution' })).toHaveCount(0)
   for (let i = 0; i < 3; i++) await guess(page)
   expect(asked).toEqual([])
 
@@ -53,21 +53,19 @@ test('a lost day keeps its board, and lays the proposed solution over it on dema
   await results.getByRole('button', { name: 'Show the proposed solution' }).click()
   await expect(results).toBeHidden()
 
-  // Charlie was never on this board: a proposed card, with the legend saying it is ONE chain.
+  // Charlie was never on this board: a proposed card, fully lit.
   await expect(page.locator('.node-card--proposed')).toHaveText(/Charlie Lien/)
+  await expect(page.locator('.node-card--proposed')).toHaveCSS('opacity', '1')
   await expect(page.locator('.node-card--solution')).toHaveCount(3)
   await expect(page.locator('.graph-edge--solution')).toHaveCount(2)
-  await expect(
-    page.getByText('Proposed solution: one of the shortest chains (2 links) — others may exist.'),
-  ).toBeVisible()
   expect(asked).toHaveLength(1)
 
-  // A checkbox: the pop-up's button ticked it; unticked, nothing of the solution stays.
-  const toggle = page.getByRole('checkbox', { name: 'Proposed Solution' })
+  // A switch: the pop-up's button turned it on; off, nothing of the solution stays.
+  const toggle = page.getByRole('switch', { name: 'Proposed Solution' })
   await expect(toggle).toBeChecked()
   // On the board itself, at its top — not in the bar under it.
   await expect(page.locator('.game-screen-board .solution-overlay')).toContainText('Proposed Solution')
-  await expect(page.locator('.game-screen-controls').getByRole('checkbox')).toHaveCount(0)
+  await expect(page.locator('.game-screen-controls').getByRole('switch')).toHaveCount(0)
   await toggle.uncheck()
   await expect(page.locator('.node-card--proposed')).toHaveCount(0)
   await expect(page.locator('.game-board--solution')).toHaveCount(0)
@@ -102,7 +100,7 @@ test("the visitor's own players on the solution join it, once; the rest of the b
   for (let i = 0; i < 4; i++) await guess(page)
 
   await page.getByRole('dialog', { name: 'Out of lives' }).getByRole('button', { name: 'See the board' }).click()
-  await page.getByRole('checkbox', { name: 'Proposed Solution' }).check()
+  await page.getByRole('switch', { name: 'Proposed Solution' }).check()
 
   // One card per player: Alpha and Bravo are not doubled, Charlie is the only proposed one.
   await expect(page.locator('.node-card')).toHaveCount(4)
@@ -132,6 +130,31 @@ test('a winner lays the proposed solution over the winning board from the result
   await expect(page.locator('.node-card--proposed')).toHaveCount(0)
 })
 
+test('on a won board, a solution through someone else lights its proposed player — never dimmed', async ({ page }) => {
+  // The stored solution goes through Echo; the winner went through Charlie.
+  const echo = { id: 'p-echo', name: 'Echo Autre', sport: 'rugby' }
+  const viaEcho = {
+    ...sampleSolution,
+    path: ['p-alpha', 'p-echo', 'p-bravo'],
+    players: [sampleSolution.players[0], echo, sampleSolution.players[2]],
+    edges: sampleSolution.edges.map((e) => (e.playerId === 'p-charlie' ? { ...e, playerId: 'p-echo' } : e)),
+  }
+  await mockApi(page, '/api/rugby/move', winningMove)
+  await mockApi(page, '/api/rugby/daily/solution', viaEcho)
+  await page.goto('/rugby')
+  await page.getByRole('button', { name: 'Start' }).click()
+  await guess(page)
+  await page.getByRole('dialog', { name: 'Congratulations!' }).getByRole('button', { name: 'See the board' }).click()
+  await page.getByRole('switch', { name: 'Proposed Solution' }).check()
+
+  const card = (name: string) => page.locator('.game-board .node-card', { hasText: name })
+  await expect(card('Echo Autre')).toHaveClass(/node-card--proposed/)
+  await expect(card('Echo Autre')).toHaveCSS('opacity', '1')
+  await expect(card('Alpha Testeur')).toHaveCSS('opacity', '1')
+  // The winner's Charlie is off this solution: in the shadow, gold chain or not.
+  await expect(card('Charlie Lien')).toHaveCSS('opacity', '0.18')
+})
+
 test('a refused solution says so, and the board stays as it was', async ({ page }) => {
   await mockApi(page, '/api/rugby/move', notConnectedMove)
   await page.goto('/rugby')
@@ -142,7 +165,7 @@ test('a refused solution says so, and the board stays as it was', async ({ page 
     .getByRole('dialog', { name: 'Out of lives' })
     .getByRole('button', { name: 'Show the proposed solution' })
     .click()
-  await expect(page.locator('.end-bar__error')).toHaveText('The solution could not be loaded — try again.')
+  await expect(page.locator('.solution-overlay__error')).toHaveText('The solution could not be loaded — try again.')
   await expect(page.locator('.node-card--solution')).toHaveCount(0)
 })
 
@@ -155,14 +178,14 @@ test('a day lost before boards were kept still shows the proposed solution, over
   await page.goto('/rugby')
   await expect(page.getByRole('heading', { name: 'Out of lives' })).toBeVisible()
 
-  await page.getByRole('checkbox', { name: 'Proposed Solution' }).check()
+  await page.getByRole('switch', { name: 'Proposed Solution' }).check()
   const board = page.locator('.daily-finished__board')
   await expect(board.locator('.node-card--proposed')).toHaveText(/Charlie Lien/)
   await expect(board.locator('.node-card--solution')).toHaveCount(3)
   await expect(page.getByText('Your board from this game was not kept')).toBeVisible()
 
   // Unchecked: the board of A and B, nothing of the solution.
-  await page.getByRole('checkbox', { name: 'Proposed Solution' }).uncheck()
+  await page.getByRole('switch', { name: 'Proposed Solution' }).uncheck()
   await expect(board.locator('.node-card--proposed')).toHaveCount(0)
   await expect(board.locator('.node-card')).toHaveCount(2)
 })

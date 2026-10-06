@@ -9,7 +9,7 @@ import { playerKey } from '../../game/graphBuilder'
 import { useTranslations } from '../../i18n'
 import { DailyStats } from './DailyStats'
 import { GameBoard } from '../game/GameBoard'
-import { SolutionOverlay } from './SolutionToggle'
+import { SolutionOverlay } from './SolutionOverlay'
 import { useDailySolution } from './useDailySolution'
 
 type Props = {

@@ -757,38 +757,44 @@ le build actuel continue d'enregistrer ; le nouveau build lit `daily_stats`.
 
 ## ✅ Bloc 20 terminé — La solution proposée, posée sur le plateau
 
-Une fois la journée finie, gagnée ou perdue, une **case à cocher « Solution proposée »** (« Proposed
+Une fois la journée finie, gagnée ou perdue, un **interrupteur « Solution proposée »** (« Proposed
 Solution »), **sur le plateau, en haut au centre** — pendant des cœurs en bas —, pose sur le plateau
-du joueur **une** des chaînes les plus courtes — celle que le tirage a stockée
-(`daily_challenges.solution`). Pas de panneau à part : la solution vit dans l'arbre.
+du joueur **une** des chaînes les plus courtes, celle que le tirage a stockée
+(`daily_challenges.solution`). Pas de panneau à part, pas de légende : la solution vit dans l'arbre.
 
-- **Décochée, rien** : le plateau est celui du joueur. **Cochée**, le plateau du joueur passe
-  **dans l'ombre** (cartes à 18 %, désaturées ; liens presque effacés — la chaîne dorée d'un plateau
-  gagné aussi) et la solution s'allume par-dessus : ses joueurs prennent un anneau pointillé **bleu
-  ciel** (`--solution`, une couleur à elle : l'or est la chaîne gagnée, le teal le palier *known*),
-  ses liens courent en pointillés bleu ciel, cliquables comme les autres (club · saison).
-- **Jamais en double** : un joueur de la solution déjà sur le plateau du joueur **est** la carte de
-  la solution — même carte, sortie de l'ombre, intégrée à l'arbre soluce. Seuls ceux qu'il n'a
-  jamais ajoutés apparaissent en cartes **« proposées »** (fond bleuté, bordure pointillée).
-- Recochée, la solution revient de la mémoire (une seule requête). Les boutons des pop-ups de fin
-  cochent la case et ferment la pop-up.
-- **Une parmi d'autres, dit tel quel** : légende juste sous la case — « Solution proposée : une des
-  chaînes les plus courtes (N liens) — il peut y en avoir d'autres. »
+- **L'interrupteur** est une vraie case à cocher (`role="switch"`, clavier et lecteurs d'écran),
+  dessinée en pilule à bouton glissant, bleue une fois allumée. En chargement, le bouton pulse ; en
+  échec, une seule ligne « Impossible de charger la solution » apparaît dessous.
+- **Éteint, rien** : le plateau est celui du joueur. **Allumé**, le plateau du joueur passe **dans
+  l'ombre** (cartes à 18 %, désaturées ; liens presque effacés — la chaîne dorée d'un plateau gagné
+  aussi) et la solution s'allume : ses joueurs prennent un **anneau bleu lumineux**, ses liens
+  courent en **trait plein bleu**, avec un halo, cliquables comme les autres (club · saison). Bleu
+  `--solution` = `#60a5fa`, une couleur à elle (l'or est la chaîne gagnée, le teal le palier *known*,
+  le violet l'accent).
+- **Jamais en double** : un joueur de la solution déjà sur le plateau **est** la carte de la
+  solution — même carte, sortie de l'ombre. Seuls ceux que le joueur n'a jamais ajoutés apparaissent
+  en cartes **« proposées »** : fond plein, bordure pointillée bleue, **jamais estompées** (les
+  sélecteurs doublent `.node-card` pour passer devant l'atténuation du plateau gagné).
+- **Placées sur la chaîne** (`chainSpot`, `GameBoard`) : une carte proposée se pose entre ses
+  voisins de chaîne déjà placés, au prorata de son rang — la solution se lit d'un trait, de A à B —
+  puis au plus proche emplacement libre.
+- Rallumée, la solution revient de la mémoire (une seule requête). Les boutons des pop-ups de fin
+  l'allument et ferment la pop-up.
 - **Format du plateau** (`DailySolution`, `src/domain/dailySolution.ts`) : `{ path, players, clubs,
   edges }`, deux arêtes par lien vers le (club, saison) partagé — `linksOfChain` choisit la saison
   **la plus récente** quand une paire en a partagé plusieurs (l'id du club départage), puis
   `edgesOfChain`. Une paire qui ne partage plus rien (données changées depuis le tirage) : 500 logué,
-  message « Impossible de charger la solution ».
+  message d'échec.
 - **Une journée perdue garde son plateau** (phase `lost`) : la dernière vie ouvre une pop-up
   « Plus de vies » par-dessus (`DefeatDialog`, jumelle de `VictoryDialog` : stats, voir le plateau,
   voir la solution, partie libre), puis une barre de fin rouge. Le plateau perdu est sauvé
   (`ipw.daily.<sport>`) et rouvert au retour. `DailyFinished` ne sert plus qu'aux journées sans
   plateau (perdues avant cette version) : l'arbre du joueur y est **perdu pour de bon** (le
   navigateur l'a jeté, le serveur ne garde que les compteurs) — l'écran y montre donc un plateau de
-  A et B seuls, la même case en haut, avec une mention « votre plateau n'a pas été gardé ».
+  A et B seuls, le même interrupteur en haut, avec une mention « votre plateau n'a pas été gardé ».
 - Logique partagée : `useDailySolution` (requête à la demande, mémoire seule) et `SolutionOverlay`
-  (la case + sa légende, posées sur le plateau ; `GameScreen` la reçoit en `boardOverlay`), utilisés
-  par le plateau de jeu et par `DailyFinished`.
+  (l'interrupteur, posé sur le plateau ; `GameScreen` le reçoit en `boardOverlay`), utilisés par le
+  plateau de jeu et par `DailyFinished`.
 
 ### Jamais lisible avant la fin
 

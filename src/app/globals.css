@@ -39,8 +39,9 @@
   --error-bg: rgba(248, 113, 113, 0.1);
   --success: #4ade80;
   /* The proposed solution laid over a finished daily board — a colour of its own. */
-  --solution: #38bdf8;
-  --solution-tint: rgba(56, 189, 248, 0.12);
+  --solution: #60a5fa;
+  --solution-tint: rgba(96, 165, 250, 0.14);
+  --solution-glow: rgba(96, 165, 250, 0.45);
   /* Daily stats: one colour per score, green (+1) to red (+5 and worse, lost). Perfect is gold. */
   --score-1: #4ade80;
   --score-2: #a3e635;
@@ -830,7 +831,7 @@ body {
 }
 
 /* "Proposed Solution", floating at the top of a finished daily board, centred — like the hearts at
-   its bottom. Only the control takes clicks: the cards under the gap stay draggable. */
+   its bottom. Only the switch takes clicks: the cards under the gap stay draggable. */
 .solution-overlay {
   position: absolute;
   top: 12px;
@@ -846,43 +847,103 @@ body {
 .solution-overlay > * {
   pointer-events: auto;
 }
-.solution-overlay .end-bar__legend,
-.solution-overlay .end-bar__error {
-  flex-basis: auto;
+
+.solution-overlay__error {
   padding: 3px 10px;
   border-radius: var(--radius-full);
-  background: rgba(17, 19, 24, 0.8);
+  background: rgba(17, 19, 24, 0.85);
+  color: var(--error);
+  font-size: 0.8rem;
 }
 
-/* The checkbox, in the solution's colour. */
-.solution-toggle {
+/* A switch, drawn over a real checkbox: a pill with a sliding knob, the solution's blue once on. */
+.solution-switch {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--solution);
+  gap: 10px;
+  padding: 6px 14px 6px 8px;
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full);
   background: rgba(17, 19, 24, 0.85);
-  color: var(--solution);
+  backdrop-filter: blur(4px);
+  color: var(--text-muted);
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   user-select: none;
+  transition:
+    border-color 0.2s,
+    color 0.2s,
+    box-shadow 0.2s;
 }
-.solution-toggle input {
-  width: 18px;
-  height: 18px;
+.solution-switch:hover {
+  color: var(--text-primary);
+}
+.solution-switch--on {
+  border-color: var(--solution);
+  color: var(--text-primary);
+  box-shadow: 0 0 14px var(--solution-glow);
+}
+.solution-switch--loading {
+  cursor: progress;
+}
+
+.solution-switch__input {
+  position: absolute;
+  inset: 0;
   margin: 0;
-  accent-color: var(--solution);
+  opacity: 0;
   cursor: inherit;
 }
-.solution-toggle:has(input:focus-visible) {
-  outline: 2px solid var(--solution);
-  outline-offset: 2px;
+
+.solution-switch__track {
+  position: relative;
+  flex-shrink: 0;
+  width: 38px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: var(--border-active);
+  transition: background 0.2s;
 }
-.solution-toggle--loading {
-  opacity: 0.6;
-  cursor: progress;
+.solution-switch--on .solution-switch__track {
+  background: var(--solution);
+}
+
+.solution-switch__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.solution-switch--on .solution-switch__thumb {
+  transform: translateX(16px);
+}
+.solution-switch--loading .solution-switch__thumb {
+  animation: switch-wait 0.8s ease-in-out infinite alternate;
+}
+
+.solution-switch:has(.solution-switch__input:focus-visible) {
+  outline: 2px solid var(--solution);
+  outline-offset: 3px;
+}
+
+@keyframes switch-wait {
+  to {
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .solution-switch__thumb {
+    transition: none;
+    animation: none;
+  }
 }
 
 .btn--solution {
@@ -2287,9 +2348,10 @@ body {
 
 /* ─── Proposed solution, over a finished daily board ────────
    One shortest chain, laid over the visitor's own cards. The visitor's board steps back into the
-   shadow — its gold chain too — while the solution lights up: its players get a sky-blue dashed
-   ring (the visitor's own cards among them join it, never duplicated; the others appear as
-   "proposed" cards) and its links run sky-blue dashes. */
+   shadow — its gold chain too — while the solution lights up: its players get a blue glowing ring
+   (the visitor's own cards among them join it, never duplicated; the others appear as "proposed"
+   cards, dashed — never added by the visitor) and its links run solid blue, glowing.
+   Selectors carry `.node-card` / `.graph-edge` twice over so they outrank the won board's dimming. */
 .game-board--solution .node-card:not(.node-card--solution) {
   opacity: 0.18;
   filter: grayscale(0.7);
@@ -2298,14 +2360,16 @@ body {
   opacity: 0.06;
 }
 
-.game-board--solution .node-card--solution {
+.game-board--solution .node-card.node-card--solution {
   opacity: 1;
-  outline: 2px dashed var(--solution);
-  outline-offset: 4px;
+  filter: none;
+  box-shadow:
+    0 0 0 2px var(--solution),
+    0 0 18px var(--solution-glow);
 }
 
-.node-card--proposed {
-  background: var(--solution-tint);
+.game-board--solution .node-card.node-card--proposed {
+  background: var(--player-tint);
   border: 1px dashed var(--solution);
   animation: solution-in 0.4s ease-out both;
 }
@@ -2313,10 +2377,10 @@ body {
 .game-board--solution .graph-edge.graph-edge--solution {
   stroke: var(--solution);
   stroke-width: 3;
-  stroke-dasharray: 3 7;
+  stroke-dasharray: none;
   stroke-linecap: round;
   opacity: 1;
-  filter: none;
+  filter: drop-shadow(0 0 4px var(--solution-glow));
   animation: none;
 }
 
@@ -2328,7 +2392,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .node-card--proposed {
+  .game-board--solution .node-card.node-card--proposed {
     animation: none;
   }
 }
@@ -2671,32 +2735,6 @@ body {
 }
 
 .won-bar--lost .won-bar__title {
-  color: var(--error);
-}
-
-/* Under the bar's buttons: what the sky-blue cards and links are, or why they did not come. */
-.end-bar__legend,
-.end-bar__error {
-  flex-basis: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 0.8rem;
-  text-align: center;
-}
-
-.end-bar__legend {
-  color: var(--solution);
-}
-
-.end-bar__swatch {
-  flex-shrink: 0;
-  width: 22px;
-  border-top: 3px dashed var(--solution);
-}
-
-.end-bar__error {
   color: var(--error);
 }
 

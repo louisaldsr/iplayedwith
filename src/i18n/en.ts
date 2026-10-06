@@ -109,7 +109,6 @@ const en = {
     solution: {
       show: 'Show the proposed solution',
       toggle: 'Proposed Solution',
-      legend: (links: number) => `Proposed solution: one of the shortest chains (${links} links) — others may exist.`,
       unavailable: 'The solution could not be loaded — try again.',
     },
     stats: {

@@ -108,8 +108,6 @@ const fr: Translations = {
     solution: {
       show: 'Voir la solution proposée',
       toggle: 'Solution proposée',
-      legend: (links: number) =>
-        `Solution proposée : une des chaînes les plus courtes (${links} liens) — il peut y en avoir d’autres.`,
       unavailable: 'Impossible de charger la solution — réessayez.',
     },
     stats: {

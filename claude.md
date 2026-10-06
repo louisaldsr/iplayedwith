@@ -901,10 +901,8 @@ Saisie user
     échoue en prod tant qu'il manque), puis ses contrôles
 36. Appliquer `022_daily_score.sql` **avant** le déploiement, puis ses contrôles ; après quelques
     jours, lire `npm run daily:ranking` (colonne `chain u/k/f`) pour décider de la fame
-37. Fame v3 : ~~compléter les vainqueurs 2025-26 dans `024`, appliquer `023` → `024`~~, appliquer
-    `025` (contrôles en bas du fichier) ; `seed:football:fetch` (nouvelle table) puis `:build` ; puis, sport
-    par sport, `seed:fame`, `seed:prestige`, `fame:exposure` (rugby depuis le checkout qui a le
-    cache des profils) ; lire `prestige:report` et `fame:report`, et revoir les paliers 70 / 30 et
-    la bande du tirage 60-80 sur la nouvelle échelle
+37. ~~Fame v3 : `023` → `025` appliqués, imports des deux sports passés (`seed:fame`, `seed:prestige`,
+    `fame:exposure`)~~ ; reste : revoir les paliers 70 / 30 et la bande du tirage 60-80 sur la
+    nouvelle échelle (famous : 119 rugby, 201 football)
 38. Awards en multiplicateur d'exposition (liste curée : joueur de l'année, équipes types…) ; vues
     des autres langues ; biais des gardiens (100 % des minutes) dans le pilier club

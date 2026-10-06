@@ -778,7 +778,11 @@ le plateau du joueur **une** des chaînes les plus courtes — celle que le tira
   « Plus de vies » par-dessus (`DefeatDialog`, jumelle de `VictoryDialog` : stats, voir le plateau,
   voir la solution, partie libre), puis une barre de fin rouge. Le plateau perdu est sauvé
   (`ipw.daily.<sport>`) et rouvert au retour. `DailyFinished` ne sert plus qu'aux journées sans
-  plateau (d'avant cette version).
+  plateau (perdues avant cette version) : l'arbre du joueur y est **perdu pour de bon** (le
+  navigateur l'a jeté, le serveur ne garde que les compteurs) — le bouton y pose donc la solution
+  sur un plateau de A et B seuls, avec une mention « votre plateau n'a pas été gardé ».
+- Logique partagée : `useDailySolution` (requête à la demande, mémoire seule) et `SolutionToggle`
+  (bouton + légende), utilisés par la barre de fin et par `DailyFinished`.
 
 ### Jamais lisible avant la fin
 

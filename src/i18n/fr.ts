@@ -87,6 +87,7 @@ const fr: Translations = {
     lostTitle: 'Plus de vies',
     wonText: (livesLeft: number) => `Chaîne complète avec ${livesLeft} vie${livesLeft > 1 ? 's' : ''} en réserve.`,
     lostText: (links: number) => `Une chaîne de ${links} liens existait. Revanche demain !`,
+    boardNotKept: 'Votre plateau de cette partie n’a pas été gardé (ancienne version du jeu) — désormais, il l’est.',
     comeBackTomorrow: 'Une nouvelle paire arrive à minuit (heure de Paris).',
     title: 'Défi du jour',
     viewCareer: 'Voir la carrière',

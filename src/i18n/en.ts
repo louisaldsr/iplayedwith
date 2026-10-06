@@ -89,6 +89,7 @@ const en = {
     wonText: (livesLeft: number) => `Chain complete with ${livesLeft} ${livesLeft === 1 ? 'life' : 'lives'} to spare.`,
     lostText: (links: number) => `A chain of ${links} links existed. Better luck tomorrow!`,
     comeBackTomorrow: 'A new pair arrives at midnight (Paris time).',
+    boardNotKept: 'Your board from this game was not kept (older version of the game) — from now on, it is.',
     title: 'Daily Challenge',
     viewCareer: 'View career',
     games: 'games',

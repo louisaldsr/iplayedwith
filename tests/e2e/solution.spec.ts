@@ -101,6 +101,25 @@ test('a refused solution says so, and the board stays as it was', async ({ page 
   await expect(page.locator('.node-card--solution')).toHaveCount(0)
 })
 
+test('a day lost before boards were kept still shows the proposed solution, over A and B', async ({ page }) => {
+  await page.addInitScript(
+    (day) => window.localStorage.setItem('ipw.daily.rugby', JSON.stringify({ day, livesLeft: 0, outcome: 'lost' })),
+    sampleDailyChallenge.day,
+  )
+  await mockApi(page, '/api/rugby/daily/solution', sampleSolution)
+  await page.goto('/rugby')
+  await expect(page.getByRole('heading', { name: 'Out of lives' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Show the proposed solution' }).click()
+  const board = page.locator('.daily-finished__board')
+  await expect(board.locator('.node-card--proposed')).toHaveText(/Charlie Lien/)
+  await expect(board.locator('.node-card--solution')).toHaveCount(3)
+  await expect(page.getByText('Your board from this game was not kept')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Hide the proposed solution' }).click()
+  await expect(board).toHaveCount(0)
+})
+
 test('the solution is never stored in the browser', async ({ page }) => {
   await mockApi(page, '/api/rugby/move', notConnectedMove)
   await mockApi(page, '/api/rugby/daily/solution', sampleSolution)

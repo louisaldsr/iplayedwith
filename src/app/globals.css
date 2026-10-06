@@ -1374,6 +1374,28 @@ body {
   color: var(--text-muted);
 }
 
+.daily-finished__solution {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* A board of A and B alone, the proposed solution over it — the tree of that day is gone. */
+.daily-finished__board {
+  position: relative;
+  width: min(900px, calc(100vw - 32px));
+  height: 360px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.daily-finished__note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 .daily-finished__actions {
   display: flex;
   gap: 12px;

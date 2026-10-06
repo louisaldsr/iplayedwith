@@ -16,10 +16,11 @@ import { VictoryDialog } from './victory/VictoryDialog'
 import { DailyIntro } from './daily/DailyIntro'
 import { DailyFinished } from './daily/DailyFinished'
 import { DefeatDialog } from './daily/DefeatDialog'
-import { DailySolution } from '../domain/dailySolution'
+import { useDailySolution } from './daily/useDailySolution'
+import { SolutionToggle } from './daily/SolutionToggle'
 import { DailyBoard, DailyOutcome, readDailyRecord, saveDailyRecord } from '../lib/dailyProgress'
 import { readVisitor } from '../lib/visitor'
-import { getDailySolution, recordDailyHint, startDailyChallenge } from '../lib/gameApi'
+import { recordDailyHint, startDailyChallenge } from '../lib/gameApi'
 
 /**
  * `victory`: the won board stays on screen, results in a pop-up over it.
@@ -337,29 +338,18 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
 
   const closeResults = useCallback(() => dispatch({ type: 'SHOW_RESULTS', open: false }), [])
 
-  // The proposed solution: asked of the server only once the day is over here, and only when the
-  // visitor wants it — the server itself refuses it to a visitor it has not seen finish the day.
-  // Kept in memory, never in storage.
-  const [solution, setSolution] = useState<DailySolution | null>(null)
-  const [solutionShown, setSolutionShown] = useState(false)
-  const [solutionStatus, setSolutionStatus] = useState<'idle' | 'loading' | 'error'>('idle')
+  // The proposed solution, once the day is over here — asked of the server only when wanted.
   const dailyOver = daily !== null && (state.phase === 'victory' || state.phase === 'lost')
-
-  const showSolution = useCallback(async () => {
+  const overDay = useMemo(
+    () => (daily && dailyOver ? { sport: daily.sport, day: daily.day } : null),
+    [daily, dailyOver],
+  )
+  const solution = useDailySolution(overDay)
+  // From the results pop-up: close it, the board and its solution underneath.
+  const showSolution = useCallback(() => {
     dispatch({ type: 'SHOW_RESULTS', open: false })
-    if (!daily || !dailyOver) return
-    if (solution) return setSolutionShown(true)
-    const visitorId = readVisitor().playerId
-    if (!visitorId) return setSolutionStatus('error')
-    setSolutionStatus('loading')
-    try {
-      setSolution(await getDailySolution(daily.sport, daily.day, visitorId))
-      setSolutionShown(true)
-      setSolutionStatus('idle')
-    } catch {
-      setSolutionStatus('error')
-    }
-  }, [daily, dailyOver, solution])
+    void solution.show()
+  }, [solution])
 
   const ended =
     (state.phase === 'victory' || state.phase === 'lost') && state.game
@@ -367,29 +357,6 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
       : null
   const victory = state.phase === 'victory' ? ended : null
   const freePlayHref = daily ? `/${sport}/free` : undefined
-
-  const solutionToggle = dailyOver && (
-    <button
-      type="button"
-      className={`btn ${solutionShown ? 'btn--ghost' : 'btn--solution'}`}
-      onClick={solutionShown ? () => setSolutionShown(false) : showSolution}
-      disabled={solutionStatus === 'loading'}
-      aria-pressed={solutionShown}
-    >
-      {solutionShown ? t.daily.solution.hide : t.daily.solution.show}
-    </button>
-  )
-  const solutionNote =
-    solutionShown && solution ? (
-      <p className="end-bar__legend">
-        <span className="end-bar__swatch" aria-hidden="true" />
-        {t.daily.solution.legend(solution.path.length - 1)}
-      </p>
-    ) : solutionStatus === 'error' ? (
-      <p className="end-bar__error" role="alert">
-        {t.daily.solution.unavailable}
-      </p>
-    ) : null
 
   // A finished game keeps its board on screen: the results open over it, and this bar replaces the
   // move input to reopen them, lay the proposed solution over the board (daily), or move on.
@@ -403,7 +370,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
         <button type="button" className="btn btn--ghost" onClick={() => dispatch({ type: 'SHOW_RESULTS', open: true })}>
           {t.victory.results}
         </button>
-        {solutionToggle}
+        {dailyOver && <SolutionToggle solution={solution} />}
         {daily ? (
           <Link href={freePlayHref!} className="btn btn--primary">
             {t.daily.freePlay}
@@ -414,7 +381,6 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           </button>
         )}
       </div>
-      {solutionNote}
     </div>
   )
 
@@ -450,7 +416,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           }
           inputResetKey={state.rejectedCount}
           over={ended ? { elapsedMs: ended.elapsedMs, bar: endBar } : undefined}
-          solution={solutionShown && solution ? solution : undefined}
+          solution={solution.shown ?? undefined}
           onCareerOpened={handleCareerOpened}
         />
       )}

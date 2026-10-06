@@ -1,10 +1,16 @@
 'use client'
 
+import { useMemo } from 'react'
 import Link from 'next/link'
 import { DailyChallenge } from '../../domain/dailyChallenge'
 import { DailyOutcome } from '../../lib/dailyProgress'
+import { Game } from '../../game/game'
+import { playerKey } from '../../game/graphBuilder'
 import { useTranslations } from '../../i18n'
 import { DailyStats } from './DailyStats'
+import { GameBoard } from '../game/GameBoard'
+import { SolutionToggle } from './SolutionToggle'
+import { useDailySolution } from './useDailySolution'
 
 type Props = {
   challenge: DailyChallenge
@@ -16,12 +22,31 @@ type Props = {
  * The daily once it is over — straight after the last life is lost, or when coming back to a day
  * already won or lost. One pair a day: there is nothing left to play until tomorrow.
  *
- * Only for a day without a board to show — lost or won before boards were kept. Otherwise the
- * board stays, and the proposed solution is laid over it.
+ * Only for a day without a board to show — lost before lost boards were kept, or won before won
+ * ones were. Otherwise the board stays, and the proposed solution is laid over it.
+ *
+ * The visitor's own tree of that day is gone (the browser dropped it, the server never had it), so
+ * the proposed solution is laid over a board of A and B alone.
  */
 export function DailyFinished({ challenge, outcome, livesLeft }: Props) {
   const t = useTranslations()
   const won = outcome === 'won'
+  const day = useMemo(() => ({ sport: challenge.sport, day: challenge.day }), [challenge])
+  const solution = useDailySolution(day)
+  const board = useMemo<Game>(
+    () => ({
+      playerA: challenge.playerA,
+      playerB: challenge.playerB,
+      difficulty: 'easy',
+      nodes: new Map(
+        [challenge.playerA, challenge.playerB].map((p) => [playerKey(p.id), { kind: 'player', id: p.id }]),
+      ),
+      edges: [],
+      path: [],
+      startedAt: new Date(),
+    }),
+    [challenge],
+  )
 
   return (
     <div className={`daily-finished daily-finished--${outcome}`}>
@@ -35,6 +60,22 @@ export function DailyFinished({ challenge, outcome, livesLeft }: Props) {
       <p className="daily-finished__text">
         {won ? t.daily.wonText(livesLeft) : t.daily.lostText(challenge.optimalLinks)}
       </p>
+      <div className="daily-finished__solution">
+        <SolutionToggle solution={solution} />
+      </div>
+      {solution.shown && (
+        <>
+          <div className="daily-finished__board">
+            <GameBoard
+              game={board}
+              players={[challenge.playerA, challenge.playerB]}
+              clubs={[]}
+              solution={solution.shown}
+            />
+          </div>
+          <p className="daily-finished__note">{t.daily.boardNotKept}</p>
+        </>
+      )}
       <p className="daily-finished__tomorrow">{t.daily.comeBackTomorrow}</p>
       <DailyStats sport={challenge.sport} />
       <div className="daily-finished__actions">

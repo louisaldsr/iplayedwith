@@ -638,7 +638,7 @@ non optimisé) : une seule source, rien à copier dans `public/`. Décoratif (`a
 porte le nom.
 
 La carte de partage est **statique** ; `twitter.card = summary_large_image` dans le layout. Son URL
-absolue vient de l'URL de production Vercel, faute de `metadataBase`.
+absolue est bâtie sur `iplayedwith.com` (`metadataBase`, Bloc 21).
 
 ---
 
@@ -883,6 +883,56 @@ e2e : `/api/:sport/daily/solution` est mocké **refusé (403) par défaut** dans
 
 ---
 
+## ✅ Bloc 21 terminé — Référencement Google + supervision
+
+Le site ne disait presque rien aux moteurs : un seul titre pour toutes les pages, pas d'URL
+canonique (la copie `*.vercel.app` concurrençait le domaine), ni sitemap ni robots.txt, `/admin`
+indexable. Aucune supervision.
+
+### Référencement
+
+- **Une seule adresse** : `SITE_URL = 'https://iplayedwith.com'` (`src/lib/siteUrl.ts`) →
+  `metadataBase` du layout : canoniques, `og:url` et image de partage sur le vrai domaine.
+- **Titres** : accueil « I Played With — the teammates game for rugby and football », puis
+  `%s · I Played With` par page (`/[sport]` « Rugby daily challenge », `/[sport]/free`, `/about`),
+  chacune avec sa canonique (`generateMetadata`, libellés de `en.home.sports`). En anglais : le
+  serveur ne connaît pas la langue du visiteur.
+- **JSON-LD `WebSite`** dans le layout (`name` + `alternateName: IPlayedWith, iplayedwith`) : c'est
+  lui qui fait afficher le nom du site par Google et relie les deux graphies.
+- `src/app/robots.ts` (tout ouvert sauf `/admin` et `/api`, pointe le sitemap) ; `src/app/sitemap.ts`
+  (accueil, chaque sport en défi et en partie libre, `/about`) ; `src/app/admin/layout.tsx` met
+  `noindex, nofollow` sur tout le back-office.
+- **Réaliste** : « i played with » est une expression courante — y sortir premier prend des semaines
+  et n'est pas garanti ; « iplayedwith » / « I Played With game » viendront d'abord. Les liens vers
+  le site (champ *Website* du repo GitHub, README, réseaux) aident.
+
+### Supervision
+
+- **Disponibilité** : `GET /api/health` → `200 { status: 'ok' }` si la base répond à une lecture
+  indexée (`ping`, `src/repositories/healthRepository.ts`, délai 5 s), sinon `503 { status: 'down' }`
+  (erreur seulement loguée), jamais en cache. Surveillé de l'extérieur par UptimeRobot (gratuit,
+  toutes les 5 min, alerte mail) : la page d'accueil (HTTP 200) **et** `/api/health` (mot-clé `ok`)
+  — la seconde attrape aussi une panne de base. ~288 lectures/jour.
+- **Visites** : Vercel Web Analytics (`@vercel/analytics`, `SiteAnalytics`) — pages, pays,
+  provenance. **Sans cookie**, rien dans le navigateur : pas de bandeau de consentement, même ligne que
+  le Bloc 7. **Production seulement** (ni le serveur de dev ni les e2e ne chargent le script), vues de
+  `/admin` écartées (`beforeSend`). Une ligne « Vie privée » sur `/about` le dit.
+
+### À faire hors code (une fois)
+
+1. Vercel → *Domains* : `iplayedwith.com` principal, `www` redirigé dessus.
+2. Vercel → *Analytics* : activer Web Analytics (rien n'est collecté avant).
+3. Google Search Console : propriété *Domaine* `iplayedwith.com`, enregistrement TXT au DNS,
+   *Valider* ; *Sitemaps* → `https://iplayedwith.com/sitemap.xml` ; *Inspection de l'URL* de
+   l'accueil → *Demander l'indexation*.
+4. UptimeRobot : les deux moniteurs ci-dessus.
+
+e2e (`seo.spec.ts`) : robots.txt, sitemap, balises de l'accueil et de `/rugby`, `noindex` du
+back-office, et `/api/health` en **503** — la base du serveur e2e est injoignable, c'est le vrai cas
+« base en panne ».
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -967,8 +1017,7 @@ Saisie user
 32. Appliquer `017_visitors.sql` ; puis afficher le classement du jour aux joueurs (noms, sa
     propre ligne en évidence)
 33. Comptes (lien magique Supabase) : réclamer le visiteur, pseudo libre + sa modération
-34. Carte de partage par défi (`/[sport]/opengraph-image`, « Défi du jour #N · Rugby ») ;
-    `metadataBase` si le site sort de Vercel
+34. Carte de partage par défi (`/[sport]/opengraph-image`, « Défi du jour #N · Rugby »)
 34. Appliquer `018_visitor_number.sql` (après `017`) et ses contrôles
 35. ~~Appliquer `020_visitor_username.sql`~~ ; appliquer `021_visitor_rename.sql` (le renommage
     échoue en prod tant qu'il manque), puis ses contrôles
@@ -979,3 +1028,5 @@ Saisie user
     nouvelle échelle (famous : 119 rugby, 201 football)
 38. Awards en multiplicateur d'exposition (liste curée : joueur de l'année, équipes types…) ; vues
     des autres langues ; biais des gardiens (100 % des minutes) dans le pilier club
+39. Référencement + supervision (Bloc 21) : faire les 4 étapes hors code, puis suivre Search Console
+    (requêtes « i played with », pages indexées) et ajouter des liens vers le site

@@ -51,6 +51,9 @@ const en = {
     dataTitle: 'Data',
     and: 'and',
     dataCaveat: 'An independent fan project. Records may be incomplete.',
+    privacyTitle: 'Privacy',
+    privacy:
+      'No account, no cookies. Visits are counted anonymously (pages, countries, where visitors come from), never tied to you.',
     madeByTitle: 'Made by',
     contactSoon: 'contact form coming soon.',
     back: 'Back to the menu',

@@ -61,18 +61,25 @@ test('features that need an account are listed as coming soon, not as links', as
   }
 })
 
-test("the menu opens the visitor's stats, one section per sport", async ({ page }) => {
+test("the menu opens the visitor's stats: its name first, then a tab per sport", async ({ page }) => {
   await mockApi(page, '/api/rugby/daily/stats', sampleDailyStats)
   await page.goto('/')
   await page.getByRole('button', { name: 'My stats' }).click()
 
-  const dialog = page.getByRole('dialog', { name: 'Your stats' })
-  const rugby = dialog.getByRole('region', { name: '🏉 Rugby' })
-  await expect(rugby.getByRole('definition').first()).toHaveText('4') // played
-  await expect(rugby.getByText('75')).toBeVisible() // win %
-  await expect(rugby.getByText('+0.7')).toBeVisible() // average
-  // Football is mocked empty by default.
-  await expect(dialog.getByRole('region', { name: '⚽ Football' })).toContainText('No daily challenge finished yet.')
+  // Whose stats: the visitor's name (mocked by default as "Hasty Prop 042").
+  const dialog = page.getByRole('dialog', { name: 'Your stats Hasty Prop 042' })
+  await expect(dialog).toBeVisible()
+
+  const rugby = dialog.getByRole('tabpanel', { name: 'Rugby' })
+  await expect(dialog.getByRole('tab', { name: 'Rugby' })).toHaveAttribute('aria-selected', 'true')
+  await expect(rugby.getByRole('definition')).toHaveText(['4', '75%']) // played, win rate
+  await expect(rugby.locator('.daily-stats__bar--today')).toContainText('Today')
+
+  // Football is mocked empty by default — one tab away, by click or by arrow key.
+  await dialog.getByRole('tab', { name: 'Rugby' }).press('ArrowRight')
+  await expect(dialog.getByRole('tab', { name: 'Football' })).toBeFocused()
+  await expect(rugby).toBeHidden()
+  await expect(dialog.getByRole('tabpanel', { name: 'Football' })).toContainText('No daily challenge finished yet.')
 })
 
 test('the menu opens the rules and the About page', async ({ page }) => {

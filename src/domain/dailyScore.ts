@@ -34,16 +34,16 @@ export function formatScore(score: number, perfectLabel: string): string {
 }
 
 /**
- * The score buckets of the stats' distribution: Perfect, +1 … +5, then +6 and worse together.
+ * The score buckets of the stats' distribution: Perfect, +1 … +4, then +5 and worse together.
  * Lost days have a bucket of their own, next to these.
  */
-export const SCORE_BUCKET_COUNT = 7
+export const SCORE_BUCKET_COUNT = 6
 
 export function scoreBucketOf(score: number): number {
   return Math.min(Math.max(0, score), SCORE_BUCKET_COUNT - 1)
 }
 
-/** Perfect, "+1" … "+5", "+6+". */
+/** Perfect, "+1" … "+4", "+5+". */
 export function formatScoreBucket(bucket: number, perfectLabel: string): string {
   return bucket === SCORE_BUCKET_COUNT - 1 ? `+${bucket}+` : formatScore(bucket, perfectLabel)
 }

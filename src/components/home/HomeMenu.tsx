@@ -9,8 +9,7 @@ import { useTranslations } from '../../i18n'
 import { useRules } from '../rules/RulesProvider'
 import { dailyOutcomesToday, DailyOutcome } from '../../lib/dailyProgress'
 import { VisitorBadge } from './VisitorBadge'
-import { Modal } from '../shared/Modal'
-import { DailyStats } from '../daily/DailyStats'
+import { StatsDialog } from './StatsDialog'
 
 const SPORT_ICONS: Record<SportId, string> = { rugby: '🏉', football: '⚽' }
 
@@ -100,19 +99,7 @@ export function HomeMenu() {
         </ul>
       </footer>
 
-      <Modal open={statsOpen} onClose={() => setStatsOpen(false)} labelledBy="stats-title" className="stats-dialog">
-        <h2 id="stats-title" className="stats-dialog__title">
-          {t.daily.stats.title}
-        </h2>
-        {/* Mounted only while open: the stats are fetched when asked for, fresh after a game. */}
-        {statsOpen &&
-          SPORTS.map((sport) => (
-            <DailyStats key={sport} sport={sport} heading={`${SPORT_ICONS[sport]} ${t.home.sports[sport]}`} />
-          ))}
-        <button type="button" className="btn btn--ghost" onClick={() => setStatsOpen(false)}>
-          {t.daily.close}
-        </button>
-      </Modal>
+      <StatsDialog open={statsOpen} onClose={() => setStatsOpen(false)} icons={SPORT_ICONS} />
     </nav>
   )
 }

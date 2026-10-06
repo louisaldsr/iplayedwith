@@ -723,17 +723,29 @@ changer son ordre plus tard ne coûte rien.
 
 ### Stats perso
 
-`POST /api/:sport/daily/stats` `{ visitorId }` → `DailyStats` : joués, % de victoires, série
-actuelle, meilleure série, score moyen, répartition (Parfait, +1 … +5, +6+, Perdu), barre du jour
-allumée. Calculé par `dailyStats()` depuis `daily_stats` (une ligne par jour du visiteur). Une
-**série** suit le calendrier (un défi est publié chaque jour) : un jour manqué ou commencé sans
-être fini la casse ; aujourd'hui pas encore fini ne la casse pas. POST pour garder l'id hors des
-URL et des logs (qui le connaît peut renommer le visiteur).
+`POST /api/:sport/daily/stats` `{ visitorId }` → `DailyStats` : joués, gagnés, séries, score moyen,
+répartition (Parfait, +1 … +4, +5+, Perdu) et la case du jour. Calculé par `dailyStats()` depuis
+`daily_stats` (une ligne par jour du visiteur). Une **série** suit le calendrier (un défi est
+publié chaque jour) : un jour manqué ou commencé sans être fini la casse ; aujourd'hui pas encore
+fini ne la casse pas. POST pour garder l'id hors des URL et des logs (qui le connaît peut renommer
+le visiteur).
+
+**Affiché, volontairement peu** : deux tuiles seulement — **Joués** et **Victoires** (« 75 % ») ;
+séries et moyenne sont calculées mais pas montrées (jugées peu lisibles), à ressortir plus tard.
+Puis une barre par score, **une couleur par score** (`--score-*`) : Parfait en or (★, halo),
++1 vert → +2 citron → +3 ambre → +4 orange → +5+ et Perdu en rouge ; un score jamais atteint
+reste un moignon gris ; la barre du jour est cerclée, avec une pastille « Aujourd'hui ».
 
 La pop-up de victoire du défi tient en un coup d'œil : le score en or, la chaîne, puis seulement
 le temps et les vies — « votre chaîne », « meilleur possible » et « coups » sont retirés, le score
-les résume (la partie libre, sans score, garde « coups »). Stats affichées dans la pop-up (sous le score), sur l'écran de fin (`DailyFinished`)
-et depuis le menu (« Mes stats » quitte la liste « Bientôt » : une section par sport).
+les résume (la partie libre, sans score, garde « coups »). Les stats du sport suivent, sous le
+score ; aussi sur l'écran de fin (`DailyFinished`).
+
+**« Mes stats » dans le menu** (`StatsDialog`, quitte la liste « Bientôt ») : d'abord **le pseudo**
+du visiteur (`useUsername`, relu à chaque ouverture — un renommage depuis le badge s'y voit), puis
+**un onglet par sport** (motif WAI-ARIA : flèches, Début/Fin). Tous les sports sont chargés à
+l'ouverture et gardés : changer d'onglet est instantané.
+
 Décoratives : sans visiteur stocké ou si la requête échoue, le panneau est absent. e2e :
 `/api/:sport/daily/stats` est mocké **vide par défaut** dans `fixtures.ts`.
 

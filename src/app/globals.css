@@ -38,6 +38,13 @@
   --error: #f87171;
   --error-bg: rgba(248, 113, 113, 0.1);
   --success: #4ade80;
+  /* Daily stats: one colour per score, green (+1) to red (+5 and worse, lost). Perfect is gold. */
+  --score-1: #4ade80;
+  --score-2: #a3e635;
+  --score-3: #fbbf24;
+  --score-4: #fb923c;
+  --score-5: #f87171;
+  --score-lost: #dc2626;
   --win-gold: #ffd66b;
   --win-gold-text: #ffe39a;
   --win-tint: #2a2416;
@@ -2626,7 +2633,7 @@ body {
 .daily-stats {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   width: 100%;
   max-width: 420px;
   margin: 0 auto;
@@ -2640,40 +2647,42 @@ body {
 }
 
 .daily-stats__empty {
+  padding: 24px 0;
   font-size: 0.9rem;
   color: var(--text-muted);
   text-align: center;
 }
 
-.daily-stats__numbers {
+.daily-stats__tiles {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
   margin: 0;
 }
 
-/* The label comes first in the markup (<dt>), the value shows above it; values stay on one line
-   when a label wraps. */
-.daily-stats__number {
+/* The label comes first in the markup (<dt>); the value shows above it. */
+.daily-stats__tile {
   display: flex;
   flex-direction: column-reverse;
-  justify-content: flex-end;
   align-items: center;
   gap: 2px;
-  text-align: center;
+  padding: 14px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
 }
 
-.daily-stats__number dd {
+.daily-stats__tile dd {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 800;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
-.daily-stats__number dt {
-  font-size: 0.65rem;
+.daily-stats__tile dt {
+  font-size: 0.75rem;
   font-weight: 600;
-  line-height: 1.2;
   color: var(--text-muted);
 }
 
@@ -2688,67 +2697,185 @@ body {
 .daily-stats__bars {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* One colour per score, from gold (Perfect) through green and orange to red (+5+, lost). */
 .daily-stats__bar {
+  --bar: var(--score-1);
+  --bar-text: var(--bg-base);
   display: grid;
-  grid-template-columns: 3.5rem 1fr;
+  grid-template-columns: 4.5rem 1fr;
   align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+.daily-stats__bar--b0 {
+  --bar: linear-gradient(90deg, var(--win-gold-text), var(--win-gold));
+}
+.daily-stats__bar--b1 {
+  --bar: var(--score-1);
+}
+.daily-stats__bar--b2 {
+  --bar: var(--score-2);
+}
+.daily-stats__bar--b3 {
+  --bar: var(--score-3);
+}
+.daily-stats__bar--b4 {
+  --bar: var(--score-4);
+}
+.daily-stats__bar--b5 {
+  --bar: var(--score-5);
+}
+.daily-stats__bar--lost {
+  --bar: var(--score-lost);
+  --bar-text: #fff;
 }
 
 .daily-stats__bar-label {
-  font-weight: 600;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.daily-stats__bar-fill {
-  display: block;
-  min-width: 1.6rem;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--border-active);
-  color: var(--text-primary);
   font-weight: 700;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+.daily-stats__bar--b0 .daily-stats__bar-label {
+  color: var(--win-gold-text);
+}
+.daily-stats__bar--b0 .daily-stats__bar-label::before {
+  content: '★ ';
+}
 
-.daily-stats__bar-fill--lost {
-  background: var(--error-bg);
-  color: var(--error);
+.daily-stats__bar-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.daily-stats__bar-fill {
+  display: block;
+  box-sizing: border-box;
+  min-width: 1.9rem;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--bar);
+  color: var(--bar-text);
+  font-weight: 800;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  transform-origin: left;
+  animation: stats-bar-grow 0.5s ease-out both;
+}
+.daily-stats__bar--b0:not(.daily-stats__bar--empty) .daily-stats__bar-fill {
+  box-shadow: 0 0 12px var(--win-glow);
+}
+
+/* A score never reached: a grey stub, so the colours stay on what happened. */
+.daily-stats__bar--empty .daily-stats__bar-fill {
+  background: var(--border-subtle);
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .daily-stats__bar--today .daily-stats__bar-fill {
-  background: var(--win-gold);
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
+.daily-stats__today {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--text-primary);
   color: var(--bg-base);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.daily-stats__bar--today .daily-stats__bar-fill--lost {
-  background: var(--error);
+@keyframes stats-bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: none;
+  }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .daily-stats__bar-fill {
+    animation: none;
+  }
+}
+
+/* ─── Menu: "My stats" — the visitor's name, then a tab per sport ─── */
 .stats-dialog .modal__body {
-  gap: 28px;
+  gap: 20px;
 }
 
 .stats-dialog__title {
-  font-size: 1.3rem;
-  font-weight: 800;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   text-align: center;
 }
 
-@media (max-width: 420px) {
-  .daily-stats__number dd {
-    font-size: 1.2rem;
-  }
+.stats-dialog__eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
 
+.stats-dialog__name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--accent-hover);
+  overflow-wrap: anywhere;
+}
+
+.stats-dialog__tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+}
+
+.stats-dialog__tab {
+  flex: 1;
+  min-height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.stats-dialog__tab:hover {
+  color: var(--text-primary);
+}
+.stats-dialog__tab[aria-selected='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+.stats-dialog__tab:focus-visible {
+  outline: 2px solid var(--accent-hover);
+  outline-offset: 2px;
+}
+
+.stats-dialog__panel {
+  min-height: 330px;
+}
+
+@media (max-width: 420px) {
   /* Five boxes one per row made the results a long scroll on a phone. */
   .victory-stats {
     gap: 8px;

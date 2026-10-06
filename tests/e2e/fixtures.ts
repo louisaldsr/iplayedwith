@@ -96,7 +96,7 @@ export const emptyDailyStats = {
   currentStreak: 0,
   bestStreak: 0,
   averageScore: null,
-  distribution: [0, 0, 0, 0, 0, 0, 0],
+  distribution: [0, 0, 0, 0, 0, 0],
   lost: 0,
   today: null,
 }
@@ -108,7 +108,7 @@ export const sampleDailyStats = {
   currentStreak: 2,
   bestStreak: 2,
   averageScore: 0.6666666666666666,
-  distribution: [2, 0, 1, 0, 0, 0, 0],
+  distribution: [2, 0, 1, 0, 0, 0],
   lost: 1,
   today: 0,
 }

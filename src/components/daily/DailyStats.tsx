@@ -9,13 +9,14 @@ import { useTranslations } from '../../i18n'
 
 type Props = {
   sport: SportId
-  /** A heading of its own — the menu's dialog names each sport; the results already say which. */
-  heading?: string
+  /** Shown above the stats; `false` for none — the menu's dialog names the sport in its tabs. */
+  heading?: string | false
 }
 
 /**
- * This visitor's daily stats in one sport — the Wordle ones: played, win %, streaks, average score,
- * and how the scores fall, today's bar lit.
+ * This visitor's daily stats in one sport: days played, win rate, and how the scores fall — one
+ * bar per score, coloured from gold (Perfect) through green to red (+5 and worse, lost), today's
+ * bar tagged.
  *
  * Read from the server, which keeps every result. Decorative: no stored visitor, or a failed
  * request, and the panel is simply absent.
@@ -37,53 +38,53 @@ export function DailyStats({ sport, heading }: Props) {
   if (!stats) return null
 
   const s = t.daily.stats
+  const title = heading === undefined ? s.title : heading
   const bars = [
     ...stats.distribution.map((count, bucket) => ({
-      key: String(bucket),
+      tone: `b${bucket}`,
       label: formatScoreBucket(bucket, t.daily.perfectBucket),
       count,
       today: stats.today === bucket,
     })),
-    { key: 'lost', label: s.lost, count: stats.lost, today: stats.today === 'lost' },
+    { tone: 'lost', label: s.lost, count: stats.lost, today: stats.today === 'lost' },
   ]
   const widest = Math.max(1, ...bars.map((b) => b.count))
 
   return (
-    <section className="daily-stats" aria-label={heading ?? s.title}>
-      <h3 className="daily-stats__heading">{heading ?? s.title}</h3>
+    <section className="daily-stats" aria-label={title || s.title}>
+      {title && <h3 className="daily-stats__heading">{title}</h3>}
       {stats.played === 0 ? (
         <p className="daily-stats__empty">{s.empty}</p>
       ) : (
         <>
-          <dl className="daily-stats__numbers">
-            {[
-              [s.played, String(stats.played)],
-              [s.winRate, String(Math.round((stats.won / stats.played) * 100))],
-              [s.streak, String(stats.currentStreak)],
-              [s.bestStreak, String(stats.bestStreak)],
-              [s.average, stats.averageScore === null ? '—' : s.averageValue(stats.averageScore)],
-            ].map(([label, value]) => (
-              <div key={label} className="daily-stats__number">
-                <dt>{label}</dt>
-                <dd>{value}</dd>
-              </div>
-            ))}
+          <dl className="daily-stats__tiles">
+            <div className="daily-stats__tile">
+              <dt>{s.played}</dt>
+              <dd>{stats.played}</dd>
+            </div>
+            <div className="daily-stats__tile">
+              <dt>{s.winRate}</dt>
+              <dd>{s.winRateValue(Math.round((stats.won / stats.played) * 100))}</dd>
+            </div>
           </dl>
           <p className="daily-stats__subheading">{s.distribution}</p>
           <ol className="daily-stats__bars">
-            {bars.map((b) => (
-              <li key={b.key} className={`daily-stats__bar${b.today ? ' daily-stats__bar--today' : ''}`}>
-                <span className="daily-stats__bar-label">{b.label}</span>
-                <span className="daily-stats__bar-track">
-                  <span
-                    className={`daily-stats__bar-fill${b.key === 'lost' ? ' daily-stats__bar-fill--lost' : ''}`}
-                    style={{ width: `${Math.max(8, (b.count / widest) * 100)}%` }}
-                  >
-                    {b.count}
+            {bars.map((b) => {
+              const classes = ['daily-stats__bar', `daily-stats__bar--${b.tone}`]
+              if (b.count === 0) classes.push('daily-stats__bar--empty')
+              if (b.today) classes.push('daily-stats__bar--today')
+              return (
+                <li key={b.tone} className={classes.join(' ')}>
+                  <span className="daily-stats__bar-label">{b.label}</span>
+                  <span className="daily-stats__bar-track">
+                    <span className="daily-stats__bar-fill" style={{ width: `${(b.count / widest) * 100}%` }}>
+                      {b.count}
+                    </span>
+                    {b.today && <span className="daily-stats__today">{s.today}</span>}
                   </span>
-                </span>
-              </li>
-            ))}
+                </li>
+              )
+            })}
           </ol>
         </>
       )}

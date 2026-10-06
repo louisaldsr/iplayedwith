@@ -421,7 +421,7 @@ sur une nouvelle partie. Dès le premier « Commencer », le plateau (`board` : 
 clubs, coups, heure de départ) est gardé : quitter la page et revenir rouvre **la même partie**, sans
 repasser par l'intro — `createRemoteEngine(…, resume)` reconstruit le moteur. Sûr sans confiance :
 le serveur revalide chaque arête au coup suivant. Un plateau malformé est jeté entier (les vies
-restent) ; gagné, il est gardé avec sa chaîne (voir Bloc 10) ; perdu, il est jeté. **Contournable** en effaçant les données du site — la vraie garantie
+restent) ; gagné, il est gardé avec sa chaîne (voir Bloc 10) ; perdu, il est gardé aussi (Bloc 20). **Contournable** en effaçant les données du site — la vraie garantie
 viendra des résultats stockés côté serveur (étape 17).
 
 ~~Pas de solution affichée en cas de défaite~~ : depuis le Bloc 20, le serveur la révèle à un
@@ -501,7 +501,7 @@ trouvés.
 |---|---|
 | `POST /api/:sport/daily/start` | `{ day, visitorId }` → 204 ; horodate le départ (idempotent), 409 si `day` n'est plus aujourd'hui |
 | `POST /api/:sport/daily/stats` | `{ visitorId }` → stats perso du sport (Bloc 19) |
-| `POST /api/:sport/daily/solution` | `{ day, visitorId }` → une chaîne la plus courte, liens détaillés (Bloc 20) ; 403 tant que la journée n'est pas finie côté serveur |
+| `POST /api/:sport/daily/solution` | `{ day, visitorId }` → une chaîne la plus courte, au format du plateau (Bloc 20) ; 403 tant que la journée n'est pas finie côté serveur |
 
 ---
 
@@ -755,30 +755,47 @@ le build actuel continue d'enregistrer ; le nouveau build lit `daily_stats`.
 
 ---
 
-## ✅ Bloc 20 terminé — La solution du jour, une fois la journée finie
+## ✅ Bloc 20 terminé — La solution proposée, posée sur le plateau
 
-Gagné ou perdu, la fin du défi montre **une** des chaînes les plus courtes — celle que le tirage a
-stockée (`daily_challenges.solution`), présentée comme telle : « Une des chaînes les plus courtes —
-d'autres de N liens peuvent exister, voici celle que nous avons trouvée ». Surtout pour ceux qui
-ont perdu : ils voient enfin le chemin.
+Une fois la journée finie, gagnée ou perdue, un bouton **« Voir la solution proposée »** pose sur
+le plateau du joueur **une** des chaînes les plus courtes — celle que le tirage a stockée
+(`daily_challenges.solution`). Pas de panneau à part : la solution vit dans l'arbre.
 
-- **Détaillée lien par lien** : chaque paire avec le club et la saison qu'elle a partagés
-  (Messi — FC Barcelona · 2013-2014 — Neymar…), retrouvés depuis les memberships
-  (`linksOfChain`, `src/domain/dailySolution.ts`) : la saison **la plus récente** quand une paire en
-  a partagé plusieurs, l'id du club départage — la réponse est stable. Une paire qui ne partage plus
-  rien (données changées depuis le tirage) fait échouer la requête : 500 logué, panneau absent.
-- **Le serveur décide, pas le navigateur** : `POST /api/:sport/daily/solution` ne répond qu'à un
-  visiteur dont `daily_results` porte une issue (`won` / `lost`) pour ce jour — sinon **403**. Le
-  coup final est enregistré avant la réponse du coup : la solution est disponible dès l'écran de fin.
+- **Sur le plateau** : les joueurs de la solution prennent un anneau pointillé **bleu ciel**
+  (`--solution`, une couleur à elle : l'or est la chaîne gagnée, le teal le palier *known*) ; ceux
+  que le joueur n'a jamais ajoutés apparaissent en cartes **« proposées »** (fond bleuté, bordure
+  pointillée) ; ses liens courent en pointillés bleu ciel, cliquables comme les autres (club ·
+  saison). Rien d'elle ne s'estompe, même sur un plateau gagné. Masquable, réaffichée depuis la
+  mémoire (une seule requête).
+- **Une parmi d'autres, dit tel quel** : légende sous la barre — « Solution proposée : une des
+  chaînes les plus courtes (N liens) — il peut y en avoir d'autres. »
+- **Format du plateau** (`DailySolution`, `src/domain/dailySolution.ts`) : `{ path, players, clubs,
+  edges }`, deux arêtes par lien vers le (club, saison) partagé — `linksOfChain` choisit la saison
+  **la plus récente** quand une paire en a partagé plusieurs (l'id du club départage), puis
+  `edgesOfChain`. Une paire qui ne partage plus rien (données changées depuis le tirage) : 500 logué,
+  message « Impossible de charger la solution ».
+- **Une journée perdue garde son plateau** (phase `lost`) : la dernière vie ouvre une pop-up
+  « Plus de vies » par-dessus (`DefeatDialog`, jumelle de `VictoryDialog` : stats, voir le plateau,
+  voir la solution, partie libre), puis une barre de fin rouge. Le plateau perdu est sauvé
+  (`ipw.daily.<sport>`) et rouvert au retour. `DailyFinished` ne sert plus qu'aux journées sans
+  plateau (d'avant cette version).
+
+### Jamais lisible avant la fin
+
+- **Ni dans les fichiers ni dans le bundle** : la solution n'existe qu'en base, jamais dans le code.
+- **Ni dans l'API du jour** : `generate_daily_challenge` renvoie toute la ligne, solution comprise —
+  le repository la jette ; `GET /api/:sport/daily` n'envoie que la paire et sa longueur (test
+  `dailyChallengesSecret`).
+- **Ni avant la fin, ni sans le demander** : le bouton n'existe qu'une fois la partie finie, et le
+  serveur (`POST /api/:sport/daily/solution`) ne répond qu'à un visiteur dont `daily_results` porte
+  une issue (`won` / `lost`) — sinon **403**. Le coup final est enregistré avant la réponse du coup.
+- **Ni dans le stockage** : gardée en mémoire seulement, jamais dans `localStorage` (testé).
 - ⚠️ **Faille connue, acceptée jusqu'aux comptes** : un visiteur est un navigateur. Perdre exprès
   dans une fenêtre privée (trois mauvaises réponses) montre la solution, à rejouer parfaitement
   ailleurs. Choix explicite : la révéler le lendemain seulement aurait été inviolable, mais les
   perdants auraient attendu.
-- **Où** : sur l'écran de fin (`DailyFinished`, perdu ou ancien gagné), en clair ; dans la pop-up de
-  victoire derrière « Voir une des chaînes les plus courtes », chargée **à l'ouverture** — un
-  gagnant a déjà sa chaîne. Décorative : refusée ou en échec, rien ne s'affiche. A et B en or, liens
-  en pointillés dorés (`DailySolution`).
-- e2e : `/api/:sport/daily/solution` est mocké **refusé (403) par défaut** dans `fixtures.ts`.
+
+e2e : `/api/:sport/daily/solution` est mocké **refusé (403) par défaut** dans `fixtures.ts`.
 
 ---
 

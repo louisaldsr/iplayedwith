@@ -45,10 +45,14 @@ describe('getDailySolution', () => {
   it.each(['won', 'lost'] as const)('reveals the chain, A to B, once the day is %s', async (outcome) => {
     results.findOutcome.mockResolvedValue(outcome)
     await expect(getDailySolution(db, 'rugby', day, visitorId)).resolves.toEqual({
+      path: [a.id, x.id, b.id],
       players: [a, x, b],
-      links: [
-        { club, season: '2019-2020' },
-        { club, season: '2019-2020' },
+      clubs: [club],
+      edges: [
+        { playerId: a.id, clubId: club.id, season: '2019-2020' },
+        { playerId: x.id, clubId: club.id, season: '2019-2020' },
+        { playerId: x.id, clubId: club.id, season: '2019-2020' },
+        { playerId: b.id, clubId: club.id, season: '2019-2020' },
       ],
     })
     expect(results.findOutcome).toHaveBeenCalledWith(db, 'rugby', day, visitorId)

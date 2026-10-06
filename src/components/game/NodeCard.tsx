@@ -20,6 +20,10 @@ type Props = {
   target?: boolean
   /** Styles the card by fame floor. The board leaves it unset for players A and B. */
   fameFloor?: FameFloor
+  /** On the proposed solution, laid over the board once the day is over. */
+  solution?: boolean
+  /** Only on the proposed solution — a player the visitor never added. */
+  proposed?: boolean
 }
 
 export function NodeCard({
@@ -37,6 +41,8 @@ export function NodeCard({
   pathStep,
   target,
   fameFloor,
+  solution,
+  proposed,
 }: Props) {
   const t = useTranslations()
   const floorKey = fameFloor ? fameFloorKey(fameFloor) : undefined
@@ -47,6 +53,8 @@ export function NodeCard({
     floorKey ? `node-card--${floorKey}` : '',
     isDragging ? 'node-card--dragging' : '',
     highlighted ? 'node-card--highlighted' : '',
+    solution ? 'node-card--solution' : '',
+    proposed ? 'node-card--proposed' : '',
   ]
     .filter(Boolean)
     .join(' ')

@@ -7,7 +7,7 @@ import * as membershipsRepo from '@/repositories/membershipsRepository'
 import { SportId } from '@/domain/sport'
 import { ChallengeDay } from '@/domain/dailyChallenge'
 import { VisitorId } from '@/domain/dailyResult'
-import { DailySolution, linksOfChain } from '@/domain/dailySolution'
+import { DailySolution, edgesOfChain, linksOfChain } from '@/domain/dailySolution'
 import { ForbiddenError, NotFoundError } from '@/services/errors'
 
 /**
@@ -39,15 +39,8 @@ export async function getDailySolution(
   if (!links) throw new Error(`the ${sport} solution of ${day} no longer holds`)
 
   const clubs = await clubsRepo.findManyByIds(db, [...new Set(links.map((l) => l.clubId))])
-  const byId = <T extends { id: string }>(rows: T[], id: string) => rows.find((r) => r.id === id)
+  const ordered = chain.map((id) => players.find((p) => p.id === id))
+  if (ordered.some((p) => !p)) throw new Error(`a player of the ${sport} solution of ${day} no longer exists`)
 
-  const orderedPlayers = chain.map((id) => byId(players, id))
-  const resolvedLinks = links.map((l) => ({ club: byId(clubs, l.clubId), season: l.season }))
-  if (orderedPlayers.some((p) => !p) || resolvedLinks.some((l) => !l.club)) {
-    throw new Error(`a player or club of the ${sport} solution of ${day} no longer exists`)
-  }
-  return {
-    players: orderedPlayers.map((p) => p!),
-    links: resolvedLinks.map((l) => ({ club: l.club!, season: l.season })),
-  }
+  return { path: chain, players: ordered.map((p) => p!), clubs, edges: edgesOfChain(chain, links) }
 }

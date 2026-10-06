@@ -155,11 +155,18 @@ export const notConnectedMove = {
   reason: 'Ce joueur ne partage aucun club/saison avec les joueurs déjà dans le graphe.',
 }
 
-/** The day's stored solution for `sampleDailyChallenge`: Alpha — Club Un 2016-2017 — Charlie — Club Deux 2019-2020 — Bravo. */
+/**
+ * The day's stored solution for `sampleDailyChallenge`, in the board's shape:
+ * Alpha — Club Un 2016-2017 — Charlie — Club Deux 2019-2020 — Bravo.
+ */
 export const sampleSolution = {
+  path: ['p-alpha', 'p-charlie', 'p-bravo'],
   players: [samplePlayers[0], linkingPlayer, samplePlayers[1]],
-  links: [
-    { club: sampleCareer.stints[0].club, season: '2016-2017' },
-    { club: sampleCareer.stints[1].club, season: '2019-2020' },
+  clubs: [sampleCareer.stints[0].club, sampleCareer.stints[1].club],
+  edges: [
+    { playerId: 'p-alpha', clubId: 'c-one', season: '2016-2017' },
+    { playerId: 'p-charlie', clubId: 'c-one', season: '2016-2017' },
+    { playerId: 'p-charlie', clubId: 'c-two', season: '2019-2020' },
+    { playerId: 'p-bravo', clubId: 'c-two', season: '2019-2020' },
   ],
 }

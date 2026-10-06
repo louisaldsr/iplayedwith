@@ -38,6 +38,9 @@
   --error: #f87171;
   --error-bg: rgba(248, 113, 113, 0.1);
   --success: #4ade80;
+  /* The proposed solution laid over a finished daily board — a colour of its own. */
+  --solution: #38bdf8;
+  --solution-tint: rgba(56, 189, 248, 0.12);
   /* Daily stats: one colour per score, green (+1) to red (+5 and worse, lost). Perfect is gold. */
   --score-1: #4ade80;
   --score-2: #a3e635;
@@ -824,6 +827,17 @@ body {
 
 .btn--primary:hover:not(:disabled) {
   background: var(--accent-hover);
+}
+
+.btn--solution {
+  background: var(--solution-tint);
+  border: 1px solid var(--solution);
+  color: var(--solution);
+}
+
+.btn--solution:hover:not(:disabled) {
+  background: var(--solution);
+  color: var(--bg-base);
 }
 
 .btn--ghost {
@@ -2200,6 +2214,45 @@ body {
   }
 }
 
+/* ─── Proposed solution, over a finished daily board ────────
+   One shortest chain, laid over the visitor's own cards: its players get a sky-blue dashed ring —
+   those the visitor never added appear as "proposed" cards — and its links run sky-blue dashes.
+   Nothing of it dims, even on a won board. */
+.game-board--solution .node-card--solution {
+  opacity: 1;
+  outline: 2px dashed var(--solution);
+  outline-offset: 4px;
+}
+
+.node-card--proposed {
+  background: var(--solution-tint);
+  border: 1px dashed var(--solution);
+  animation: solution-in 0.4s ease-out both;
+}
+
+.game-board--solution .graph-edge.graph-edge--solution {
+  stroke: var(--solution);
+  stroke-width: 3;
+  stroke-dasharray: 3 7;
+  stroke-linecap: round;
+  opacity: 1;
+  filter: none;
+  animation: none;
+}
+
+@keyframes solution-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node-card--proposed {
+    animation: none;
+  }
+}
+
 .node-card__avatar {
   width: 28px;
   height: 28px;
@@ -2537,8 +2590,50 @@ body {
   color: var(--win-gold-text);
 }
 
+.won-bar--lost .won-bar__title {
+  color: var(--error);
+}
+
+/* Under the bar's buttons: what the sky-blue cards and links are, or why they did not come. */
+.end-bar__legend,
+.end-bar__error {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.end-bar__legend {
+  color: var(--solution);
+}
+
+.end-bar__swatch {
+  flex-shrink: 0;
+  width: 22px;
+  border-top: 3px dashed var(--solution);
+}
+
+.end-bar__error {
+  color: var(--error);
+}
+
+.defeat-dialog__heading {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--error);
+}
+
+.defeat-dialog__text {
+  color: var(--text-muted);
+}
+
 .won-bar__actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
 }
 
@@ -2627,106 +2722,6 @@ body {
 .victory-score__hint {
   font-size: 0.8rem;
   color: var(--text-muted);
-}
-
-/* ─── Daily solution: one shortest chain, once the day is over ─── */
-.daily-solution {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  max-width: 420px;
-  margin: 0 auto;
-  padding: 18px 16px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--bg-surface);
-}
-
-.daily-solution__title {
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.daily-solution__note {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.daily-solution__chain {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 6px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.daily-solution__step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.daily-solution__player {
-  padding: 6px 14px;
-  border: 1px solid var(--player-border);
-  border-radius: var(--radius-md);
-  background: var(--player-tint);
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-
-/* A and B, in the gold of the board's targets. */
-.daily-solution__player--end {
-  border-color: var(--target-border);
-  box-shadow: 0 0 10px var(--target-glow);
-}
-
-/* What links two players, on a dotted line joining their cards through the middle. */
-.daily-solution__link {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  color: var(--win-gold-text);
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-align: center;
-}
-.daily-solution__link::before,
-.daily-solution__link::after {
-  content: '';
-  height: 10px;
-  border-left: 2px dotted var(--win-gold);
-}
-
-/* In the victory pop-up the solution waits behind a toggle: winners have their own chain. */
-.daily-solution-toggle {
-  width: 100%;
-  max-width: 420px;
-}
-
-.daily-solution-toggle > summary {
-  width: fit-content;
-  margin: 0 auto;
-  padding: 6px 12px;
-  border-radius: 999px;
-  color: var(--accent-hover);
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.daily-solution-toggle > summary:focus-visible {
-  outline: 2px solid var(--accent-hover);
-  outline-offset: 2px;
-}
-
-.daily-solution-toggle[open] > summary {
-  margin-bottom: 12px;
 }
 
 /* ─── Daily stats: results pop-up, finished screen, menu ─── */

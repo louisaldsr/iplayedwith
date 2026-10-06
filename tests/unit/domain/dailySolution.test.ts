@@ -1,4 +1,4 @@
-import { linksOfChain } from '@/domain/dailySolution'
+import { edgesOfChain, linksOfChain } from '@/domain/dailySolution'
 import { ClubId, PlayerId } from '@/domain/ids'
 import { Season } from '@/domain/season'
 
@@ -39,5 +39,15 @@ describe('linksOfChain', () => {
     expect(
       linksOfChain(chain.slice(0, 2), [m('messi', 'barca', '2013-2014'), m('neymar', 'psg', '2017-2018')]),
     ).toBeNull()
+  })
+})
+
+describe('edgesOfChain', () => {
+  it('ties each player of a pair to the club and season that links them — the board draws the pair', () => {
+    const links = [{ clubId: ClubId('barca'), season: '2013-2014' as Season }]
+    expect(edgesOfChain(chain.slice(0, 2), links)).toEqual([
+      { playerId: 'messi', clubId: 'barca', season: '2013-2014' },
+      { playerId: 'neymar', clubId: 'barca', season: '2013-2014' },
+    ])
   })
 })

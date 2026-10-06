@@ -105,10 +105,11 @@ const fr: Translations = {
     scoreHint: (extra: number) =>
       extra === 0 ? 'Chaîne la plus courte trouvée' : `${extra} ${extra === 1 ? 'joueur' : 'joueurs'} en trop`,
     solution: {
-      title: 'Une des chaînes les plus courtes',
-      note: (links: number) =>
-        `D’autres chaînes de ${links} liens peuvent exister — voici celle que nous avons trouvée.`,
-      show: 'Voir une des chaînes les plus courtes',
+      show: 'Voir la solution proposée',
+      hide: 'Masquer la solution proposée',
+      legend: (links: number) =>
+        `Solution proposée : une des chaînes les plus courtes (${links} liens) — il peut y en avoir d’autres.`,
+      unavailable: 'Impossible de charger la solution — réessayez.',
     },
     stats: {
       title: 'Vos stats',

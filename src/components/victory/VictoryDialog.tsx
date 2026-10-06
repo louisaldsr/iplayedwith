@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { Player } from '../../domain/player'
 import { Game } from '../../game/game'
@@ -8,7 +7,6 @@ import { useTranslations } from '../../i18n'
 import { Modal } from '../shared/Modal'
 import { Heart } from '../game/LivesBar'
 import { DailyStats } from '../daily/DailyStats'
-import { DailySolution } from '../daily/DailySolution'
 import { SportId } from '../../domain/sport'
 import { dailyScore, formatScore } from '../../domain/dailyScore'
 
@@ -25,8 +23,10 @@ type Props = {
   optimalLinks?: number
   /** Daily only: the lives the win was achieved with. */
   lives?: { left: number; total: number }
-  /** Daily only: whose stats and solution are shown under the results. */
+  /** Daily only: whose stats are shown under the results. */
   daily?: { sport: SportId; day: string }
+  /** Daily only: closes the results and lays the proposed solution over the board. */
+  onShowSolution?: () => void
   /** Free play restarts in place; the daily has one pair a day, so it offers free play instead. */
   onPlayAgain?: () => void
   freePlayHref?: string
@@ -54,11 +54,11 @@ export function VictoryDialog({
   optimalLinks,
   lives,
   daily,
+  onShowSolution,
   onPlayAgain,
   freePlayHref,
 }: Props) {
   const t = useTranslations()
-  const [solutionOpen, setSolutionOpen] = useState(false)
   const playerMap = new Map(players.map((p) => [p.id as string, p.name]))
   const pathNames = game.path.map((id) => playerMap.get(id) ?? id)
   const score = optimalLinks === undefined ? null : dailyScore(moveCount, optimalLinks)
@@ -114,20 +114,17 @@ export function VictoryDialog({
         )}
       </div>
 
-      {daily && (
-        <details className="daily-solution-toggle" onToggle={(e) => setSolutionOpen(e.currentTarget.open)}>
-          <summary>{t.daily.solution.show}</summary>
-          {/* Fetched when opened: most winners never ask. */}
-          {solutionOpen && <DailySolution sport={daily.sport} day={daily.day} />}
-        </details>
-      )}
-
       {daily && <DailyStats sport={daily.sport} />}
 
       <div className="victory-dialog__actions">
         <button type="button" className="btn btn--ghost btn--lg" onClick={onClose}>
           {t.victory.viewBoard}
         </button>
+        {onShowSolution && (
+          <button type="button" className="btn btn--ghost btn--lg" onClick={onShowSolution}>
+            {t.daily.solution.show}
+          </button>
+        )}
         {onPlayAgain && (
           <button type="button" className="btn btn--primary btn--lg" onClick={onPlayAgain}>
             {t.victory.playAgain}

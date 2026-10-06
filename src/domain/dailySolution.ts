@@ -3,16 +3,22 @@ import { ClubId, PlayerId } from './ids'
 import { Membership } from './membership'
 import { Player } from './player'
 import { Season } from './season'
+import { GameEdge } from '../graph/edge'
 
 /**
  * The day's stored solution, as revealed once the visitor's day is over: ONE shortest chain
- * between A and B — others of the same length may exist — with what links each pair.
+ * between A and B — others of the same length may exist — in the board's own shape, so the board
+ * can lay it over the visitor's own cards.
  */
 export type DailySolution = {
-  /** A to B. */
+  /** The chain, A to B. */
+  path: PlayerId[]
+  /** The chain's players, A to B. */
   players: Player[]
-  /** `links[i]` joins `players[i]` and `players[i + 1]`. */
-  links: { club: Club; season: Season }[]
+  /** The clubs of its links. */
+  clubs: Club[]
+  /** Two per link: each of the pair to the (club, season) they shared. */
+  edges: GameEdge[]
 }
 
 export type ChainLink = { clubId: ClubId; season: Season }
@@ -38,4 +44,12 @@ export function linksOfChain(
     links.push({ clubId: shared[0].clubId, season: shared[0].season })
   }
   return links
+}
+
+/** The board's edges of a chain: each player of a pair to the (club, season) linking them. */
+export function edgesOfChain(chain: PlayerId[], links: ChainLink[]): GameEdge[] {
+  return links.flatMap((link, i) => [
+    { playerId: chain[i], clubId: link.clubId, season: link.season },
+    { playerId: chain[i + 1], clubId: link.clubId, season: link.season },
+  ])
 }

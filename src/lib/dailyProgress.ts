@@ -10,7 +10,7 @@ import { GameEdge } from '@/graph/edge'
  * This browser's progress on each sport's daily challenge — browser-side only, like `visitor.ts`.
  *
  * One key per sport, `ipw.daily.<sport>`, holding the latest day played there: lives left and,
- * once over, whether it was won or lost; the board itself while it is played, and once won. Only the latest day matters — a record for another day
+ * once over, whether it was won or lost; the board itself while it is played, and once over. Only the latest day matters — a record for another day
  * reads as a fresh start, so yesterday's goes stale by itself at midnight (Paris).
  *
  * It is what makes lives stick: without it a reload would refill them, and a lost day could be
@@ -37,8 +37,9 @@ export type DailyBoard = {
   moveCount: number
   /** ISO timestamp of the first launch today — the victory time counts from there. */
   startedAt: string
-  /** Won boards only: the winning chain, A to B, and when it was completed. */
+  /** Won boards only: the winning chain, A to B. */
   path?: PlayerId[]
+  /** Finished boards, won or lost: when the final move landed. */
   finishedAt?: string
 }
 
@@ -46,7 +47,7 @@ export type DailyRecord = {
   livesLeft: number
   /** Set once the day is over; absent while it can still be played. */
   outcome?: DailyOutcome
-  /** Set from the first "Start"; kept once won, dropped once lost. */
+  /** Set from the first "Start"; kept once the day is over, won or lost. */
   board?: DailyBoard
 }
 
@@ -64,7 +65,7 @@ function readStored(sport: SportId): StoredRecord | null {
     if (typeof parsed.day !== 'string' || typeof parsed.livesLeft !== 'number') return null
     const livesLeft = Math.max(0, Math.min(DAILY_LIVES, Math.floor(parsed.livesLeft)))
     const outcome = parsed.outcome === 'won' || parsed.outcome === 'lost' ? parsed.outcome : undefined
-    const board = outcome !== 'lost' && isBoard(parsed.board) ? parsed.board : undefined
+    const board = isBoard(parsed.board) ? parsed.board : undefined
     return { day: parsed.day, livesLeft, outcome, board }
   } catch {
     return null

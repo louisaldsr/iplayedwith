@@ -15,15 +15,19 @@ import { GameScreen } from './game/GameScreen'
 import { VictoryDialog } from './victory/VictoryDialog'
 import { DailyIntro } from './daily/DailyIntro'
 import { DailyFinished } from './daily/DailyFinished'
+import { DefeatDialog } from './daily/DefeatDialog'
+import { DailySolution } from '../domain/dailySolution'
 import { DailyBoard, DailyOutcome, readDailyRecord, saveDailyRecord } from '../lib/dailyProgress'
 import { readVisitor } from '../lib/visitor'
-import { recordDailyHint, startDailyChallenge } from '../lib/gameApi'
+import { getDailySolution, recordDailyHint, startDailyChallenge } from '../lib/gameApi'
 
 /**
  * `victory`: the won board stays on screen, results in a pop-up over it.
- * `finished`: a daily over without a board to show — lost, or won before boards were kept.
+ * `lost`: a daily's last life spent — the board stays too, results over it, the proposed solution
+ * one click away.
+ * `finished`: a daily over without a board to show — from before boards were kept.
  */
-type Phase = 'setup' | 'playing' | 'victory' | 'finished'
+type Phase = 'setup' | 'playing' | 'victory' | 'lost' | 'finished'
 
 type UIState = {
   phase: Phase
@@ -45,9 +49,9 @@ type UIState = {
   rejectedCount: number
   /** How a finished daily ended. */
   outcome: DailyOutcome | null
-  /** When the winning move landed — freezes the clock and the time shown in the results. */
+  /** When the final move landed — freezes the clock and the time shown in the results. */
   finishedAt: Date | null
-  /** The results pop-up over a won board; closed, the board stays to be looked at. */
+  /** The results pop-up over a finished board; closed, the board stays to be looked at. */
   resultsOpen: boolean
 }
 
@@ -77,8 +81,8 @@ function readDailyStart(mode: GameMode): DailyStart | null {
   const { sport, day, playerA, playerB } = mode.challenge
   const record = readDailyRecord(sport, day)
   const outcome = record.outcome ?? (record.livesLeft === 0 ? 'lost' : null)
-  // A won board comes back to be looked at again; a lost day only has its result screen.
-  const board = outcome === 'lost' || (outcome === 'won' && !record.board?.path?.length) ? undefined : record.board
+  // A finished board comes back to be looked at again — a won one only with its chain.
+  const board = outcome === 'won' && !record.board?.path?.length ? undefined : record.board
   const engine = board
     ? createRemoteEngine(sport, playerA, playerB, 'easy', {
         resume: { ...board, startedAt: new Date(board.startedAt) },
@@ -96,9 +100,8 @@ function readDailyStart(mode: GameMode): DailyStart | null {
 
 /**
  * Free play starts on its setup screen. A daily starts where this browser left it today: on the
- * board as it was, with the lives already lost; on the winning board, results closed; or on the
- * finished screen of a lost day — leaving and coming back must neither refill lives, replay a lost
- * day, nor lose the board.
+ * board as it was, with the lives already lost; or on the finished board, won or lost, results
+ * closed — leaving and coming back must neither refill lives, replay a lost day, nor lose the board.
  */
 function initState(start: DailyStart | null): UIState {
   const base = freshState()
@@ -111,7 +114,7 @@ function initState(start: DailyStart | null): UIState {
     lives,
     outcome,
     finishedAt,
-    phase: outcome === 'won' ? 'victory' : 'playing',
+    phase: outcome === 'won' ? 'victory' : outcome === 'lost' ? 'lost' : 'playing',
     game: { ...engine.game },
     players: [...engine.players],
     clubs: [...engine.clubs],
@@ -119,11 +122,11 @@ function initState(start: DailyStart | null): UIState {
   }
 }
 
-/** What the daily keeps of its board: the game in progress, or the winning board. */
+/** What the daily keeps of its board: the game in progress, or the finished board, won or lost. */
 type BoardState = Pick<UIState, 'phase' | 'game' | 'players' | 'clubs' | 'moveCount' | 'finishedAt'>
 
 function boardOf({ phase, game, players, clubs, moveCount, finishedAt }: BoardState): DailyBoard | undefined {
-  if ((phase !== 'playing' && phase !== 'victory') || !game) return undefined
+  if ((phase !== 'playing' && phase !== 'victory' && phase !== 'lost') || !game) return undefined
   return {
     nodes: [...game.nodes.values()],
     edges: game.edges,
@@ -131,7 +134,8 @@ function boardOf({ phase, game, players, clubs, moveCount, finishedAt }: BoardSt
     clubs,
     moveCount,
     startedAt: game.startedAt.toISOString(),
-    ...(phase === 'victory' && { path: game.path, finishedAt: (finishedAt ?? new Date()).toISOString() }),
+    ...(phase !== 'playing' && { finishedAt: (finishedAt ?? new Date()).toISOString() }),
+    ...(phase === 'victory' && { path: game.path }),
   }
 }
 
@@ -199,7 +203,13 @@ function reducer(state: UIState, action: Action): UIState {
           lives,
           lifeLostCount: state.lifeLostCount + 1,
           rejectedCount,
-          ...(lives === 0 && { phase: 'finished' as const, outcome: 'lost' as const }),
+          // The board stays, results over it — without one (never launched here), the finished screen.
+          ...(lives === 0 && {
+            phase: state.game ? ('lost' as const) : ('finished' as const),
+            outcome: 'lost' as const,
+            finishedAt: action.at,
+            resultsOpen: true,
+          }),
         }
       }
       const game = { ...action.result.game }
@@ -327,23 +337,73 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
 
   const closeResults = useCallback(() => dispatch({ type: 'SHOW_RESULTS', open: false }), [])
 
-  // A won game keeps its board on screen: the results open over it, and this bar replaces the
-  // move input to reopen them or move on.
-  const victory =
-    state.phase === 'victory' && state.game
+  // The proposed solution: asked of the server only once the day is over here, and only when the
+  // visitor wants it — the server itself refuses it to a visitor it has not seen finish the day.
+  // Kept in memory, never in storage.
+  const [solution, setSolution] = useState<DailySolution | null>(null)
+  const [solutionShown, setSolutionShown] = useState(false)
+  const [solutionStatus, setSolutionStatus] = useState<'idle' | 'loading' | 'error'>('idle')
+  const dailyOver = daily !== null && (state.phase === 'victory' || state.phase === 'lost')
+
+  const showSolution = useCallback(async () => {
+    dispatch({ type: 'SHOW_RESULTS', open: false })
+    if (!daily || !dailyOver) return
+    if (solution) return setSolutionShown(true)
+    const visitorId = readVisitor().playerId
+    if (!visitorId) return setSolutionStatus('error')
+    setSolutionStatus('loading')
+    try {
+      setSolution(await getDailySolution(daily.sport, daily.day, visitorId))
+      setSolutionShown(true)
+      setSolutionStatus('idle')
+    } catch {
+      setSolutionStatus('error')
+    }
+  }, [daily, dailyOver, solution])
+
+  const ended =
+    (state.phase === 'victory' || state.phase === 'lost') && state.game
       ? { elapsedMs: (state.finishedAt ?? new Date()).getTime() - state.game.startedAt.getTime() }
       : null
+  const victory = state.phase === 'victory' ? ended : null
   const freePlayHref = daily ? `/${sport}/free` : undefined
-  const wonBar = victory && state.game && (
-    <div className="won-bar">
+
+  const solutionToggle = dailyOver && (
+    <button
+      type="button"
+      className={`btn ${solutionShown ? 'btn--ghost' : 'btn--solution'}`}
+      onClick={solutionShown ? () => setSolutionShown(false) : showSolution}
+      disabled={solutionStatus === 'loading'}
+      aria-pressed={solutionShown}
+    >
+      {solutionShown ? t.daily.solution.hide : t.daily.solution.show}
+    </button>
+  )
+  const solutionNote =
+    solutionShown && solution ? (
+      <p className="end-bar__legend">
+        <span className="end-bar__swatch" aria-hidden="true" />
+        {t.daily.solution.legend(solution.path.length - 1)}
+      </p>
+    ) : solutionStatus === 'error' ? (
+      <p className="end-bar__error" role="alert">
+        {t.daily.solution.unavailable}
+      </p>
+    ) : null
+
+  // A finished game keeps its board on screen: the results open over it, and this bar replaces the
+  // move input to reopen them, lay the proposed solution over the board (daily), or move on.
+  const endBar = ended && state.game && (
+    <div className={`won-bar${state.phase === 'lost' ? ' won-bar--lost' : ''}`}>
       <span className="won-bar__title">
-        <span aria-hidden="true">🏆 </span>
-        {t.victory.chainComplete(state.game.path.length - 1)}
+        <span aria-hidden="true">{state.phase === 'lost' ? '💔 ' : '🏆 '}</span>
+        {state.phase === 'lost' ? t.daily.lostTitle : t.victory.chainComplete(state.game.path.length - 1)}
       </span>
       <div className="won-bar__actions">
         <button type="button" className="btn btn--ghost" onClick={() => dispatch({ type: 'SHOW_RESULTS', open: true })}>
           {t.victory.results}
         </button>
+        {solutionToggle}
         {daily ? (
           <Link href={freePlayHref!} className="btn btn--primary">
             {t.daily.freePlay}
@@ -354,6 +414,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           </button>
         )}
       </div>
+      {solutionNote}
     </div>
   )
 
@@ -374,7 +435,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
         />
       )}
 
-      {(state.phase === 'playing' || state.phase === 'victory') && state.game && (
+      {(state.phase === 'playing' || state.phase === 'victory' || state.phase === 'lost') && state.game && (
         <GameScreen
           game={state.game}
           sport={sport}
@@ -388,7 +449,8 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
             state.lives === null ? undefined : { left: state.lives, total: DAILY_LIVES, lostCount: state.lifeLostCount }
           }
           inputResetKey={state.rejectedCount}
-          victory={victory ? { elapsedMs: victory.elapsedMs, bar: wonBar } : undefined}
+          over={ended ? { elapsedMs: ended.elapsedMs, bar: endBar } : undefined}
+          solution={solutionShown && solution ? solution : undefined}
           onCareerOpened={handleCareerOpened}
         />
       )}
@@ -411,9 +473,14 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           optimalLinks={daily?.optimalLinks}
           lives={state.lives === null ? undefined : { left: state.lives, total: DAILY_LIVES }}
           daily={daily ? { sport: daily.sport, day: daily.day } : undefined}
+          onShowSolution={daily ? showSolution : undefined}
           onPlayAgain={daily ? undefined : handlePlayAgain}
           freePlayHref={freePlayHref}
         />
+      )}
+
+      {state.phase === 'lost' && daily && (
+        <DefeatDialog open={state.resultsOpen} onClose={closeResults} challenge={daily} onShowSolution={showSolution} />
       )}
     </div>
   )

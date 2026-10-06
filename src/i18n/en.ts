@@ -106,9 +106,10 @@ const en = {
     scoreHint: (extra: number) =>
       extra === 0 ? 'Shortest chain found' : `${extra} extra ${extra === 1 ? 'player' : 'players'}`,
     solution: {
-      title: 'One of the shortest chains',
-      note: (links: number) => `Other chains of ${links} links may exist — this is the one we found.`,
-      show: 'See one of the shortest chains',
+      show: 'Show the proposed solution',
+      hide: 'Hide the proposed solution',
+      legend: (links: number) => `Proposed solution: one of the shortest chains (${links} links) — others may exist.`,
+      unavailable: 'The solution could not be loaded — try again.',
     },
     stats: {
       title: 'Your stats',

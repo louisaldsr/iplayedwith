@@ -412,7 +412,8 @@ c'est du pistage au sens du RGPD. Rien n'est envoyé au serveur.
 |---|---|
 | `ipw.playerId` | UUID anonyme, créé à la première visite. Envoyé avec « Commencer » et chaque coup du défi du jour : c'est sous cet id que le serveur tient le résultat (Bloc 11) |
 | `ipw.rulesSeen` | version des règles lue et fermée |
-| `ipw.daily.<sport>` | `{ day, livesLeft, outcome?, board? }` du dernier défi joué dans ce sport (`src/lib/dailyProgress.ts`) — vies restantes, plateau en cours, et `won`/`lost` une fois fini ; le menu colore la carte tant que c'est aujourd'hui (Paris) ; périme seul à minuit |
+| `ipw.daily.<sport>` | `{ day, livesLeft, outcome?, board? }` du dernier défi joué dans ce sport (`src/lib/dailyProgress.ts`) — vies restantes, plateau en cours, et `won`/`lost` une fois fini ; le menu colore la carte tant que c'est aujourd'hui (Paris) |
+| `ipw.daily.<sport>.<day>` | même forme, pour tout **autre** jour : un défi passé joué depuis les archives, ou le dernier jour poussé par un plus récent (ses vies et son plateau restent — Bloc 23) |
 
 `RULES_VERSION` : l'incrémenter quand les règles changent assez pour que tout le monde les relise.
 Stockage indisponible (Safari privé, données bloquées) → lu comme « visiteur connu, règles vues » :
@@ -566,9 +567,9 @@ trouvés.
 
 | Route | Rôle |
 |---|---|
-| `POST /api/:sport/daily/start` | `{ day, visitorId }` → 204 ; horodate le départ (idempotent), 409 si `day` n'est plus aujourd'hui |
+| `POST /api/:sport/daily/start` | `{ day, visitorId }` → 204 ; horodate le départ (idempotent), 409 si `day` est dans le futur (un jour passé = joué en retard, Bloc 23) |
 | `POST /api/:sport/daily/stats` | `{ visitorId }` → stats perso du sport (Bloc 19) |
-| `POST /api/:sport/daily/ranking` | `{ visitorId? }` → podium du jour + rang du visiteur (Bloc 22) |
+| `POST /api/:sport/daily/ranking` | `{ visitorId?, day? }` → podium du jour (ou d'un jour passé, Bloc 23) + rang du visiteur (Bloc 22) |
 | `POST /api/:sport/daily/solution` | `{ day, visitorId }` → une chaîne la plus courte, au format du plateau (Bloc 20) ; 403 tant que la journée n'est pas finie côté serveur |
 
 ---
@@ -587,7 +588,7 @@ partie sans indice (badge, bonus) plutôt que de pénaliser l'aide.
 - `016_daily_hints.sql` : `daily_results.hint_player_ids` (joueurs **distincts** dont la carrière a
   été ouverte) ; `record_daily_hint` ; `daily_ranking` renvoie `hints` — affiché par
   `daily:ranking`, **pas** utilisé dans l'ordre.
-- `POST /api/:sport/daily/hint` `{ day, visitorId, playerId }` → 204 ; 409 si `day` périmé.
+- `POST /api/:sport/daily/hint` `{ day, visitorId, playerId }` → 204 ; 409 si `day` est dans le futur.
 - **Pas un indice** : A et B (l'intro les montre, tout le monde en a besoin), une carrière ouverte
   après la fin du jour (ligne figée), la partie libre.
 - Sur parole : `/api/players/:id/career` est public, une lecture directe n'est pas comptée — pas
@@ -969,6 +970,67 @@ e2e : `/api/:sport/daily/ranking` est mocké **vide par défaut** dans `fixtures
 
 ---
 
+## ✅ Bloc 23 terminé — Défis passés (archives), comptés en retard
+
+Chaque sport a sa page **`/[sport]/archive`** : tous les défis depuis le lancement, du plus récent au
+plus ancien — numéro, date, paire, et le résultat du visiteur **tel que le serveur l'a enregistré**
+(Parfait / +N aux couleurs des stats, Perdu, En cours, À jouer ; « en retard » le cas échéant).
+Aujourd'hui renvoie vers `/[sport]` ; un jour passé se joue sur **`/[sport]/archive/[day]`**, comme le
+défi du jour (3 vies, mode facile, solution une fois fini). Liens : menu (« Défis passés : Rugby ·
+Football »), pop-ups et barres de fin, `DailyFinished`.
+
+### Ce qui compte, en retard
+
+**En retard** = le visiteur a commencé le jour **après** sa date : la date de Paris de `started_at` est
+postérieure à `day`. **Dérivé, jamais stocké** (`challenge_day_of()`, `026_daily_archive.sql`) — un jour
+commencé à l'heure et fini le lendemain n'est pas en retard.
+
+- **Stats** : un jour en retard compte dans joués, victoires et la répartition des scores — **jamais
+  dans les séries** (`dailyStats`) : un jour manqué ne se rattrape pas après coup.
+- **Classement du jour** : gagnants à l'heure (score, puis temps), **puis** gagnants en retard (score,
+  puis temps) — après tous les gagnants à l'heure, quel que soit leur score : ils jouent un jour
+  terminé, dont la chaîne a pu circuler. Puis les perdants, rang partagé. `daily_ranking` renvoie
+  `late` ; `daily:ranking` l'affiche, le podium (Bloc 22) le marque « en retard » (sur le podium
+  seulement s'il y a moins de trois gagnants à l'heure, ou à côté de « Votre rang »).
+- **Le podium de ce jour-là** : les pop-ups de fin et `DailyFinished` passent **leur** jour à
+  `DailyRanking` (`POST /ranking` accepte `day`, jamais futur) — un jour passé montre son classement,
+  pas celui d'aujourd'hui. Libellés « Classement de ce jour » sans « aujourd'hui » dès que le jour
+  répondu n'est pas aujourd'hui (aussi pour un plateau resté ouvert après minuit).
+- **Jamais un jour futur** : la paire de demain est déjà tirée. `isPlayableDay(day, today)` (`day ≤
+  today`) garde start, indice et coup ; l'archive s'arrête à aujourd'hui (`listUpTo`), jamais `*`
+  (la ligne porte la solution — test `dailyChallengesSecret`).
+
+### Côté serveur
+
+- Les fonctions SQL d'enregistrement prenaient **déjà** le jour et vérifiaient la paire contre lui :
+  « aujourd'hui seulement » ne vivait que dans l'API. `POST /move` accepte `daily: { visitorId, day }`
+  (sans `day` : aujourd'hui, pour un client plus ancien) ; start et indice acceptent un jour passé.
+- Effet de bord voulu : un plateau resté ouvert après minuit compte désormais pour **son** jour (il
+  n'était pas enregistré), à l'heure puisqu'il a été commencé à l'heure.
+- `POST /api/:sport/daily/archive` `{ visitorId? }` → `DailyArchive` (`src/domain/dailyArchive.ts`) :
+  `{ today, days: [{ …paire, result: { outcome, score, livesLost, late } | null }] }`. Sans pagination
+  (un jour par jour) ; joueurs lus par lots de 150 (ids dans l'URL).
+- La page d'un jour passé lit sa paire **dans l'archive**, avec le résultat serveur : un jour fini
+  ailleurs (autre navigateur) s'ouvre sur son écran de fin, et les vies serveur priment sur un
+  enregistrement local neuf — pas de rejeu d'un jour perdu.
+
+### Côté navigateur
+
+`ipw.daily.<sport>` reste le **dernier** jour joué (ce que lit le menu) ; tout autre jour vit sous
+`ipw.daily.<sport>.<day>`. Jouer un jour passé ne touche jamais celui d'aujourd'hui, et le jour d'hier
+n'est plus écrasé par le suivant. Grossit d'un plateau par jour joué (quelques Ko).
+
+⚠️ `Europe/Paris` est désormais écrit **trois fois** : `CHALLENGE_TIME_ZONE`, le job pg_cron (013) et
+`challenge_day_of` (026). Les changer ensemble.
+
+⚠️ Appliquer `026` **avant** de déployer (contrôles en bas du fichier). Sans elle le build marche
+quand même : `late` absent est lu « à l'heure » — mais un jour joué en retard serait classé et compté
+dans les séries comme à l'heure.
+
+e2e : `/api/:sport/daily/archive` n'est **pas** mocké par défaut — `archive.spec.ts` le mocke.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -1066,3 +1128,5 @@ Saisie user
     des autres langues ; biais des gardiens (100 % des minutes) dans le pilier club
 39. Référencement + supervision (Bloc 21) : faire les 4 étapes hors code, puis suivre Search Console
     (requêtes « i played with », pages indexées) et ajouter des liens vers le site
+40. Appliquer `026_daily_archive.sql` **avant** de déployer les archives, puis ses contrôles ; lire
+    `npm run daily:ranking -- --day=…` sur un jour joué en retard (colonne `late`)

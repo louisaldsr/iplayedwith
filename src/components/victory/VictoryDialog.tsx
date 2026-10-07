@@ -28,6 +28,8 @@ type Props = {
   lives?: { left: number; total: number }
   /** Daily only: whose stats are shown under the results. */
   daily?: { sport: SportId; day: string }
+  /** Daily only: played late, from the archive — the win is told, greyed: it is not the real thing. */
+  late?: boolean
   /** Daily only: closes the results and lays the proposed solution over the board. */
   onShowSolution?: () => void
   /** Daily only: the message the result is shared with. */
@@ -54,6 +56,7 @@ export function VictoryDialog({
   optimalLinks,
   lives,
   daily,
+  late = false,
   onShowSolution,
   shareText,
   onPlayAgain,
@@ -66,12 +69,17 @@ export function VictoryDialog({
   const score = optimalLinks === undefined ? null : dailyScore(moveCount, optimalLinks)
 
   return (
-    <Modal open={open} onClose={onClose} labelledBy="victory-title" className="victory-dialog">
+    <Modal
+      open={open}
+      onClose={onClose}
+      labelledBy="victory-title"
+      className={`victory-dialog${late ? ' victory-dialog--late' : ''}`}
+    >
       <span className="victory-dialog__trophy" aria-hidden="true">
         🏆
       </span>
       <h2 id="victory-title" className="victory-dialog__heading">
-        {t.victory.heading}
+        {late ? t.archive.wonLate : t.victory.heading}
       </h2>
 
       {score !== null && (
@@ -134,24 +142,26 @@ export function VictoryDialog({
       <hr className="victory-dialog__divider" />
 
       <div className="victory-dialog__actions">
-        <button type="button" className="btn btn--ghost btn--lg" onClick={onClose}>
+        <button type="button" className="btn btn--primary victory-dialog__main" onClick={onClose}>
           {t.victory.viewBoard}
         </button>
-        {onPlayAgain && (
-          <button type="button" className="btn btn--primary btn--lg" onClick={onPlayAgain}>
-            {t.victory.playAgain}
-          </button>
-        )}
-        {archiveHref && (
-          <Link href={archiveHref} className="btn btn--ghost btn--lg">
-            {t.archive.link}
-          </Link>
-        )}
-        {freePlayHref && (
-          <Link href={freePlayHref} className="btn btn--primary btn--lg">
-            {t.daily.freePlay}
-          </Link>
-        )}
+        <div className="victory-dialog__more">
+          {onPlayAgain && (
+            <button type="button" className="btn btn--ghost btn--lg" onClick={onPlayAgain}>
+              {t.victory.playAgain}
+            </button>
+          )}
+          {archiveHref && (
+            <Link href={archiveHref} className="btn btn--ghost btn--lg">
+              {t.archive.link}
+            </Link>
+          )}
+          {freePlayHref && (
+            <Link href={freePlayHref} className="btn btn--ghost btn--lg">
+              {t.daily.freePlay}
+            </Link>
+          )}
+        </div>
       </div>
     </Modal>
   )

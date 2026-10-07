@@ -99,7 +99,7 @@ test('a win keeps the board on screen: the results pop up over it, close, and re
   await results.getByRole('button', { name: 'See the board' }).click()
   await expect(results).toBeHidden()
   await expect(page.locator('.game-board--won .node-card--highlighted')).toHaveCount(3)
-  await expect(page.getByText('Chain complete — 2 links')).toBeVisible()
+  await expect(page.locator('.won-bar').getByRole('button')).toHaveText(['Results'])
   await expect(page.getByPlaceholder('Player…')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Results' }).click()
@@ -107,9 +107,11 @@ test('a win keeps the board on screen: the results pop up over it, close, and re
   await page.keyboard.press('Escape')
   await expect(results).toBeHidden()
 
-  // Coming back to a won day shows the winning board again, results closed.
+  // Coming back to a won day sums it up first — its score — then the winning board, results closed.
   await page.reload()
+  await expect(page.locator('.daily-intro__done--b0')).toContainText('Perfect!')
+  await expect(page.getByRole('button', { name: 'Start' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'See the board' }).click()
   await expect(page.locator('.game-board--won .node-card--highlighted')).toHaveCount(3)
   await expect(results).toBeHidden()
-  await expect(page.getByRole('button', { name: 'Start' })).toHaveCount(0)
 })

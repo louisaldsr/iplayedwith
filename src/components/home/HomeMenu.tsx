@@ -20,9 +20,9 @@ const SPORT_ICONS: Record<SportId, string> = { rugby: '🏉', football: '⚽' }
  * The sports own the middle of the screen — each card opens that sport's daily challenge, which is
  * the game. A sport whose challenge is already over today turns green (won) or red (lost), nudging
  * towards the ones still to play.
- * Everything else sits at the bottom: free play (open to everyone), the past challenges, the rules,
- * today's ranking, the visitor's stats and About. No accounts: the anonymous visitor
- * (src/lib/visitor.ts) is enough.
+ * Everything else sits at the bottom: the rules, today's ranking, the visitor's stats and About.
+ * Free play and the past challenges are a sport's own: they are offered under its daily challenge.
+ * No accounts: the anonymous visitor (src/lib/visitor.ts) is enough.
  */
 export function HomeMenu() {
   const t = useTranslations()
@@ -69,31 +69,6 @@ export function HomeMenu() {
       </div>
 
       <footer className="home-menu__footer">
-        <div className="home-menu__other-plays">
-          <p className="home-menu__free-play">
-            {t.menu.freePlay}{' '}
-            {SPORTS.map((sport, i) => (
-              <span key={sport}>
-                {i > 0 && ' · '}
-                <Link href={`/${sport}/free`} aria-label={`${t.home.sports[sport]} — ${t.daily.freePlay}`}>
-                  {t.home.sports[sport]}
-                </Link>
-              </span>
-            ))}
-          </p>
-          <p className="home-menu__free-play">
-            {t.menu.archive}{' '}
-            {SPORTS.map((sport, i) => (
-              <span key={sport}>
-                {i > 0 && ' · '}
-                <Link href={`/${sport}/archive`} aria-label={`${t.home.sports[sport]} — ${t.archive.link}`}>
-                  {t.home.sports[sport]}
-                </Link>
-              </span>
-            ))}
-          </p>
-        </div>
-
         <div className="home-menu__links">
           <button type="button" className="btn btn--ghost" onClick={openRules}>
             {t.rules.openLabel}

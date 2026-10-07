@@ -117,17 +117,21 @@ export function GameScreen({
       <div className="game-screen-board">
         <GameBoard game={game} players={players} clubs={clubs} onOpenPlayer={openCareer} solution={solution} />
         {boardOverlay}
+        {/* A refused guess floats at the top of the board — the bar below keeps its size, the hearts
+            at the bottom stay clear (the solution switch, up there too, only comes once the game is
+            over). It goes after a few seconds, or as soon as the next guess is typed. */}
+        {lastError && !over && <ErrorBanner key={inputResetKey} message={lastError} onDismiss={onDismissError} />}
         {lives && <LivesBar left={lives.left} total={lives.total} lostCount={lives.lostCount} />}
       </div>
 
       <PlayerCareerDialog player={careerOf} onClose={() => setCareerOf(null)} />
 
-      <div className="game-screen-controls">
+      {/* Red-rimmed while a refused guess is shown above: the message and the field go together. */}
+      <div className={`game-screen-controls${lastError && !over ? ' game-screen-controls--refused' : ''}`}>
         {over ? (
           over.bar
         ) : (
           <>
-            {lastError && <ErrorBanner message={lastError} onDismiss={onDismissError} />}
             <MoveInput
               key={`${game.edges.length}-${inputResetKey}`}
               sport={sport}
@@ -135,6 +139,7 @@ export function GameScreen({
               alreadyInGraph={alreadyInGraph}
               submitting={submitting}
               onSubmit={onSubmit}
+              onEdit={lastError ? onDismissError : undefined}
             />
           </>
         )}

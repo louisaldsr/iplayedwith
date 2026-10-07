@@ -19,7 +19,7 @@ import { parseChallengeNumber, sharedChallengeOrNull } from './sharedChallenge'
 
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
-export const alt = 'I Played With daily challenge: link the two players through their teammates'
+export const alt = 'I Played With daily challenge: connect the two players through their teammates'
 
 // The board's colours (globals.css): A and B are the gold-bordered target cards.
 const BG = '#111318'
@@ -97,7 +97,7 @@ export default async function Image({ params }: { params: Promise<{ sport: strin
       </div>
 
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 60, fontWeight: 800 }}>Can you link them?</span>
+        <span style={{ fontSize: 60, fontWeight: 800 }}>Can you connect them?</span>
         <span style={{ fontSize: 30, fontWeight: 500, color: ACCENT }}>iplayedwith.com</span>
       </div>
     </div>,

@@ -20,6 +20,8 @@ type Props = {
   alreadyInGraph: Set<PlayerId>
   submitting?: boolean
   onSubmit: (input: UserInput) => void
+  /** Any typing in the move's fields — a new guess under way. */
+  onEdit?: () => void
 }
 
 type Chip = { label: string; onClear: () => void }
@@ -35,7 +37,7 @@ function InputChip({ label, onClear }: Chip) {
   )
 }
 
-export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = false, onSubmit }: Props) {
+export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = false, onSubmit, onEdit }: Props) {
   const t = useTranslations()
 
   // Easy mode state
@@ -146,6 +148,7 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
             value={easyQuery}
             onChange={(v) => {
               setEasyQuery(v)
+              onEdit?.()
               setEasyPlayer(null)
             }}
             onSelect={handleEasyPlayerSelect}
@@ -228,6 +231,7 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
             value={hardPlayerQuery}
             onChange={(v) => {
               setHardPlayerQuery(v)
+              onEdit?.()
               setHardPlayer(null)
             }}
             onSelect={handleHardPlayerSelect}
@@ -257,6 +261,7 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
               value={hardClubQuery}
               onChange={(v) => {
                 setHardClubQuery(v)
+                onEdit?.()
                 setHardClub(null)
               }}
               onSelect={handleHardClubSelect}

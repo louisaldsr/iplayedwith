@@ -6,7 +6,7 @@ import { SiteAnalytics } from '@/components/shared/SiteAnalytics'
 import { SITE_NAME, SITE_URL } from '@/lib/siteUrl'
 
 const DESCRIPTION =
-  'I Played With — the teammates game. Link two players through the teammates they shared, club by club, ' +
+  'I Played With — the teammates game. Connect two players through the teammates they shared, club by club, ' +
   'season by season. A daily challenge for rugby and football.'
 
 export const metadata: Metadata = {

@@ -35,7 +35,7 @@ export function DefeatDialog({ open, onClose, challenge, onShowSolution, shareTe
         {t.daily.lostTitle}
       </h2>
       <div className="victory-score">
-        <p className="defeat-dialog__text">{t.daily.lostText(challenge.optimalLinks)}</p>
+        <p className="defeat-dialog__text">{t.daily.lostText(challenge.optimalLinks - 1)}</p>
         {/* Right under "a chain existed": that chain. */}
         <button type="button" className="btn btn--solution btn--sm victory-score__solution" onClick={onShowSolution}>
           {t.daily.solution.show}
@@ -50,15 +50,17 @@ export function DefeatDialog({ open, onClose, challenge, onShowSolution, shareTe
       <hr className="victory-dialog__divider" />
 
       <div className="victory-dialog__actions">
-        <button type="button" className="btn btn--ghost btn--lg" onClick={onClose}>
+        <button type="button" className="btn btn--primary victory-dialog__main" onClick={onClose}>
           {t.victory.viewBoard}
         </button>
-        <Link href={`/${challenge.sport}/archive`} className="btn btn--ghost btn--lg">
-          {t.archive.link}
-        </Link>
-        <Link href={`/${challenge.sport}/free`} className="btn btn--primary btn--lg">
-          {t.daily.freePlay}
-        </Link>
+        <div className="victory-dialog__more">
+          <Link href={`/${challenge.sport}/archive`} className="btn btn--ghost btn--lg">
+            {t.archive.link}
+          </Link>
+          <Link href={`/${challenge.sport}/free`} className="btn btn--ghost btn--lg">
+            {t.daily.freePlay}
+          </Link>
+        </div>
       </div>
     </Modal>
   )

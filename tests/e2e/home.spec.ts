@@ -25,21 +25,13 @@ test('home page has the correct document title', async ({ page }) => {
   await expect(page).toHaveTitle(/I Played With/)
 })
 
-test('the menu leads to each sport daily challenge, and to free play', async ({ page }) => {
+test("the menu leads to each sport's daily challenge — free play and the past challenges are under it", async ({
+  page,
+}) => {
   await page.goto('/')
   await expect(page.getByRole('link', { name: 'Rugby — Daily challenge' })).toHaveAttribute('href', '/rugby')
   await expect(page.getByRole('link', { name: 'Football — Daily challenge' })).toHaveAttribute('href', '/football')
-  await expect(page.getByRole('link', { name: 'Rugby — Free play' })).toHaveAttribute('href', '/rugby/free')
-  await expect(page.getByRole('link', { name: 'Football — Free play' })).toHaveAttribute('href', '/football/free')
-})
-
-test("the menu leads to each sport's past challenges", async ({ page }) => {
-  await page.goto('/')
-  await expect(page.getByRole('link', { name: 'Rugby — Past challenges' })).toHaveAttribute('href', '/rugby/archive')
-  await expect(page.getByRole('link', { name: 'Football — Past challenges' })).toHaveAttribute(
-    'href',
-    '/football/archive',
-  )
+  await expect(page.locator('a[href$="/free"], a[href$="/archive"]')).toHaveCount(0)
 })
 
 test("today's finished challenges are marked won or lost; yesterday's are not", async ({ page }) => {

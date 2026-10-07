@@ -30,6 +30,25 @@ async function guess(page: Page) {
   await page.getByRole('button', { name: 'Submit' }).click()
 }
 
+test('a refused guess is said, then goes: as soon as the next one is typed, or after a few seconds', async ({
+  page,
+}) => {
+  await mockApi(page, '/api/rugby/move', notConnectedMove)
+  await startDaily(page)
+  const refused = page.getByText('No club and season in common with anyone on the board.')
+
+  await guess(page)
+  await expect(refused).toBeVisible()
+  await page.getByPlaceholder('Player…').fill('c')
+  await expect(refused).toBeHidden()
+
+  await page.getByPlaceholder('Player…').fill('cha')
+  await page.getByText('Charlie Lien').click()
+  await page.getByRole('button', { name: 'Submit' }).click()
+  await expect(refused).toBeVisible()
+  await expect(refused).toBeHidden({ timeout: 7000 })
+})
+
 test('a guess linked to nobody costs a life and flashes the screen; the third ends the day', async ({ page }) => {
   await mockApi(page, '/api/rugby/move', notConnectedMove)
   await startDaily(page)
@@ -46,9 +65,13 @@ test('a guess linked to nobody costs a life and flashes the screen; the third en
   await guess(page)
   await expect(page.getByRole('dialog', { name: 'Out of lives' })).toBeVisible()
 
-  // The day is over: coming back shows the lost board, not a fresh game — no input, no Start.
+  // The day is over: coming back sums it up — no Start, no fresh game — the lost board one click away.
   await page.reload()
-  await expect(page.locator('.won-bar--lost')).toContainText('Out of lives')
+  await expect(page.locator('.daily-intro__done--lost')).toContainText('Out of lives')
+  await expect(page.getByRole('link', { name: /Free play/ })).toHaveAttribute('href', '/rugby/free')
+  await expect(page.getByRole('link', { name: /Past challenges/ })).toHaveAttribute('href', '/rugby/archive')
+  await page.getByRole('button', { name: 'See the board' }).click()
+  await expect(page.locator('.won-bar--lost').getByRole('button', { name: 'Results' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Submit' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Start' })).toHaveCount(0)
 

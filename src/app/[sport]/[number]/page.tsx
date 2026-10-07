@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const shared = await sharedChallengeOrNull(sport, number)
   const title = `${en.home.sports[sport]} daily challenge #${number}`
   const description = shared
-    ? `${shared.playerA.name} → ${shared.playerB.name}. Can you link them through their teammates?`
+    ? `${shared.playerA.name} → ${shared.playerB.name}. Can you connect them through their teammates?`
     : 'Link two players through the teammates they shared. One pair a day, the same for everyone.'
   return {
     title,

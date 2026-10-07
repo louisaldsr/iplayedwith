@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useReducer, useRef, useCallback, useEffect, useMemo, useState } from 'react'
 import { Game, DifficultyLevel } from '../game/game'
 import { Player } from '../domain/player'
@@ -24,7 +23,6 @@ import { readVisitor } from '../lib/visitor'
 import { recordDailyHint, startDailyChallenge } from '../lib/gameApi'
 import { dailyShareText } from '../lib/dailyShare'
 import { dailyScore } from '../domain/dailyScore'
-import { ShareButton } from './daily/ShareButton'
 
 /**
  * `victory`: the won board stays on screen, results in a pop-up over it.
@@ -58,6 +56,8 @@ type UIState = {
   finishedAt: Date | null
   /** The results pop-up over a finished board; closed, the board stays to be looked at. */
   resultsOpen: boolean
+  /** A daily already over, opened again: the intro sums it up first, the board one click away. */
+  summary: boolean
 }
 
 type Action =
@@ -69,6 +69,7 @@ type Action =
   | { type: 'SUBMIT_INPUT'; result: RemoteInputResult; message: string; at: Date }
   | { type: 'DISMISS_ERROR' }
   | { type: 'SHOW_RESULTS'; open: boolean }
+  | { type: 'SHOW_BOARD' }
   | { type: 'PLAY_AGAIN' }
 
 /**
@@ -118,8 +119,9 @@ function dailyOptions(day: string): { visitorId: string; day: string } | undefin
 
 /**
  * Free play starts on its setup screen. A daily starts where this browser left it today: on the
- * board as it was, with the lives already lost; or on the finished board, won or lost, results
- * closed — leaving and coming back must neither refill lives, replay a lost day, nor lose the board.
+ * board as it was, with the lives already lost; or, once over, on its intro summed up — the result,
+ * the board one click away (won or lost, results closed) — leaving and coming back must neither
+ * refill lives, replay a lost day, nor lose the board.
  */
 function initState(start: DailyStart | null): UIState {
   const base = freshState()
@@ -133,6 +135,7 @@ function initState(start: DailyStart | null): UIState {
     outcome,
     finishedAt,
     phase: outcome === 'won' ? 'victory' : outcome === 'lost' ? 'lost' : 'playing',
+    summary: outcome !== null,
     game: { ...engine.game },
     players: [...engine.players],
     clubs: [...engine.clubs],
@@ -175,6 +178,7 @@ function freshState(): UIState {
     outcome: null,
     finishedAt: null,
     resultsOpen: false,
+    summary: false,
   }
 }
 
@@ -252,6 +256,9 @@ function reducer(state: UIState, action: Action): UIState {
 
     case 'SHOW_RESULTS':
       return { ...state, resultsOpen: action.open }
+
+    case 'SHOW_BOARD':
+      return { ...state, summary: false }
 
     case 'PLAY_AGAIN':
       return freshState()
@@ -374,6 +381,8 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
       ? { elapsedMs: (state.finishedAt ?? new Date()).getTime() - state.game.startedAt.getTime() }
       : null
   const victory = state.phase === 'victory' ? ended : null
+  // Played late: a past day from the archive, not started on its day (never started, or started late).
+  const late = mode.kind === 'daily' && mode.archived !== undefined && (mode.archived === null || mode.archived.late)
   const freePlayHref = daily ? `/${sport}/free` : undefined
   const archiveHref = daily ? `/${sport}/archive` : undefined
 
@@ -402,33 +411,17 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
       : null
 
   // A finished game keeps its board on screen: the results open over it, and this bar replaces the
-  // move input to reopen them, lay the proposed solution over the board (daily), or move on.
+  // move input to reopen them. One button only — everything else (share, solution, what to play
+  // next) is in the results.
   const endBar = ended && state.game && (
     <div className={`won-bar${state.phase === 'lost' ? ' won-bar--lost' : ''}`}>
-      <span className="won-bar__title">
-        <span aria-hidden="true">{state.phase === 'lost' ? '💔 ' : '🏆 '}</span>
-        {state.phase === 'lost' ? t.daily.lostTitle : t.victory.chainComplete(state.game.path.length - 1)}
-      </span>
-      <div className="won-bar__actions">
-        <button type="button" className="btn btn--ghost" onClick={() => dispatch({ type: 'SHOW_RESULTS', open: true })}>
-          {t.victory.results}
-        </button>
-        {shareText && <ShareButton text={shareText} />}
-        {daily ? (
-          <>
-            <Link href={archiveHref!} className="btn btn--ghost">
-              {t.archive.link}
-            </Link>
-            <Link href={freePlayHref!} className="btn btn--primary">
-              {t.daily.freePlay}
-            </Link>
-          </>
-        ) : (
-          <button type="button" className="btn btn--primary" onClick={handlePlayAgain}>
-            {t.victory.playAgain}
-          </button>
-        )}
-      </div>
+      <button
+        type="button"
+        className="btn btn--primary btn--lg won-bar__results"
+        onClick={() => dispatch({ type: 'SHOW_RESULTS', open: true })}
+      >
+        {t.victory.results}
+      </button>
     </div>
   )
 
@@ -439,6 +432,19 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           challenge={daily}
           archived={mode.kind === 'daily' && mode.archived !== undefined}
           onStart={handleStart}
+        />
+      )}
+
+      {state.summary && daily && state.outcome && (
+        <DailyIntro
+          challenge={daily}
+          archived={mode.kind === 'daily' && mode.archived !== undefined}
+          onStart={() => dispatch({ type: 'SHOW_BOARD' })}
+          done={{
+            outcome: state.outcome,
+            score: state.outcome === 'won' ? dailyScore(state.moveCount, daily.optimalLinks) : null,
+            late,
+          }}
         />
       )}
 
@@ -455,26 +461,30 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
         />
       )}
 
-      {(state.phase === 'playing' || state.phase === 'victory' || state.phase === 'lost') && state.game && (
-        <GameScreen
-          game={state.game}
-          sport={sport}
-          players={state.players}
-          clubs={state.clubs}
-          submitting={state.submitting}
-          onSubmit={handleSubmit}
-          lastError={state.lastError}
-          onDismissError={() => dispatch({ type: 'DISMISS_ERROR' })}
-          lives={
-            state.lives === null ? undefined : { left: state.lives, total: DAILY_LIVES, lostCount: state.lifeLostCount }
-          }
-          inputResetKey={state.rejectedCount}
-          over={ended ? { elapsedMs: ended.elapsedMs, bar: endBar } : undefined}
-          solution={solution.shown ?? undefined}
-          boardOverlay={dailyOver ? <SolutionOverlay solution={solution} /> : undefined}
-          onCareerOpened={handleCareerOpened}
-        />
-      )}
+      {(state.phase === 'playing' || state.phase === 'victory' || state.phase === 'lost') &&
+        state.game &&
+        !state.summary && (
+          <GameScreen
+            game={state.game}
+            sport={sport}
+            players={state.players}
+            clubs={state.clubs}
+            submitting={state.submitting}
+            onSubmit={handleSubmit}
+            lastError={state.lastError}
+            onDismissError={() => dispatch({ type: 'DISMISS_ERROR' })}
+            lives={
+              state.lives === null
+                ? undefined
+                : { left: state.lives, total: DAILY_LIVES, lostCount: state.lifeLostCount }
+            }
+            inputResetKey={state.rejectedCount}
+            over={ended ? { elapsedMs: ended.elapsedMs, bar: endBar } : undefined}
+            solution={solution.shown ?? undefined}
+            boardOverlay={dailyOver ? <SolutionOverlay solution={solution} /> : undefined}
+            onCareerOpened={handleCareerOpened}
+          />
+        )}
 
       {state.phase === 'finished' && daily && state.outcome && (
         <DailyFinished challenge={daily} outcome={state.outcome} livesLeft={state.lives ?? 0} />
@@ -494,6 +504,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           optimalLinks={daily?.optimalLinks}
           lives={state.lives === null ? undefined : { left: state.lives, total: DAILY_LIVES }}
           daily={daily ? { sport: daily.sport, day: daily.day } : undefined}
+          late={late}
           onShowSolution={daily ? showSolution : undefined}
           shareText={shareText ?? undefined}
           onPlayAgain={daily ? undefined : handlePlayAgain}

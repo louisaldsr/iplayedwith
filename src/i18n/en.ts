@@ -9,10 +9,12 @@ function ordinal(n: number): string {
 
 const finished = (total: number) => `${total} ${total === 1 ? 'player' : 'players'} finished`
 
+const players = (n: number) => `${n} ${n === 1 ? 'player' : 'players'}`
+
 const en = {
   home: {
     title: 'I Played With',
-    tagline: 'Find Teammate connections',
+    tagline: 'Connect two players through their teammates',
     sports: {
       rugby: 'Rugby',
       football: 'Football',
@@ -26,8 +28,6 @@ const en = {
     label: 'Main menu',
     button: 'Menu',
     daily: 'Daily challenge',
-    freePlay: 'Or free play:',
-    archive: 'Past challenges:',
     about: 'About',
     ranking: 'Ranking',
     stats: 'My stats',
@@ -70,10 +70,10 @@ const en = {
     title: 'How to play',
     demo: {
       captions: {
-        goal: 'Two players are drawn. Link them through their teammates.',
+        goal: 'Two players are drawn. Connect them through their teammates.',
         move: 'Name a player who shared a club and a season with someone on the board.',
         miss: 'No club and season in common? That costs a life. You have 3.',
-        win: 'Reach the other player and the chain is complete. You win!',
+        win: 'Reach the other player. You win!',
       },
       linked: (teammate: string, club: string, season: string) => `With ${teammate} — ${club}, ${season}`,
       step: (n: number, total: number) => `Step ${n} of ${total}`,
@@ -96,8 +96,8 @@ const en = {
     livesLeft: (left: number, total: number) => `${left} of ${total} lives left`,
     wonTitle: 'Solved!',
     lostTitle: 'Out of lives',
-    wonText: (livesLeft: number) => `Chain complete with ${livesLeft} ${livesLeft === 1 ? 'life' : 'lives'} to spare.`,
-    lostText: (links: number) => `A chain of ${links} links existed. Better luck tomorrow!`,
+    wonText: (livesLeft: number) => `Solved with ${livesLeft} ${livesLeft === 1 ? 'life' : 'lives'} to spare.`,
+    lostText: (between: number) => `It could be solved with ${players(between)} in between. Better luck tomorrow!`,
     comeBackTomorrow: 'A new pair arrives at midnight (Paris time).',
     boardNotKept: 'Your board from this game was not kept (older version of the game) — from now on, it is.',
     title: 'Daily Challenge',
@@ -106,18 +106,19 @@ const en = {
     close: 'Close',
     careerEmpty: 'No career recorded for this player.',
     careerError: 'Could not load the career — try again.',
-    versus: 'vs',
-    bestPossible: 'Best possible',
-    links: 'links',
+    bestSolution: 'Best solution:',
+    playersBetween: (n: number): string => (n === 1 ? 'player in between' : 'players in between'),
     start: 'Start',
-    freePlayLink: 'Or pick your own players in free play',
+    more: {
+      label: 'Other ways to play',
+      freePlayHint: 'Pick your own players',
+      archiveHint: 'Missed a day? Play it now',
+    },
     freePlay: 'Free play',
     perfect: 'Perfect!',
     perfectBucket: 'Perfect',
     scoreHint: (extra: number) =>
-      extra === 0
-        ? 'Shortest chain found'
-        : `${extra} ${extra === 1 ? 'player' : 'players'} more than the shortest chain`,
+      extra === 0 ? 'Best solution found' : `${players(extra)} more than the best solution`,
     share: {
       button: 'Share',
       copied: 'Copied — paste it to your friends!',
@@ -149,8 +150,8 @@ const en = {
       noWinner: (total: number): string =>
         total === 0 ? 'Nobody has finished today yet.' : 'Nobody has won today yet.',
       yourRank: 'Your rank',
+      lateUnranked: 'Played late — not in this day’s ranking',
       place: (rank: number, total: number) => `${ordinal(rank)} / ${total}`,
-      failed: (total: number) => `Out of lives today · ${finished(total)}`,
       unfinished: (total: number) =>
         total === 0 ? 'Finish today to get your rank.' : `Finish today to get your rank · ${finished(total)}`,
     },
@@ -160,10 +161,10 @@ const en = {
     pageTitle: (sport: string) => `Past challenges — ${sport}`,
     intro: 'Every daily challenge since the launch. Missed one? Play it now.',
     title: 'Challenge',
-    lateNote: 'Played late: it counts in your stats, marked late in the day’s ranking.',
+    wonLate: 'Solved, but late',
+    lateNote: 'Played late: it counts in your stats, but not in the day’s ranking.',
     back: 'Back to past challenges',
     today: 'Today',
-    toPlay: 'To play',
     inProgress: 'In progress',
     late: 'late',
     notFound: 'There is no challenge on that day.',
@@ -171,7 +172,6 @@ const en = {
       title: 'Ranking of the day',
       noWinner: (total: number): string =>
         total === 0 ? 'Nobody has finished this challenge yet.' : 'Nobody has won this challenge yet.',
-      failed: (total: number) => `Out of lives · ${finished(total)}`,
       unfinished: (total: number) =>
         total === 0
           ? 'Finish the challenge to get your rank.'
@@ -194,7 +194,7 @@ const en = {
     hardDesc: 'Player + Club + Season',
     launch: 'Launch Game',
     directlyConnectedWarning:
-      'These two players have already played together. In Easy mode, this link is auto-resolved — please pick a different pair.',
+      'These two players have already played together: in Easy mode there would be nothing to find — please pick a different pair.',
   },
   game: {
     chrono: 'Time',
@@ -232,7 +232,6 @@ const en = {
     playAgain: 'Play Again',
     viewBoard: 'See the board',
     results: 'Results',
-    chainComplete: (links: number) => `Chain complete — ${links} ${links === 1 ? 'link' : 'links'}`,
   },
   visitorNames: {
     adjectives: {

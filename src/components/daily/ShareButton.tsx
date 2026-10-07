@@ -10,6 +10,38 @@ type Props = {
   className?: string
 }
 
+/** The share icon seen everywhere (three connected dots) — drawn in the text's colour. */
+function ShareIcon() {
+  return (
+    <svg className="btn__icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+      <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <line x1="8.6" y1="10.7" x2="15.4" y2="6.8" />
+        <line x1="8.6" y1="13.3" x2="15.4" y2="17.2" />
+      </g>
+      <g fill="currentColor">
+        <circle cx="18" cy="5" r="3" />
+        <circle cx="6" cy="12" r="3" />
+        <circle cx="18" cy="19" r="3" />
+      </g>
+    </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg className="btn__icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+      <polyline
+        points="5 12.5 10 17.5 19 7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 /** How long "Copied" stays before the button reads "Share" again. */
 const FEEDBACK_MS = 2500
 
@@ -34,7 +66,7 @@ export function ShareButton({ text, className = '' }: Props) {
         className={`btn btn--share${outcome === 'copied' ? ' btn--share-done' : ''}`}
         onClick={async () => setOutcome(await shareMessage(text))}
       >
-        <span aria-hidden="true">{outcome === 'copied' ? '✓ ' : '↗ '}</span>
+        {outcome === 'copied' ? <CheckIcon /> : <ShareIcon />}
         {t.daily.share.button}
       </button>
       <span

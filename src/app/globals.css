@@ -1284,9 +1284,14 @@ body {
   gap: 32px;
   width: 100%;
   max-width: 720px;
-  padding: 88px 16px 48px;
-  margin-bottom: auto;
+  padding: 88px 16px 32px;
+  flex: 1;
   text-align: center;
+}
+
+.daily-intro__start {
+  min-width: 200px;
+  margin: 8px 0 24px;
 }
 
 .daily-intro__header {
@@ -1314,18 +1319,46 @@ body {
 
 .daily-intro__players {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  gap: 16px;
+  gap: 0;
   width: 100%;
 }
 
-.daily-intro__versus {
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
+/* Between the pair: a dashed line, as on the board, and a "?" per player to find. */
+.daily-intro__link {
+  position: relative;
+  flex: 1;
+  min-width: 72px;
+  max-width: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  align-self: stretch;
+}
+
+.daily-intro__link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 2px dashed var(--target-border);
+  opacity: 0.7;
+}
+
+.daily-intro__missing {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px dashed var(--target-border);
+  border-radius: 50%;
+  background: var(--bg-base);
+  color: var(--win-gold-text);
+  font-size: 0.9rem;
+  font-weight: 800;
 }
 
 /* A player of the pair — a button: it opens the career. */
@@ -1333,13 +1366,15 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   flex: 1;
-  max-width: 260px;
+  max-width: 240px;
   padding: 20px 16px;
-  border: 1px solid var(--border-active);
+  border: 2px solid var(--target-border);
   border-radius: var(--radius-lg);
-  background: var(--bg-surface);
+  background: var(--target-tint);
+  box-shadow: 0 0 18px var(--target-glow);
   color: var(--text-primary);
   font: inherit;
   cursor: pointer;
@@ -1349,7 +1384,7 @@ body {
 }
 
 .daily-player:hover {
-  border-color: var(--accent);
+  border-color: var(--win-gold);
   transform: translateY(-2px);
 }
 
@@ -1455,6 +1490,7 @@ body {
 
 /* Under Start: free play and the past challenges, side by side — the sport's other ways to play. */
 .daily-intro__more {
+  margin-top: auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
@@ -1726,7 +1762,26 @@ body {
 
   .daily-intro__players {
     flex-direction: column;
-    gap: 10px;
+    gap: 0;
+  }
+
+  /* Stacked: the line runs down between the two cards. */
+  .daily-intro__link {
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 56px;
+    padding: 8px 0;
+  }
+
+  .daily-intro__link::before {
+    left: 50%;
+    right: auto;
+    top: 0;
+    bottom: 0;
+    border-top: 0;
+    border-left: 2px dashed var(--target-border);
   }
 
   .daily-player {

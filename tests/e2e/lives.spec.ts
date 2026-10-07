@@ -30,6 +30,25 @@ async function guess(page: Page) {
   await page.getByRole('button', { name: 'Submit' }).click()
 }
 
+test('a refused guess is said, then goes: as soon as the next one is typed, or after a few seconds', async ({
+  page,
+}) => {
+  await mockApi(page, '/api/rugby/move', notConnectedMove)
+  await startDaily(page)
+  const refused = page.getByText('No club and season in common with anyone on the board.')
+
+  await guess(page)
+  await expect(refused).toBeVisible()
+  await page.getByPlaceholder('Player…').fill('c')
+  await expect(refused).toBeHidden()
+
+  await page.getByPlaceholder('Player…').fill('cha')
+  await page.getByText('Charlie Lien').click()
+  await page.getByRole('button', { name: 'Submit' }).click()
+  await expect(refused).toBeVisible()
+  await expect(refused).toBeHidden({ timeout: 7000 })
+})
+
 test('a guess linked to nobody costs a life and flashes the screen; the third ends the day', async ({ page }) => {
   await mockApi(page, '/api/rugby/move', notConnectedMove)
   await startDaily(page)

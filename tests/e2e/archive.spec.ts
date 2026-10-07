@@ -36,7 +36,7 @@ test('lists every day, newest first, with how the visitor did', async ({ page })
   // Finished on its day: filled with its score's colour. Finished late: only a greyed outline.
   await expect(days.nth(1)).toHaveClass(/archive-day--done/)
   await expect(days.nth(2)).toHaveClass(/archive-day--late/)
-  await expect(days.nth(3)).toContainText('Alpha Testeur vs Bravo Éssai')
+  await expect(days.nth(3)).toContainText('Alpha Testeur → Bravo Éssai')
 
   // Today is played on its own page; a past day on its archive page.
   await expect(days.nth(0)).toHaveAttribute('href', '/rugby')

@@ -1157,6 +1157,17 @@ jour : ni podium, ni rang, ni total. `YourPlace.rank` est `null` pour un résult
   grand ; dessous, à l'écart, les autres façons de jouer côte à côte et **de même taille** (défis passés
   + partie libre, ou « Rejouer » en partie libre).
 
+## ✅ Bloc 28 terminé — Intro du défi : deux joueurs à relier ; erreurs passagères
+
+- **Plus de « contre »** (`versus`, retiré) : le jeu ne les oppose pas, il les relie. A et B sont les
+  cartes **dorées** du plateau, reliées par un trait pointillé qui porte un **« ? » par joueur** de la
+  meilleure solution (`optimalLinks − 1`, au plus 4) — à l'horizontale, verticale sur téléphone.
+  Ailleurs (archives, `DailyFinished`) : « A → B », comme le message de partage.
+- **Mise en page** : « Commencer » plus aéré ; partie libre et défis passés **en bas de page**
+  (`.daily-intro` remplit la page, `margin-top: auto`).
+- **Coup refusé** : le bandeau rouge ne reste plus. Il part **au bout de 5 s** (`ERROR_BANNER_MS`) ou
+  **dès qu'on tape** le coup suivant (`MoveInput` `onEdit`).
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :

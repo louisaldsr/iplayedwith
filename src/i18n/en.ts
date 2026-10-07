@@ -106,7 +106,6 @@ const en = {
     close: 'Close',
     careerEmpty: 'No career recorded for this player.',
     careerError: 'Could not load the career — try again.',
-    versus: 'vs',
     bestSolution: 'Best solution:',
     playersBetween: (n: number): string => (n === 1 ? 'player in between' : 'players in between'),
     start: 'Start',

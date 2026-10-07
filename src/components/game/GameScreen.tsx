@@ -127,7 +127,8 @@ export function GameScreen({
           over.bar
         ) : (
           <>
-            {lastError && <ErrorBanner message={lastError} onDismiss={onDismissError} />}
+            {/* A refused guess is said, then goes: after a few seconds, or as soon as the next one is typed. */}
+            {lastError && <ErrorBanner key={inputResetKey} message={lastError} onDismiss={onDismissError} />}
             <MoveInput
               key={`${game.edges.length}-${inputResetKey}`}
               sport={sport}
@@ -135,6 +136,7 @@ export function GameScreen({
               alreadyInGraph={alreadyInGraph}
               submitting={submitting}
               onSubmit={onSubmit}
+              onEdit={lastError ? onDismissError : undefined}
             />
           </>
         )}

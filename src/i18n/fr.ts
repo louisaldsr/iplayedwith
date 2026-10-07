@@ -99,7 +99,6 @@ const fr: Translations = {
     close: 'Fermer',
     careerEmpty: 'Aucune carrière enregistrée pour ce joueur.',
     careerError: 'Impossible de charger la carrière — réessayez.',
-    versus: 'contre',
     bestSolution: 'Meilleure solution :',
     playersBetween: (n: number) => (n === 1 ? 'joueur entre les deux' : 'joueurs entre les deux'),
     start: 'Commencer',

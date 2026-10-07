@@ -27,6 +27,9 @@ type Props = {
   done?: DailyIntroDone
 }
 
+/** "?" drawn between the pair at most — a long day still fits on one line. */
+const MAX_MISSING = 4
+
 /** A player of the pair: opens their career, for anyone who does not know them. */
 function PlayerButton({ player, onOpen }: { player: Player; onOpen: (p: Player) => void }) {
   const t = useTranslations()
@@ -61,9 +64,17 @@ export function DailyIntro({ challenge, archived = false, onStart, done }: Props
         {archived && <p className="daily-intro__late">{t.archive.lateNote}</p>}
       </header>
 
+      {/* Not a match-up: two players to connect. The line between them holds one "?" per player
+          the best solution needs — the gap to fill, as the board will draw it. */}
       <div className="daily-intro__players">
         <PlayerButton player={challenge.playerA} onOpen={setCareerOf} />
-        <span className="daily-intro__versus">{t.daily.versus}</span>
+        <span className="daily-intro__link" aria-hidden="true">
+          {Array.from({ length: Math.min(challenge.optimalLinks - 1, MAX_MISSING) }, (_, i) => (
+            <span key={i} className="daily-intro__missing">
+              ?
+            </span>
+          ))}
+        </span>
         <PlayerButton player={challenge.playerB} onOpen={setCareerOf} />
       </div>
 
@@ -77,11 +88,11 @@ export function DailyIntro({ challenge, archived = false, onStart, done }: Props
         </p>
       )}
 
-      <button type="button" className="btn btn--primary btn--lg" onClick={onStart}>
+      <button type="button" className="btn btn--primary btn--lg daily-intro__start" onClick={onStart}>
         {done ? t.victory.viewBoard : t.daily.start}
       </button>
 
-      {/* The sport's other ways to play, offered here rather than in the menu. */}
+      {/* The sport's other ways to play, offered here rather than in the menu — at the bottom of the page. */}
       <nav className="daily-intro__more" aria-label={t.daily.more.label}>
         <Link href={`/${challenge.sport}/free`} className="daily-intro__more-link">
           <span className="daily-intro__more-title">{t.daily.freePlay}</span>

@@ -101,7 +101,7 @@ function ArchiveDay({ entry, isToday }: { entry: DailyArchiveEntry; isToday: boo
           {formatDay(entry.day, true)}
         </span>
         <span className="archive-day__pair">
-          {entry.playerA.name} {t.daily.versus} {entry.playerB.name}
+          {entry.playerA.name} → {entry.playerB.name}
         </span>
       </span>
       {status && (

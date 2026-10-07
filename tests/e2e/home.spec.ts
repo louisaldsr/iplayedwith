@@ -69,7 +69,7 @@ test("the menu opens today's ranking: the podium and the visitor's place, a tab 
   await expect(page.getByText('Log in')).toHaveCount(0)
   await expect(page.getByText('Soon')).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Ranking' }).click()
+  await page.getByRole('button', { name: 'Ranking', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: "Today's ranking" })
   const rugby = dialog.getByRole('tabpanel', { name: 'Rugby' })
   const podium = rugby.getByRole('list', { name: 'Podium' }).getByRole('listitem')

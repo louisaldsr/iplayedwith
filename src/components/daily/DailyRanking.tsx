@@ -10,6 +10,7 @@ import { formatTime } from '../../lib/formatTime'
 import { readVisitor } from '../../lib/visitor'
 import { challengeDayOf } from '../../domain/dailyChallenge'
 import { useTranslations } from '../../i18n'
+import { ClockIcon } from '../shared/ClockIcon'
 
 type Props = {
   sport: SportId
@@ -24,7 +25,7 @@ const MEDALS: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' }
 /**
  * A day's ranking in one sport — today's, or a past day's from the archive — kept short: the podium — the first three winners, by score then
  * time — and the visitor's own place among everyone who finished. A loser never stands on the
- * podium, but gets a place all the same: the one every loser shares.
+ * podium, but gets a place all the same: the one every loser shares. A day played late gets none.
  *
  * Read from the server (`POST /api/:sport/daily/ranking`), which never sends another visitor's id
  * or a winning chain. Decorative: if the request fails, the panel is simply absent.
@@ -68,7 +69,6 @@ export function DailyRanking({ sport, day, heading }: Props) {
                 </span>
                 <span className="daily-ranking__name">
                   {entry.username ? formatUsername(entry.username, t.visitorNames) : r.anonymous}
-                  {entry.late && <span className="daily-ranking__late">{t.archive.late}</span>}
                   {entry.you && <span className="daily-ranking__you">{r.you}</span>}
                 </span>
                 <span className="daily-ranking__score">{formatScore(entry.score, t.daily.perfectBucket)}</span>
@@ -79,13 +79,20 @@ export function DailyRanking({ sport, day, heading }: Props) {
         </ol>
       )}
 
-      <p className={`daily-ranking__place${you ? ` daily-ranking__place--${you.outcome}` : ''}`}>
-        {/* Won or lost, the same line: a loser's rank is the one every loser shares, after the winners. */}
-        {you ? (
+      <p
+        className={`daily-ranking__place${you ? ` daily-ranking__place--${you.rank === null ? 'late' : you.outcome}` : ''}`}
+      >
+        {/* Won or lost, the same line: a loser's rank is the one every loser shares, after the winners.
+            Played late: no rank — the day's ranking is for those who played it on its day. */}
+        {you?.rank === null ? (
+          <>
+            <ClockIcon />
+            {r.lateUnranked}
+          </>
+        ) : you ? (
           <>
             <span className="daily-ranking__place-label">{r.yourRank}</span>
             <strong className="daily-ranking__place-value">{r.place(you.rank, total)}</strong>
-            {you.late && you.outcome === 'won' && <span className="daily-ranking__late">{t.archive.late}</span>}
           </>
         ) : (
           r.unfinished(total)

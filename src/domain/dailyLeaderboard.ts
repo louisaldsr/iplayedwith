@@ -7,6 +7,10 @@ import { DailyRankingEntry, VisitorId } from './dailyResult'
  * which keeps the order: winners by score then time — on-time ones, then those who played the day
  * late from the archive — then everyone who lost on one shared rank.
  *
+ * A day's ranking is for those who played it on its day: late results — won or lost — are left out
+ * of it here (the podium, the ranks, the total). They still count in the visitor's own stats. The
+ * full ranking, late ones included, stays readable by `npm run daily:ranking`.
+ *
  * Never in here, because it leaves for the browser:
  * - another visitor's id — whoever has it can rename that visitor;
  * - a winner's chain — it would give away a shortest path to anyone still playing.
@@ -21,15 +25,13 @@ export type PodiumEntry = {
   username: string | null
   score: number
   durationMs: number
-  /** Played late, from the archive — on the podium only when fewer have won on time. */
-  late: boolean
   /** The visitor asking. */
   you: boolean
 }
 
 export type YourPlace = {
-  /** For a loss: the rank every loser shares, after the last winner. */
-  rank: number
+  /** For a loss: the rank every loser shares, after the last winner. Null when played late: not ranked. */
+  rank: number | null
   outcome: 'won' | 'lost'
   /** Won days only. */
   score: number | null
@@ -39,7 +41,7 @@ export type YourPlace = {
 
 export type DailyLeaderboard = {
   day: ChallengeDay
-  /** Every result finished on that day's challenge, won or lost. */
+  /** Every result finished on that day's challenge, won or lost — on its day. */
   total: number
   /** Up to `PODIUM_SIZE` winners, best first. Shorter when fewer have won — losers never stand on it. */
   podium: PodiumEntry[]
@@ -57,7 +59,11 @@ export function toLeaderboard(
   visitorId: VisitorId | null,
   size = PODIUM_SIZE,
 ): DailyLeaderboard {
-  const podium = ranking
+  // On-time winners come before every late one: their ranks hold without the late ones. Losers
+  // share the rank after the last winner — counted again, without the late winners.
+  const onTime = ranking.filter((e) => !e.late)
+  const lostRank = onTime.filter((e) => e.outcome === 'won').length + 1
+  const podium = onTime
     .filter((e) => e.outcome === 'won' && e.score !== null)
     .slice(0, size)
     .map((e) => ({
@@ -65,16 +71,21 @@ export function toLeaderboard(
       username: e.username,
       score: e.score as number,
       durationMs: e.durationMs,
-      late: e.late,
       you: e.visitorId === visitorId,
     }))
   const mine = visitorId ? ranking.find((e) => e.visitorId === visitorId) : undefined
   return {
     day,
-    total: ranking.length,
+    total: onTime.length,
     podium,
     you: mine
-      ? { rank: mine.rank, outcome: mine.outcome, score: mine.score, durationMs: mine.durationMs, late: mine.late }
+      ? {
+          rank: mine.late ? null : mine.outcome === 'won' ? mine.rank : lostRank,
+          outcome: mine.outcome,
+          score: mine.score,
+          durationMs: mine.durationMs,
+          late: mine.late,
+        }
       : null,
   }
 }

@@ -9,6 +9,7 @@ import { getDailyArchive } from '../../lib/gameApi'
 import { formatDay } from '../../lib/formatDay'
 import { readVisitor } from '../../lib/visitor'
 import { useTranslations } from '../../i18n'
+import { ClockIcon } from '../shared/ClockIcon'
 
 type Props = {
   sport: SportId
@@ -70,8 +71,9 @@ function ArchiveDay({ entry, isToday }: { entry: DailyArchiveEntry; isToday: boo
   const t = useTranslations()
   const { result } = entry
 
+  // Never started: no badge — the row is just the day, there to be played.
   let tone = 'to-play'
-  let status = t.archive.toPlay
+  let status: string | null = null
   if (result?.outcome === 'won' && result.score !== null) {
     tone = `b${scoreBucketOf(result.score)}`
     status = formatScore(result.score, t.daily.perfect)
@@ -85,10 +87,13 @@ function ArchiveDay({ entry, isToday }: { entry: DailyArchiveEntry; isToday: boo
 
   // Today's challenge is played where it always is: its own page, on time.
   const href = isToday ? `/${entry.sport}` : `/${entry.sport}/archive/${entry.day}`
-  // A finished day is filled with its score's colour; one still to play stays plain, and invites.
+  // A day finished on its day is filled with its score's colour. Finished late, it only gets an
+  // outline of it, greyed: a late result is not the real thing — it is not even in the day's ranking.
   const done = result?.outcome === 'won' || result?.outcome === 'lost'
+  const classes = ['archive-day', `archive-day--${tone}`]
+  if (done) classes.push(result.late ? 'archive-day--late' : 'archive-day--done')
   return (
-    <Link href={href} className={`archive-day archive-day--${tone}${done ? ' archive-day--done' : ''}`}>
+    <Link href={href} className={classes.join(' ')}>
       <span className="archive-day__number">#{entry.number}</span>
       <span className="archive-day__main">
         <span className="archive-day__date">
@@ -99,14 +104,20 @@ function ArchiveDay({ entry, isToday }: { entry: DailyArchiveEntry; isToday: boo
           {entry.playerA.name} {t.daily.versus} {entry.playerB.name}
         </span>
       </span>
-      <span className="archive-day__result">
-        <span className="archive-day__status">
-          {tone === 'b0' && <span aria-hidden="true">★ </span>}
-          {status}
-          {!result && <span aria-hidden="true"> ›</span>}
+      {status && (
+        <span className="archive-day__result">
+          <span className="archive-day__status">
+            {tone === 'b0' && <span aria-hidden="true">★ </span>}
+            {status}
+          </span>
+          {done && result.late && (
+            <span className="archive-day__late">
+              <ClockIcon />
+              {t.archive.late}
+            </span>
+          )}
         </span>
-        {result?.late && result.outcome && <span className="archive-day__late">{t.archive.late}</span>}
-      </span>
+      )}
     </Link>
   )
 }

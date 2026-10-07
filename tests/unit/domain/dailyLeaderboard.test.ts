@@ -41,7 +41,6 @@ describe('toLeaderboard', () => {
       username: 'name1',
       score: 0,
       durationMs: 60_000,
-      late: false,
       you: false,
     })
   })
@@ -76,13 +75,28 @@ describe('toLeaderboard', () => {
     expect(board.you).toMatchObject({ rank: 2, outcome: 'lost', score: null })
   })
 
-  it('marks a day played late — on the podium only after every on-time winner, as the ranking orders it', () => {
-    const board = toLeaderboard([won(1, 1, 0), { ...won(2, 2, 0), late: true }], day, visitor(2))
-    expect(board.podium.map((e) => [e.username, e.late])).toEqual([
-      ['name1', false],
-      ['name2', true],
-    ])
-    expect(board.you).toMatchObject({ rank: 2, late: true })
+  it('leaves out a day played late: never on the podium, not ranked, not in the total', () => {
+    const lateWin = (n: number, rank: number) => ({ ...won(n, rank, 0), late: true })
+    const board = toLeaderboard([won(1, 1, 0), lateWin(2, 2), lateWin(3, 2)], day, visitor(2))
+    expect(board.podium.map((e) => e.username)).toEqual(['name1'])
+    expect(board.total).toBe(1)
+    expect(board.you).toEqual({ rank: null, outcome: 'won', score: 0, durationMs: 60_000, late: true })
+  })
+
+  it('ranks losers right after the on-time winners — late winners do not push them down', () => {
+    // As daily_ranking gives it: losers share the rank after every winner, late ones included.
+    const board = toLeaderboard(
+      [won(1, 1, 0), { ...won(2, 2, 0), late: true }, lost(3, 3), { ...lost(4, 3), late: true }],
+      day,
+      visitor(3),
+    )
+    expect(board.you).toMatchObject({ rank: 2, outcome: 'lost' })
+    expect(board.total).toBe(2)
+    // A late loser is not ranked either.
+    expect(toLeaderboard([{ ...lost(4, 1), late: true }], day, visitor(4)).you).toMatchObject({
+      rank: null,
+      late: true,
+    })
   })
 
   it('has no place for a visitor who has not finished the day', () => {

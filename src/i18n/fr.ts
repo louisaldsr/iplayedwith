@@ -144,6 +144,7 @@ const fr: Translations = {
       noWinner: (total: number) =>
         total === 0 ? 'Personne n’a encore fini aujourd’hui.' : 'Personne n’a encore gagné aujourd’hui.',
       yourRank: 'Votre rang',
+      lateUnranked: 'Joué en retard — hors du classement de ce jour',
       place: (rank: number, total: number) => `${rank === 1 ? '1ᵉʳ' : `${rank}ᵉ`} / ${total}`,
       unfinished: (total: number) =>
         total === 0
@@ -156,10 +157,10 @@ const fr: Translations = {
     pageTitle: (sport: string) => `Défis passés — ${sport}`,
     intro: 'Tous les défis du jour depuis le lancement. Vous en avez manqué un ? Jouez-le maintenant.',
     title: 'Défi',
-    lateNote: 'Joué en retard : il compte dans vos stats, marqué « en retard » au classement du jour.',
+    wonLate: 'Réussi, mais en retard',
+    lateNote: 'Joué en retard : il compte dans vos stats, mais pas au classement du jour.',
     back: 'Retour aux défis passés',
     today: 'Aujourd’hui',
-    toPlay: 'À jouer',
     inProgress: 'En cours',
     late: 'en retard',
     notFound: 'Il n’y a pas de défi ce jour-là.',

@@ -372,6 +372,8 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
       ? { elapsedMs: (state.finishedAt ?? new Date()).getTime() - state.game.startedAt.getTime() }
       : null
   const victory = state.phase === 'victory' ? ended : null
+  // Played late: a past day from the archive, not started on its day (never started, or started late).
+  const late = mode.kind === 'daily' && mode.archived !== undefined && (mode.archived === null || mode.archived.late)
   const freePlayHref = daily ? `/${sport}/free` : undefined
   const archiveHref = daily ? `/${sport}/archive` : undefined
 
@@ -476,6 +478,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           optimalLinks={daily?.optimalLinks}
           lives={state.lives === null ? undefined : { left: state.lives, total: DAILY_LIVES }}
           daily={daily ? { sport: daily.sport, day: daily.day } : undefined}
+          late={late}
           onShowSolution={daily ? showSolution : undefined}
           shareText={shareText ?? undefined}
           onPlayAgain={daily ? undefined : handlePlayAgain}

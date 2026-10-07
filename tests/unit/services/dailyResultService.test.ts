@@ -194,7 +194,7 @@ describe('getDailyLeaderboard', () => {
     expect(board).toEqual({
       day: '2026-07-16',
       total: 1,
-      podium: [{ rank: 1, username: 'hasty:prop:042', score: 0, durationMs: 61_000, late: false, you: true }],
+      podium: [{ rank: 1, username: 'hasty:prop:042', score: 0, durationMs: 61_000, you: true }],
       you: { rank: 1, outcome: 'won', score: 0, durationMs: 61_000, late: false },
     })
   })

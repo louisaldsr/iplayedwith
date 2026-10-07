@@ -1580,19 +1580,38 @@ body {
   color: var(--bg-base);
 }
 
-.archive-day--b0 .archive-day__status {
+.archive-day--done.archive-day--b0 .archive-day__status {
   background: linear-gradient(90deg, var(--win-gold-text), var(--win-gold));
   box-shadow: 0 0 12px var(--win-glow);
 }
 
-.archive-day--lost .archive-day__status {
+.archive-day--done.archive-day--lost .archive-day__status {
   color: #fff;
 }
 
-/* Still to play: plain, its badge an invitation. */
-.archive-day--to-play .archive-day__status {
-  border: 1px solid var(--accent);
-  color: var(--accent-hover);
+/* Finished late: an outline of its score's colour only, greyed — not the real thing. */
+.archive-day--late {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--tone) 35%, transparent);
+  border-left-style: solid;
+  border-left-color: color-mix(in srgb, var(--tone) 45%, transparent);
+  background: transparent;
+}
+
+.archive-day--late .archive-day__number,
+.archive-day--late .archive-day__main {
+  opacity: 0.6;
+}
+
+.archive-day--late .archive-day__status {
+  border: 1px solid color-mix(in srgb, var(--tone) 50%, transparent);
+  color: color-mix(in srgb, var(--tone) 60%, var(--text-muted));
+  filter: saturate(0.4);
+}
+
+.archive-day--late:hover {
+  border-color: color-mix(in srgb, var(--tone) 55%, transparent);
+  background: var(--bg-surface);
 }
 
 .archive-day--in-progress {
@@ -1606,7 +1625,11 @@ body {
 }
 
 .archive-day__late {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.7rem;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -2924,6 +2947,23 @@ body {
   }
 }
 
+/* Won late, from the archive: the same results, drained — a dull trophy, no gold. */
+.victory-dialog--late .victory-dialog__trophy {
+  filter: grayscale(1);
+  opacity: 0.45;
+  animation: none;
+}
+
+.victory-dialog--late .victory-dialog__heading {
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  color: var(--text-muted);
+}
+
+.victory-dialog--late .victory-score__value {
+  color: var(--text-muted);
+}
+
 /* ─── End bar: replaces the move input under a finished board — one way back to the results ─── */
 .won-bar {
   display: flex;
@@ -3347,17 +3387,14 @@ body {
   overflow-wrap: anywhere;
 }
 
-/* A winner who played the day late, from the archive: ranked after the on-time ones. */
-.daily-ranking__late {
-  flex-shrink: 0;
-  padding: 1px 8px;
-  border: 1px solid var(--border-active);
-  border-radius: 999px;
-  color: var(--text-muted);
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+/* Played late, from the archive: not ranked — said in a dashed, greyed box. */
+.daily-ranking__place--late {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed var(--border-active);
+  background: transparent;
 }
 
 .daily-ranking__you {

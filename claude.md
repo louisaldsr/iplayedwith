@@ -973,7 +973,8 @@ e2e : `/api/:sport/daily/ranking` est mocké **vide par défaut** dans `fixtures
 
 Chaque sport a sa page **`/[sport]/archive`** : tous les défis depuis le lancement, du plus récent au
 plus ancien — numéro, date, paire, et le résultat du visiteur **tel que le serveur l'a enregistré**
-(Parfait / +N aux couleurs des stats, Perdu, En cours, À jouer ; « en retard » le cas échéant).
+(Parfait / +N aux couleurs des stats, Perdu, En cours ; rien s'il n'a jamais été commencé ; « en retard »
+le cas échéant).
 Aujourd'hui renvoie vers `/[sport]` ; un jour passé se joue sur **`/[sport]/archive/[day]`**, comme le
 défi du jour (3 vies, mode facile, solution une fois fini). Liens : sous « Commencer » de chaque
 sport (Bloc 25 — plus dans le menu), pop-ups de fin, `DailyFinished`.
@@ -986,11 +987,11 @@ commencé à l'heure et fini le lendemain n'est pas en retard.
 
 - **Stats** : un jour en retard compte dans joués, victoires et la répartition des scores — **jamais
   dans les séries** (`dailyStats`) : un jour manqué ne se rattrape pas après coup.
-- **Classement du jour** : gagnants à l'heure (score, puis temps), **puis** gagnants en retard (score,
-  puis temps) — après tous les gagnants à l'heure, quel que soit leur score : ils jouent un jour
-  terminé, dont la chaîne a pu circuler. Puis les perdants, rang partagé. `daily_ranking` renvoie
-  `late` ; `daily:ranking` l'affiche, le podium (Bloc 22) le marque « en retard » (sur le podium
-  seulement s'il y a moins de trois gagnants à l'heure, ou à côté de « Votre rang »).
+- **Classement du jour : jamais en retard** (Bloc 26). Un jour terminé, dont la chaîne a pu circuler,
+  ne se classe pas : un résultat en retard, gagné ou perdu, n'est ni sur le podium, ni classé, ni dans
+  le total — « Joué en retard — hors du classement de ce jour ». `daily_ranking` (026) les classe
+  encore après les gagnants à l'heure ; `toLeaderboard` les retire et recompte le rang des perdants
+  (gagnants à l'heure + 1) — pas de migration. `npm run daily:ranking` montre toujours tout, `late` compris.
 - **Le podium de ce jour-là** : les pop-ups de fin et `DailyFinished` passent **leur** jour à
   `DailyRanking` (`POST /ranking` accepte `day`, jamais futur) — un jour passé montre son classement,
   pas celui d'aujourd'hui. Libellés « Classement de ce jour » sans « aujourd'hui » dès que le jour
@@ -1126,8 +1127,23 @@ e2e : `fulfillVisitorName` (`fixtures.ts`) répond au nom **avec** le `Set-Cooki
   les perdants (`daily_ranking` le donnait déjà), en rouge. Toujours hors du podium.
 - **Partager** : l'icône universelle (trois points reliés, SVG en `currentColor`) remplace « ↗ ».
 - **Archives** : un jour fini prend la couleur de son score (celles des stats : Parfait or, +1 vert,
-  +2 citron, +3 ambre, +4 orange, +5+ et Perdu rouge) — fond teinté, bordure, pastille pleine. À jouer :
-  pastille contour « À jouer › » ; en cours : bordure pointillée.
+  +2 citron, +3 ambre, +4 orange, +5+ et Perdu rouge) — fond teinté, bordure, pastille pleine. Jamais
+  commencé : aucune pastille (Bloc 26) ; en cours : bordure pointillée.
+
+## ✅ Bloc 26 terminé — Joué en retard : compté pour soi, jamais classé
+
+Le classement d'un jour est pour ceux qui l'ont joué **ce jour-là**. En retard, on joue, on finit, ça
+compte dans ses stats (pas dans les séries, Bloc 23) — mais on n'apparaît plus dans le classement de ce
+jour : ni podium, ni rang, ni total. `YourPlace.rank` est `null` pour un résultat en retard ;
+`PodiumEntry` perd `late`. Côté serveur seulement (`toLeaderboard`), sans migration.
+
+**Visuellement moins gratifiant**, exprès :
+- **Archives** : un jour fini en retard n'a qu'un **contour** de la couleur de son score, pointillé et
+  grisé (pas de fond, pastille en contour désaturée, pas de halo doré), texte estompé, « 🕒 en retard ».
+- **Victoire en retard** (`VictoryDialog` `late`) : « Réussi, mais en retard », trophée gris, score gris.
+  Le jeu le sait sans le serveur : un jour des archives jamais commencé, ou commencé en retard.
+- **Classement** : à la place du rang, une ligne pointillée « Joué en retard — hors du classement de ce jour ».
+- Jamais commencé, dans les archives : plus de pastille « À jouer », la ligne seule.
 
 ## Tests e2e — jamais la vraie base
 

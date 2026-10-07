@@ -151,6 +151,7 @@ const en = {
       noWinner: (total: number): string =>
         total === 0 ? 'Nobody has finished today yet.' : 'Nobody has won today yet.',
       yourRank: 'Your rank',
+      lateUnranked: 'Played late — not in this day’s ranking',
       place: (rank: number, total: number) => `${ordinal(rank)} / ${total}`,
       unfinished: (total: number) =>
         total === 0 ? 'Finish today to get your rank.' : `Finish today to get your rank · ${finished(total)}`,
@@ -161,10 +162,10 @@ const en = {
     pageTitle: (sport: string) => `Past challenges — ${sport}`,
     intro: 'Every daily challenge since the launch. Missed one? Play it now.',
     title: 'Challenge',
-    lateNote: 'Played late: it counts in your stats, marked late in the day’s ranking.',
+    wonLate: 'Solved, but late',
+    lateNote: 'Played late: it counts in your stats, but not in the day’s ranking.',
     back: 'Back to past challenges',
     today: 'Today',
-    toPlay: 'To play',
     inProgress: 'In progress',
     late: 'late',
     notFound: 'There is no challenge on that day.',

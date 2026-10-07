@@ -28,10 +28,14 @@ test('lists every day, newest first, with how the visitor did', async ({ page })
   await expect(days).toHaveCount(4)
   await expect(days.nth(0)).toContainText('#7')
   await expect(days.nth(0)).toContainText('Today')
-  await expect(days.nth(0)).toContainText('To play')
+  // Never started: no badge at all.
+  await expect(days.nth(0).locator('.archive-day__status')).toHaveCount(0)
   await expect(days.nth(1)).toContainText('Lost')
   await expect(days.nth(2)).toContainText('+1')
   await expect(days.nth(2)).toContainText('late')
+  // Finished on its day: filled with its score's colour. Finished late: only a greyed outline.
+  await expect(days.nth(1)).toHaveClass(/archive-day--done/)
+  await expect(days.nth(2)).toHaveClass(/archive-day--late/)
   await expect(days.nth(3)).toContainText('Alpha Testeur vs Bravo Éssai')
 
   // Today is played on its own page; a past day on its archive page.
@@ -60,7 +64,7 @@ test('plays a past day: Start and every move carry that day, and it ends like an
 
   await page.goto(`/rugby/archive/${pastDailyChallenge.day}`)
   await expect(page.getByRole('heading', { name: 'Challenge #4' })).toBeVisible()
-  await expect(page.getByText('Played late: it counts in your stats')).toBeVisible()
+  await expect(page.getByText('Played late: it counts in your stats, but not in the day’s ranking.')).toBeVisible()
 
   // The results show that day's ranking, not today's.
   const rankingAsked: Record<string, unknown>[] = []
@@ -68,7 +72,14 @@ test('plays a past day: Start and every move carry that day, and it ends like an
     (url) => url.pathname === '/api/rugby/daily/ranking',
     (route) => {
       rankingAsked.push(route.request().postDataJSON())
-      return route.fulfill({ json: { day: pastDailyChallenge.day, total: 0, podium: [], you: null } })
+      return route.fulfill({
+        json: {
+          day: pastDailyChallenge.day,
+          total: 0,
+          podium: [],
+          you: { rank: null, outcome: 'won', score: 0, durationMs: 30_000, late: true },
+        },
+      })
     },
   )
 
@@ -76,9 +87,13 @@ test('plays a past day: Start and every move carry that day, and it ends like an
   await page.getByPlaceholder('Player…').fill('cha')
   await page.locator('.autocomplete-item', { hasText: 'Charlie Lien' }).click()
   await page.getByRole('button', { name: 'Submit' }).click()
-  await expect(page.getByRole('heading', { name: 'Congratulations!' })).toBeVisible()
+  // Won late: told, but drained — not the real thing.
+  await expect(page.getByRole('heading', { name: 'Solved, but late' })).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveClass(/victory-dialog--late/)
   await expect(page.getByRole('dialog').getByRole('region', { name: 'Ranking of the day' })).toBeVisible()
   expect(rankingAsked[0]).toMatchObject({ day: pastDailyChallenge.day })
+  // Played late: no rank — the day's ranking is for those who played it on its day.
+  await expect(page.getByRole('dialog').getByText('Played late — not in this day’s ranking')).toBeVisible()
   await expect(page.getByRole('dialog').getByRole('link', { name: 'Past challenges' })).toHaveAttribute(
     'href',
     '/rugby/archive',

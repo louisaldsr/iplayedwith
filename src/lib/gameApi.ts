@@ -82,16 +82,20 @@ export function recordDailyHint(sport: SportId, day: string, visitorId: string, 
   }).catch(() => {})
 }
 
-/** Today's podium in the sport, and this visitor's place — `visitorId` null for the podium alone. */
+/**
+ * A day's podium in the sport — today's when `day` is left out — and this visitor's place;
+ * `visitorId` null for the podium alone.
+ */
 export async function getDailyLeaderboard(
   sport: SportId,
   visitorId: string | null,
+  day?: string,
   signal?: AbortSignal,
 ): Promise<DailyLeaderboard> {
   const res = await fetch(`/api/${sport}/daily/ranking`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ visitorId }),
+    body: JSON.stringify(day ? { visitorId, day } : { visitorId }),
     signal,
   })
   if (!res.ok) throw new Error(`/api/${sport}/daily/ranking failed with ${res.status}`)

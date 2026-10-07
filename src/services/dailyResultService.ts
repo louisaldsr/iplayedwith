@@ -100,8 +100,9 @@ export function getDailyRanking(db: SupabaseClient, sport: SportId, day: Challen
 }
 
 /**
- * What players see of today's ranking (Paris): the podium and the visitor's own place, out of
- * everyone who finished. `visitorId` is null for a browser without one: the podium alone.
+ * What players see of a day's ranking — today's (Paris) when `day` is left out, or a past one from
+ * the archive: the podium and the visitor's own place, out of everyone who finished. `visitorId` is
+ * null for a browser without one: the podium alone. Never a future day.
  *
  * Cut from the whole ranking, read in full: fine while a day has hundreds of results. When it has
  * thousands, move the cut into SQL.
@@ -110,10 +111,13 @@ export async function getDailyLeaderboard(
   db: SupabaseClient,
   sport: SportId,
   visitorId: VisitorId | null,
+  day?: ChallengeDay,
   now: Date = new Date(),
 ): Promise<DailyLeaderboard> {
-  const day = challengeDayOf(now)
-  return toLeaderboard(await dailyResultsRepo.ranking(db, sport, day), day, visitorId)
+  const today = challengeDayOf(now)
+  const wanted = day ?? today
+  if (!isPlayableDay(wanted, today)) throw new ConflictError(`${wanted} is not playable yet`)
+  return toLeaderboard(await dailyResultsRepo.ranking(db, sport, wanted), wanted, visitorId)
 }
 
 /** The visitor's stats in the sport — played, streaks, score distribution — as of today (Paris). */

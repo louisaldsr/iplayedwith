@@ -62,11 +62,23 @@ test('plays a past day: Start and every move carry that day, and it ends like an
   await expect(page.getByRole('heading', { name: 'Challenge #4' })).toBeVisible()
   await expect(page.getByText('Played late: it counts in your stats')).toBeVisible()
 
+  // The results show that day's ranking, not today's.
+  const rankingAsked: Record<string, unknown>[] = []
+  await page.route(
+    (url) => url.pathname === '/api/rugby/daily/ranking',
+    (route) => {
+      rankingAsked.push(route.request().postDataJSON())
+      return route.fulfill({ json: { day: pastDailyChallenge.day, total: 0, podium: [], you: null } })
+    },
+  )
+
   await page.getByRole('button', { name: 'Start' }).click()
   await page.getByPlaceholder('Player…').fill('cha')
   await page.locator('.autocomplete-item', { hasText: 'Charlie Lien' }).click()
   await page.getByRole('button', { name: 'Submit' }).click()
   await expect(page.getByRole('heading', { name: 'Congratulations!' })).toBeVisible()
+  await expect(page.getByRole('dialog').getByRole('region', { name: 'Ranking of the day' })).toBeVisible()
+  expect(rankingAsked[0]).toMatchObject({ day: pastDailyChallenge.day })
   await expect(page.getByRole('dialog').getByRole('link', { name: 'Past challenges' })).toHaveAttribute(
     'href',
     '/rugby/archive',

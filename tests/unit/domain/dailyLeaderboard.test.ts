@@ -36,7 +36,14 @@ describe('toLeaderboard', () => {
     const board = toLeaderboard([won(1, 1, 0), won(2, 2, 1), won(3, 3, 1), won(4, 4, 2), lost(5, 5)], day, null)
 
     expect(board.podium.map((e) => e.username)).toEqual(['name1', 'name2', 'name3'])
-    expect(board.podium[0]).toEqual({ rank: 1, username: 'name1', score: 0, durationMs: 60_000, you: false })
+    expect(board.podium[0]).toEqual({
+      rank: 1,
+      username: 'name1',
+      score: 0,
+      durationMs: 60_000,
+      late: false,
+      you: false,
+    })
   })
 
   it('never puts a loser on the podium — fewer winners, a shorter podium', () => {
@@ -60,13 +67,22 @@ describe('toLeaderboard', () => {
 
   it('gives a winner their rank, score and time — and marks them on the podium', () => {
     const board = toLeaderboard([won(1, 1, 0), won(2, 2, 1, 95_000)], day, visitor(2))
-    expect(board.you).toEqual({ rank: 2, outcome: 'won', score: 1, durationMs: 95_000 })
+    expect(board.you).toEqual({ rank: 2, outcome: 'won', score: 1, durationMs: 95_000, late: false })
     expect(board.podium.map((e) => e.you)).toEqual([false, true])
   })
 
   it('gives a loser the shared rank after the winners', () => {
     const board = toLeaderboard([won(1, 1, 0), lost(2, 2), lost(3, 2)], day, visitor(3))
     expect(board.you).toMatchObject({ rank: 2, outcome: 'lost', score: null })
+  })
+
+  it('marks a day played late — on the podium only after every on-time winner, as the ranking orders it', () => {
+    const board = toLeaderboard([won(1, 1, 0), { ...won(2, 2, 0), late: true }], day, visitor(2))
+    expect(board.podium.map((e) => [e.username, e.late])).toEqual([
+      ['name1', false],
+      ['name2', true],
+    ])
+    expect(board.you).toMatchObject({ rank: 2, late: true })
   })
 
   it('has no place for a visitor who has not finished the day', () => {

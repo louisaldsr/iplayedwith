@@ -155,6 +155,16 @@ const fr: Translations = {
     inProgress: 'En cours',
     late: 'en retard',
     notFound: 'Il n’y a pas de défi ce jour-là.',
+    ranking: {
+      title: 'Classement de ce jour',
+      noWinner: (total: number) =>
+        total === 0 ? 'Personne n’a encore fini ce défi.' : 'Personne n’a encore gagné ce défi.',
+      failed: (total: number) => `Plus de vies · ${finished(total)}`,
+      unfinished: (total: number) =>
+        total === 0
+          ? 'Finissez le défi pour avoir votre rang.'
+          : `Finissez le défi pour avoir votre rang · ${finished(total)}`,
+    },
     empty: 'Aucun défi pour l’instant.',
   },
   setup: {

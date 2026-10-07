@@ -39,7 +39,7 @@ export function DefeatDialog({ open, onClose, challenge, onShowSolution }: Props
         </button>
       </div>
 
-      <DailyRanking sport={challenge.sport} />
+      <DailyRanking sport={challenge.sport} day={challenge.day} />
       <DailyStats sport={challenge.sport} />
 
       {/* Game, ranking, stats, then what to do next — each part set apart. */}

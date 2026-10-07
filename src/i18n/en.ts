@@ -160,6 +160,16 @@ const en = {
     inProgress: 'In progress',
     late: 'late',
     notFound: 'There is no challenge on that day.',
+    ranking: {
+      title: 'Ranking of the day',
+      noWinner: (total: number): string =>
+        total === 0 ? 'Nobody has finished this challenge yet.' : 'Nobody has won this challenge yet.',
+      failed: (total: number) => `Out of lives · ${finished(total)}`,
+      unfinished: (total: number) =>
+        total === 0
+          ? 'Finish the challenge to get your rank.'
+          : `Finish the challenge to get your rank · ${finished(total)}`,
+    },
     empty: 'No challenge yet.',
   },
   setup: {

@@ -188,15 +188,29 @@ describe('getDailyLeaderboard', () => {
       },
     ])
 
-    const board = await getDailyLeaderboard(db, 'rugby', visitorId, now)
+    const board = await getDailyLeaderboard(db, 'rugby', visitorId, undefined, now)
 
     expect(repo.ranking).toHaveBeenCalledWith(db, 'rugby', '2026-07-16')
     expect(board).toEqual({
       day: '2026-07-16',
       total: 1,
-      podium: [{ rank: 1, username: 'hasty:prop:042', score: 0, durationMs: 61_000, you: true }],
-      you: { rank: 1, outcome: 'won', score: 0, durationMs: 61_000 },
+      podium: [{ rank: 1, username: 'hasty:prop:042', score: 0, durationMs: 61_000, late: false, you: true }],
+      you: { rank: 1, outcome: 'won', score: 0, durationMs: 61_000, late: false },
     })
+  })
+
+  it("reads a past day's ranking — the archive's", async () => {
+    repo.ranking.mockResolvedValue([])
+
+    const board = await getDailyLeaderboard(db, 'rugby', null, ChallengeDay('2026-07-02'), now)
+
+    expect(repo.ranking).toHaveBeenCalledWith(db, 'rugby', '2026-07-02')
+    expect(board).toEqual({ day: '2026-07-02', total: 0, podium: [], you: null })
+  })
+
+  it("refuses a future day — tomorrow's pair is drawn, and hidden", async () => {
+    await expect(getDailyLeaderboard(db, 'rugby', null, ChallengeDay('2026-07-17'), now)).rejects.toThrow(ConflictError)
+    expect(repo.ranking).not.toHaveBeenCalled()
   })
 })
 

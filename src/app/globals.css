@@ -3271,6 +3271,19 @@ body {
   overflow-wrap: anywhere;
 }
 
+/* A winner who played the day late, from the archive: ranked after the on-time ones. */
+.daily-ranking__late {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border: 1px solid var(--border-active);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .daily-ranking__you {
   flex-shrink: 0;
   padding: 1px 8px;

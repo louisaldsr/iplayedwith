@@ -72,7 +72,7 @@ export function DailyFinished({ challenge, outcome, livesLeft }: Props) {
       </div>
       <p className="daily-finished__note">{t.daily.boardNotKept}</p>
       <p className="daily-finished__tomorrow">{t.daily.comeBackTomorrow}</p>
-      <DailyRanking sport={challenge.sport} />
+      <DailyRanking sport={challenge.sport} day={challenge.day} />
       <DailyStats sport={challenge.sport} />
       <div className="daily-finished__actions">
         <Link href={`/${challenge.sport}/free`} className="btn btn--primary">

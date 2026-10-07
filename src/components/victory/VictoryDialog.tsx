@@ -122,7 +122,7 @@ export function VictoryDialog({
         )}
       </div>
 
-      {daily && <DailyRanking sport={daily.sport} />}
+      {daily && <DailyRanking sport={daily.sport} day={daily.day} />}
       {daily && <DailyStats sport={daily.sport} />}
 
       {/* Game, ranking, stats, then what to do next — each part set apart. */}

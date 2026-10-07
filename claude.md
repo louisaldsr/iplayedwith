@@ -1057,8 +1057,11 @@ iplayedwith.com/rugby/412
 ### Le lien `/[sport]/[n]` et sa carte
 
 - Le lien **nomme le jour** : les messageries gardent un aperçu par URL, `/rugby` seul afficherait
-  la carte d'un autre jour. La page ouvre **le défi d'aujourd'hui** (celui qu'un ami peut jouer) ;
-  canonique sur `/[sport]`, une seule page à indexer.
+  la carte d'un autre jour. La page ouvre **ce jour-là** : un jour passé se joue comme depuis les
+  archives (Bloc 23 — `ArchivedChallengePage` le trouve par numéro), aujourd'hui renvoie vers
+  `/[sport]`, un numéro que les archives ne donnent pas (pas encore atteint, archives en échec) aussi :
+  un lien mène toujours à une partie. Trouvé **dans le navigateur** : la page n'attend jamais la base.
+  Canonique sur `/[sport]`, une seule page à indexer.
 - **Carte** (`src/app/[sport]/[number]/opengraph-image.tsx`, `next/og`) : « Daily challenge #N ·
   Rugby », A et B en cartes dorées, « Can you link them? ». **La même pour tous** : le résultat perso
   voyage dans le texte. En anglais (le serveur ne connaît pas la langue du destinataire). Archivo
@@ -1071,7 +1074,8 @@ iplayedwith.com/rugby/412
 - Trouvée : `Cache-Control` immuable (une paire tirée ne bouge plus). Introuvable ou base en panne :
   carte sans noms (« Player A / B »), 5 min de cache ; erreur seulement loguée.
 
-e2e (`share.spec.ts`) : texte copié (presse-papiers simulé), gagné et perdu ; le lien ouvre le défi ;
+e2e (`share.spec.ts`) : texte copié (presse-papiers simulé), gagné et perdu ; le lien ouvre son jour
+(passé, aujourd'hui, introuvable) ;
 balises de la page ; la carte en base injoignable (200, cache court) ; 404 sur un numéro invalide.
 
 ---

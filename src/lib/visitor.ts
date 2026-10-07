@@ -7,13 +7,16 @@
  *
  * `playerId` is an anonymous random id, minted on the first visit. The server keeps the daily
  * results under it, and gives it a generated username (`ipw.name` caches it). Nothing else leaves the
- * browser.
+ * browser. The server also keeps it in a cookie (`visitorCookie.ts`): when Safari purges
+ * `localStorage` after a week away, the id comes back from there, with the name and the results.
  *
  * Storage can throw rather than return null — Safari in private mode, a browser set to block site
  * data. Every access is guarded, and a failure reads as a returning visitor who has seen the
  * rules: better to skip the pop-up than to reopen it on every page because the "seen" flag can
  * never be written.
  */
+
+import { visitorIdFromCookies } from '@/lib/visitorCookie'
 
 const PLAYER_ID_KEY = 'ipw.playerId'
 const RULES_SEEN_KEY = 'ipw.rulesSeen'
@@ -29,7 +32,7 @@ export const RULES_VERSION = 2
 export type Visitor = {
   /** Anonymous id of this browser, stable across visits. Empty when storage is unavailable. */
   playerId: string
-  /** True only on the very first read in this browser — the id did not exist before it. */
+  /** True only on the very first read in this browser — the id did not exist before it, nor its cookie. */
   isFirstVisit: boolean
   /** Whether the current version of the rules has been shown and closed. */
   rulesSeen: boolean
@@ -53,14 +56,28 @@ function randomId(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
-/** Reads the visitor, creating the anonymous id on the first visit. */
+/** The id in the visitor cookie, or null. */
+function readCookieId(): string | null {
+  try {
+    return visitorIdFromCookies(document.cookie)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Reads the visitor, creating the anonymous id on the first visit. An id missing from storage but
+ * still in the cookie is put back: a returning visitor whose storage was purged, not a new one.
+ */
 export function readVisitor(): Visitor {
   try {
     const storage = window.localStorage
     let playerId = storage.getItem(PLAYER_ID_KEY)
-    const isFirstVisit = playerId === null
+    let isFirstVisit = false
     if (playerId === null) {
-      playerId = randomId()
+      const restored = readCookieId()
+      isFirstVisit = restored === null
+      playerId = restored ?? randomId()
       storage.setItem(PLAYER_ID_KEY, playerId)
     }
     const rulesSeen = Number(storage.getItem(RULES_SEEN_KEY)) >= RULES_VERSION
@@ -68,6 +85,14 @@ export function readVisitor(): Visitor {
   } catch {
     return UNAVAILABLE
   }
+}
+
+/**
+ * Whether the server has already set the cookie for this id. Until it has, the name is asked again
+ * (`useUsername`): that request is what sets it — a visitor from before the cookie gets it so.
+ */
+export function hasVisitorCookie(playerId: string): boolean {
+  return readCookieId() === playerId
 }
 
 const NAME_KEY = 'ipw.name'

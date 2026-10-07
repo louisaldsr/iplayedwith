@@ -4,12 +4,14 @@ import { isVisitorId } from '@/domain/dailyResult'
 import { ensureUsername, renameVisitor } from '@/services/visitorService'
 import { ValidationError } from '@/services/errors'
 import { toErrorResponse } from '@/lib/apiErrors'
+import { setVisitorCookie } from '@/lib/visitorCookie'
 
 /**
  * POST /api/visitor  — body `{ visitorId }`
  *
  * The visitor's username `{ username }` — generated on first call, the same on every later one.
  * The client formats it (`formatUsername`). The menu shows it; the browser caches it, so this runs about once per browser.
+ * Also sets the visitor cookie (`src/lib/visitorCookie.ts`), the copy of the id that survives Safari's storage purge.
  *
  * A POST, since the first call creates the visitor.
  */
@@ -19,7 +21,9 @@ export async function POST(req: NextRequest) {
     if (!isVisitorId(body?.visitorId)) throw new ValidationError('visitorId must be a UUID')
 
     const username = await ensureUsername(supabaseAdmin(), body.visitorId)
-    return NextResponse.json({ username }, { headers: { 'Cache-Control': 'no-store' } })
+    const res = NextResponse.json({ username }, { headers: { 'Cache-Control': 'no-store' } })
+    setVisitorCookie(res, req.nextUrl, body.visitorId)
+    return res
   } catch (err) {
     return toErrorResponse(err)
   }

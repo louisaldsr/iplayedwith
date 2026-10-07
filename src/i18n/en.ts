@@ -60,7 +60,7 @@ const en = {
     dataCaveat: 'An independent fan project. Records may be incomplete.',
     privacyTitle: 'Privacy',
     privacy:
-      'No account, no cookies. Visits are counted anonymously (pages, countries, where visitors come from), never tied to you.',
+      'No account. One cookie, holding the anonymous id your results are kept under, so they survive a browser that clears its storage; no tracking. Visits are counted anonymously (pages, countries, where visitors come from), never tied to you.',
     madeByTitle: 'Made by',
     contactSoon: 'contact form coming soon.',
     back: 'Back to the menu',

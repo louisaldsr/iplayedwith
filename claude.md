@@ -944,9 +944,12 @@ Le classement n'était lisible que par `npm run daily:ranking`. Les joueurs en v
 - **Podium = gagnants seulement** (score puis temps), 🥇🥈🥉 ; moins de trois gagnants, podium plus
   court. Égalité : rang partagé, même médaille ; une égalité sur la 3ᵉ marche est coupée par l'heure de
   fin (le premier arrivé reste). Le visiteur y est marqué « Vous ».
-- **Son rang** : « Vous êtes 12ᵉ sur 87 » (gagné) · « Plus de vies aujourd'hui · 87 joueurs ont fini »
-  (perdu : pas de rang, les perdants le partagent) · « Finissez le défi pour avoir votre rang » (en
-  cours). Le total compte **tous les résultats finis**, perdants compris.
+- **Son rang** : « Votre rang **12ᵉ / 87** » (gagné) · « Plus de vies aujourd'hui · 87 joueurs ont
+  fini » (perdu : pas de rang, les perdants le partagent) · « Finissez le défi pour avoir votre rang »
+  (en cours). Le total compte **tous les résultats finis**, perdants compris.
+- **Le récap de fin en sections** (pop-ups de victoire et de défaite) : la partie (titre, score,
+  chaîne, temps, vies) → **Classement du jour** → **Vos stats** → les boutons. Les titres de section
+  servent de séparateurs (« ── VOS STATS ── ») ; un trait isole les boutons.
 - **Pas de migration** : `toLeaderboard` (`src/domain/dailyLeaderboard.ts`) découpe `daily_ranking`
   (022) côté serveur. Lu en entier : à déplacer en SQL quand un jour aura des milliers de résultats.
 - **Ne sort jamais** : l'id d'un autre visiteur (il permet de le renommer) ni une chaîne gagnante

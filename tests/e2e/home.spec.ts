@@ -72,7 +72,7 @@ test("the menu opens today's ranking: the podium and the visitor's place, a tab 
   await expect(podium.nth(1)).toContainText('Dupont')
   await expect(podium.nth(1)).toContainText('+1')
   await expect(podium.nth(2)).toContainText('Anonymous')
-  await expect(rugby.getByText('You are 5th of 12')).toBeVisible()
+  await expect(rugby.locator('.daily-ranking__place')).toHaveText('Your rank5th / 12')
 
   // Football is mocked empty by default.
   await dialog.getByRole('tab', { name: 'Football' }).click()

@@ -74,7 +74,16 @@ export function DailyRanking({ sport, heading }: Props) {
       )}
 
       <p className={`daily-ranking__place${you ? ` daily-ranking__place--${you.outcome}` : ''}`}>
-        {!you ? r.unfinished(total) : you.outcome === 'won' ? r.place(you.rank, total) : r.failed(total)}
+        {you?.outcome === 'won' ? (
+          <>
+            <span className="daily-ranking__place-label">{r.yourRank}</span>
+            <strong className="daily-ranking__place-value">{r.place(you.rank, total)}</strong>
+          </>
+        ) : you ? (
+          r.failed(total)
+        ) : (
+          r.unfinished(total)
+        )}
       </p>
     </section>
   )

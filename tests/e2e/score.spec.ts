@@ -41,7 +41,7 @@ test('winning the daily shows the score, the ranking and the stats, today lit', 
 
   const ranking = results.getByRole('region', { name: "Today's ranking" })
   await expect(ranking.getByRole('list', { name: 'Podium' }).getByRole('listitem')).toHaveCount(3)
-  await expect(ranking.getByText('You are 5th of 12')).toBeVisible()
+  await expect(ranking.getByText('5th / 12')).toBeVisible()
 
   const stats = results.getByRole('region', { name: 'Your stats' })
   await expect(stats.locator('.daily-stats__bar--today')).toContainText('Perfect')
@@ -62,7 +62,7 @@ test('a lost day shows the ranking and the stats on its finished screen', async 
   await page.goto('/rugby')
 
   await expect(page.getByRole('heading', { name: 'Out of lives' })).toBeVisible()
-  await expect(page.getByText('Out of lives today · 12 players finished today')).toBeVisible()
+  await expect(page.getByText('Out of lives today · 12 players finished')).toBeVisible()
   await expect(page.getByRole('region', { name: 'Your stats' }).locator('.daily-stats__bar--today')).toContainText(
     'Lost',
   )

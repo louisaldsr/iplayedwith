@@ -7,7 +7,7 @@ function ordinal(n: number): string {
   return `${n}${suffix}`
 }
 
-const finished = (total: number) => `${total} ${total === 1 ? 'player' : 'players'} finished today`
+const finished = (total: number) => `${total} ${total === 1 ? 'player' : 'players'} finished`
 
 const en = {
   home: {
@@ -138,7 +138,8 @@ const en = {
       you: 'You',
       noWinner: (total: number): string =>
         total === 0 ? 'Nobody has finished today yet.' : 'Nobody has won today yet.',
-      place: (rank: number, total: number) => `You are ${ordinal(rank)} of ${total}`,
+      yourRank: 'Your rank',
+      place: (rank: number, total: number) => `${ordinal(rank)} / ${total}`,
       failed: (total: number) => `Out of lives today · ${finished(total)}`,
       unfinished: (total: number) =>
         total === 0 ? 'Finish today to get your rank.' : `Finish today to get your rank · ${finished(total)}`,

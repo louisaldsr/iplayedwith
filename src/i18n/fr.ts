@@ -1,6 +1,6 @@
 import type { Translations } from './en'
 
-const finished = (total: number) => `${total} ${total === 1 ? 'joueur a fini' : 'joueurs ont fini'} aujourd’hui`
+const finished = (total: number) => `${total} ${total === 1 ? 'joueur a fini' : 'joueurs ont fini'}`
 
 const fr: Translations = {
   home: {
@@ -131,7 +131,8 @@ const fr: Translations = {
       you: 'Vous',
       noWinner: (total: number) =>
         total === 0 ? 'Personne n’a encore fini aujourd’hui.' : 'Personne n’a encore gagné aujourd’hui.',
-      place: (rank: number, total: number) => `Vous êtes ${rank === 1 ? '1ᵉʳ' : `${rank}ᵉ`} sur ${total}`,
+      yourRank: 'Votre rang',
+      place: (rank: number, total: number) => `${rank === 1 ? '1ᵉʳ' : `${rank}ᵉ`} / ${total}`,
       failed: (total: number) => `Plus de vies aujourd’hui · ${finished(total)}`,
       unfinished: (total: number) =>
         total === 0

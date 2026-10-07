@@ -36,6 +36,9 @@ export function DefeatDialog({ open, onClose, challenge, onShowSolution }: Props
       <DailyRanking sport={challenge.sport} />
       <DailyStats sport={challenge.sport} />
 
+      {/* Game, ranking, stats, then what to do next — each part set apart. */}
+      <hr className="victory-dialog__divider" />
+
       <div className="victory-dialog__actions">
         <button type="button" className="btn btn--ghost btn--lg" onClick={onClose}>
           {t.victory.viewBoard}

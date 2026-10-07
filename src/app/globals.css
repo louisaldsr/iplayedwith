@@ -2654,6 +2654,13 @@ body {
   animation: trophy-bounce 0.9s 0.2s ease-out both;
 }
 
+.victory-dialog__divider {
+  width: min(420px, 100%);
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+  margin: 0;
+}
+
 .victory-dialog__actions {
   display: flex;
   flex-wrap: wrap;
@@ -2825,10 +2832,26 @@ body {
   text-align: left;
 }
 
-.daily-stats__heading {
-  font-size: 1rem;
+/* The recap's section titles double as its separators: a label on a line, "── Your stats ──". */
+.daily-stats__heading,
+.daily-ranking__heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
-  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.daily-stats__heading::before,
+.daily-stats__heading::after,
+.daily-ranking__heading::before,
+.daily-ranking__heading::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
 }
 
 .daily-stats__empty {
@@ -3007,12 +3030,6 @@ body {
   text-align: left;
 }
 
-.daily-ranking__heading {
-  font-size: 1rem;
-  font-weight: 700;
-  text-align: center;
-}
-
 .daily-ranking__empty {
   padding: 12px 0;
   font-size: 0.9rem;
@@ -3104,6 +3121,16 @@ body {
   color: var(--text-muted);
 }
 .daily-ranking__place--won {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+}
+
+.daily-ranking__place-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary);
 }
 

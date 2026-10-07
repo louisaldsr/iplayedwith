@@ -118,6 +118,13 @@ const en = {
       extra === 0
         ? 'Shortest chain found'
         : `${extra} ${extra === 1 ? 'player' : 'players'} more than the shortest chain`,
+    share: {
+      button: 'Share',
+      copied: 'Copied — paste it to your friends!',
+      failed: 'Could not copy — try again.',
+      title: (sport: string, number: number) => `I Played With · ${sport} #${number}`,
+      dare: 'Can you do better?',
+    },
     solution: {
       show: 'Show the proposed solution',
       toggle: 'Proposed Solution',

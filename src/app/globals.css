@@ -3007,6 +3007,56 @@ body {
   padding: 7px 16px;
 }
 
+/* ─── Share: a finished daily's message, to the share sheet or the clipboard ─── */
+.share-button {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.btn--share {
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 18px var(--accent-dim);
+}
+
+.btn--share:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn--share-done {
+  background: var(--success);
+  color: var(--bg-base);
+}
+
+/* Under the button, out of the flow: "Copied" never pushes the layout around. */
+.share-button__feedback {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--success);
+  pointer-events: none;
+}
+
+.share-button__feedback--failed {
+  color: var(--error);
+}
+
+/* The end bar sits at the bottom of the screen: the feedback goes above. */
+.won-bar .share-button__feedback {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.victory-score__share {
+  margin-top: 10px;
+}
+
 /* ─── Daily stats: results pop-up, finished screen, menu ─── */
 .daily-stats {
   display: flex;

@@ -1031,6 +1031,55 @@ e2e : `/api/:sport/daily/archive` n'est **pas** mocké par défaut — `archive.
 
 ---
 
+## ✅ Bloc 24 terminé — Partager son défi
+
+Une journée finie, gagnée ou perdue, se partage en un clic : bouton **Partager** dans les pop-ups de
+victoire et de défaite (sous le score et la solution) et dans la barre de fin. **Rien n'est stocké** :
+le message est bâti dans le navigateur depuis le plateau gardé (`dailyShareText`, `src/lib/dailyShare.ts`).
+
+```
+I Played With · Rugby #412
+Antoine Dupont → Siya Kolisi
+🟩⬜🟩⬜
++2 · ❤️❤️🤍 · 4:37
+2 players more than the shortest chain
+iplayedwith.com/rugby/412
+```
+
+- **Jamais de spoiler** : A et B sont publics dès l'intro ; les joueurs ajoutés sont des **carrés**,
+  dans l'ordre d'ajout — 🟩 sur la chaîne gagnante, ⬜ cul-de-sac. Perdu : tout est ⬜ (pas de chaîne),
+  puis « 💔 Plus de vies · 🤍🤍🤍 » et « Ferez-vous mieux ? ». Les ratés ne sont que les cœurs : le
+  plateau ne garde pas leur ordre.
+- **Langue du partageur** (`t.daily.share`).
+- **Téléphone** (pointeur grossier) : feuille de partage native (`navigator.share`) ; fermée = rien.
+  **Ordinateur** : presse-papiers, « Copié » sous le bouton.
+
+### Le lien `/[sport]/[n]` et sa carte
+
+- Le lien **nomme le jour** : les messageries gardent un aperçu par URL, `/rugby` seul afficherait
+  la carte d'un autre jour. La page ouvre **ce jour-là** : un jour passé se joue comme depuis les
+  archives (Bloc 23 — `ArchivedChallengePage` le trouve par numéro), aujourd'hui renvoie vers
+  `/[sport]`, un numéro que les archives ne donnent pas (pas encore atteint, archives en échec) aussi :
+  un lien mène toujours à une partie. Trouvé **dans le navigateur** : la page n'attend jamais la base.
+  Canonique sur `/[sport]`, une seule page à indexer.
+- **Carte** (`src/app/[sport]/[number]/opengraph-image.tsx`, `next/og`) : « Daily challenge #N ·
+  Rugby », A et B en cartes dorées, « Can you link them? ». **La même pour tous** : le résultat perso
+  voyage dans le texte. En anglais (le serveur ne connaît pas la langue du destinataire). Archivo
+  Medium / ExtraBold dans `brand/fonts/` (OFL).
+- **Dégradé vertical seulement** : un halo radial triplait le PNG (314 Ko) au-delà des ~300 Ko sous
+  lesquels WhatsApp affiche l'aperçu ; vertical, ~77 Ko.
+- Lu par `getSharedChallenge` → `findByNumber` (sans la colonne `solution`, testé). **Un numéro au-delà
+  d'aujourd'hui = null** : le défi de demain est déjà tiré, un lien ne doit pas le montrer avant minuit.
+  Jamais de tirage depuis un lien.
+- Trouvée : `Cache-Control` immuable (une paire tirée ne bouge plus). Introuvable ou base en panne :
+  carte sans noms (« Player A / B »), 5 min de cache ; erreur seulement loguée.
+
+e2e (`share.spec.ts`) : texte copié (presse-papiers simulé), gagné et perdu ; le lien ouvre son jour
+(passé, aujourd'hui, introuvable) ;
+balises de la page ; la carte en base injoignable (200, cache court) ; 404 sur un numéro invalide.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -1108,14 +1157,15 @@ Saisie user
 29. Appliquer `015_daily_results.sql` (contrôles en bas du fichier), jouer quelques jours, lire
     `npm run daily:ranking` — ~~puis afficher le classement aux joueurs~~ (podium + rang, Bloc 22)
 30. ~~Vrai score du défi~~ (joueurs en trop, Bloc 19) ; reste : trancher la fame des joueurs de la
-    chaîne (simuler départage vs bonus sur les chaînes stockées), grille de partage 🟩🟨🟥
+    chaîne (simuler départage vs bonus sur les chaînes stockées), ~~grille de partage~~ (Bloc 24)
 31. Appliquer `016_daily_hints.sql` après `015` ; puis faire entrer les indices dans le vrai score
     (badge « sans indice » ou bonus), et envisager un indice plus fort payant (« un coéquipier de
     X chez C en S », contre une vie) pour les joueurs vraiment bloqués
 32. Appliquer `017_visitors.sql` ; ~~puis afficher le classement du jour aux joueurs~~ (Bloc 22)
 33. ~~Comptes~~ — plus prévus pour l’instant, le visiteur anonyme suffit (Bloc 22) ; reste : filtre de mots des
     pseudos (FR/EN, leetspeak, noms de vrais joueurs), maintenant que le podium est public
-34. Carte de partage par défi (`/[sport]/opengraph-image`, « Défi du jour #N · Rugby »)
+34. ~~Carte de partage par défi~~ (`/[sport]/[n]`, Bloc 24) ; reste : un aperçu avec le résultat
+    perso (paramètres d'URL, falsifiables) si le texte seul ne suffit pas
 34. Appliquer `018_visitor_number.sql` (après `017`) et ses contrôles
 35. ~~Appliquer `020_visitor_username.sql`~~ ; appliquer `021_visitor_rename.sql` (le renommage
     échoue en prod tant qu'il manque), puis ses contrôles

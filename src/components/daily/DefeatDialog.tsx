@@ -6,6 +6,7 @@ import { useTranslations } from '../../i18n'
 import { Modal } from '../shared/Modal'
 import { DailyStats } from './DailyStats'
 import { DailyRanking } from './DailyRanking'
+import { ShareButton } from './ShareButton'
 
 type Props = {
   open: boolean
@@ -14,6 +15,8 @@ type Props = {
   challenge: DailyChallenge
   /** Closes the results and lays the proposed solution over the board. */
   onShowSolution: () => void
+  /** The message the day is shared with. */
+  shareText?: string
 }
 
 /**
@@ -21,7 +24,7 @@ type Props = {
  * the last life lost and leads to the proposed solution: the chain that was missed, shown on the
  * visitor's own board.
  */
-export function DefeatDialog({ open, onClose, challenge, onShowSolution }: Props) {
+export function DefeatDialog({ open, onClose, challenge, onShowSolution, shareText }: Props) {
   const t = useTranslations()
   return (
     <Modal open={open} onClose={onClose} labelledBy="defeat-title" className="victory-dialog defeat-dialog">
@@ -37,6 +40,7 @@ export function DefeatDialog({ open, onClose, challenge, onShowSolution }: Props
         <button type="button" className="btn btn--solution btn--sm victory-score__solution" onClick={onShowSolution}>
           {t.daily.solution.show}
         </button>
+        {shareText && <ShareButton text={shareText} className="victory-score__share" />}
       </div>
 
       <DailyRanking sport={challenge.sport} day={challenge.day} />

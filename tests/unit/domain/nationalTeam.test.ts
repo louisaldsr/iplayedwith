@@ -10,6 +10,10 @@ describe('nationalTeamFor', () => {
     expect(nationalTeamFor(Nationality('GB-NIR'), 'football')).toBe('GB-NIR')
   })
 
+  it('resolves Northern Ireland to Great Britain for basketball', () => {
+    expect(nationalTeamFor(Nationality('GB-NIR'), 'basketball')).toBe('GB')
+  })
+
   it('leaves other nationalities unchanged regardless of sport', () => {
     expect(nationalTeamFor(Nationality('GB-SCT'), 'rugby')).toBe('GB-SCT')
     expect(nationalTeamFor(Nationality('GB-SCT'), 'football')).toBe('GB-SCT')

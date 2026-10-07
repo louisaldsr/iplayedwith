@@ -24,6 +24,8 @@ describe('sitemap.xml', () => {
       'https://iplayedwith.com/rugby/free',
       'https://iplayedwith.com/football',
       'https://iplayedwith.com/football/free',
+      'https://iplayedwith.com/basketball',
+      'https://iplayedwith.com/basketball/free',
       'https://iplayedwith.com/about',
     ])
   })
@@ -45,6 +47,6 @@ describe('page metadata', () => {
   })
 
   it('gives an unknown sport nothing (the page 404s)', async () => {
-    await expect(sportMetadata(params('basketball'))).resolves.toEqual({})
+    await expect(sportMetadata(params('curling'))).resolves.toEqual({})
   })
 })

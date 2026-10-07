@@ -1259,6 +1259,52 @@ partout où un club est lu (`findManyByIds` le sélectionne) : **aucun changemen
   
 ---
 
+## Bloc 31 — Basketball (NBA, 1979-80 → 2025-26)
+
+### La liste des sports devient une donnée
+
+`027_sports_table.sql` : table `sports`, FK depuis les cinq tables racines qui portent `sport`
+(`players`, `clubs`, `prestige_competitions`, `nation_tiers`, `fame_calibration`). Les six
+`CHECK (sport IN ('rugby','football'))` disparaissent ; les autres tables héritent du sport par
+leurs FK composites. Ajouter un sport = un `INSERT INTO sports`.
+
+### Étapes de seed communes
+
+`scripts/common/seedSteps.ts` (`seedClubs` / `seedPlayers` / `seedMemberships`) lit un
+`SeedDataset` neutre, indexé par `sourceId`. Chaque sport garde un script d'entrée minimal qui
+charge son propre dataset. Le football passe par `toSeedDataset()` : fichiers et maps d'IDs
+inchangés, sortie `--dry-run` identique à l'octet près.
+
+### Source : Basketball-Reference
+
+Pas de mur Cloudflare (contrairement à FBref). Deux types de pages :
+`/leagues/NBA_{année}_totals.html` (saison régulière + playoffs, une ligne par joueur et par
+équipe) et `/teams/{abbr}/{année}.html` (nom de l'équipe cette saison-là, logo, pays de naissance).
+Limite du site : 20 req/min, au-delà l'IP est bannie 1 h, d'où un délai de 3,5 s et l'arrêt sur
+429. 1 361 pages en cache dans `scripts/input/basketball/` (≈ 1 h 40 la première fois).
+
+Un club = un **nom d'équipe**, ni une abréviation ni une franchise : SuperSonics et Thunder
+restent deux clubs (le joueur tape le nom de l'époque). `games` = saison régulière + playoffs.
+Dataset : 39 clubs, 3 820 joueurs, 23 047 memberships. `nationality` = **pays de naissance**
+(Tony Parker sort belge) — seule donnée de la source.
+
+```
+seed:basketball:fetch → :build → :clubs → :players → :memberships   puis 028 (alias)
+```
+
+### ⚠️ Seeder les memberships lance le défi du jour
+
+`ensure_daily_challenges` (cron horaire) tire un défi pour chaque sport présent dans
+`memberships` : le premier tirage basketball fixe son #1. Sans scores de fame, le tirage retombe
+sur deux joueurs connectés quelconques. La fame basketball (v3) doit donc précéder `:memberships`
+— ou le lancement est assumé tel quel.
+
+### Fame basketball — reste à faire
+
+Ligne `fame_calibration` basketball (sans elle `compute_fame_scores` refuse de tourner) ; `starts`
+et `minutes` par membership (colonnes `gs` et `mp` de la même page totals) ; titres NBA dans
+`club_titles` ; `fame:exposure` pour les vues Wikipedia. Pas de caps dans la source : `P_intl` à 0.
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -1359,3 +1405,7 @@ Saisie user
     (requêtes « i played with », pages indexées) et ajouter des liens vers le site
 40. Appliquer `026_daily_archive.sql` **avant** de déployer les archives, puis ses contrôles ; lire
     `npm run daily:ranking -- --day=…` sur un jour joué en retard (colonne `late`)
+41. Basketball (Bloc 31) : appliquer `027`, fame basketball v3, puis `:clubs` → `:players` →
+    `:memberships` (lance le défi du jour), `028`, et merger la branche
+42. F1 : source Jolpica-F1 (successeur d'Ergast) ; `Season` en `YYYY-YYYY` ne colle pas à une
+    saison sur une seule année — décision domaine à prendre d'abord

@@ -20,7 +20,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('free-play setup screen', () => {
-  for (const sport of ['rugby', 'football'] as const) {
+  for (const sport of ['rugby', 'football', 'basketball'] as const) {
     test(`${sport} setup screen renders without loading a dataset`, async ({ page }) => {
       await page.goto(`/${sport}/free`)
       await expect(page.getByPlaceholder('Search a player…').first()).toBeVisible()
@@ -114,7 +114,7 @@ test.describe('daily challenge', () => {
   })
 
   test('an unknown sport is refused', async ({ request }) => {
-    const res = await request.get('/api/basketball/daily')
+    const res = await request.get('/api/curling/daily')
     expect(res.status()).toBe(404)
   })
 })

@@ -8,7 +8,7 @@ describe('isSportId', () => {
   })
 
   it('rejects an unknown sport', () => {
-    expect(isSportId('basketball')).toBe(false)
+    expect(isSportId('curling')).toBe(false)
   })
 
   it('rejects an empty string', () => {

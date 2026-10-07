@@ -212,5 +212,5 @@ test('the solution is refused before any database access without a proper visito
     const res = await request.post('/api/rugby/daily/solution', { data })
     expect(res.status()).toBe(400)
   }
-  expect((await request.post('/api/basketball/daily/solution', { data: {} })).status()).toBe(404)
+  expect((await request.post('/api/curling/daily/solution', { data: {} })).status()).toBe(404)
 })

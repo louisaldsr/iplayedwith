@@ -12,7 +12,7 @@ import { VisitorBadge } from './VisitorBadge'
 import { StatsDialog } from './StatsDialog'
 import { RankingDialog } from './RankingDialog'
 
-const SPORT_ICONS: Record<SportId, string> = { rugby: '🏉', football: '⚽' }
+const SPORT_ICONS: Record<SportId, string> = { rugby: '🏉', football: '⚽', basketball: '🏀' }
 
 /**
  * The home screen, as the game's main menu.

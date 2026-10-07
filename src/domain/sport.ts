@@ -1,4 +1,4 @@
-export const SPORTS = ['rugby', 'football'] as const
+export const SPORTS = ['rugby', 'football', 'basketball'] as const
 
 export type SportId = (typeof SPORTS)[number]
 

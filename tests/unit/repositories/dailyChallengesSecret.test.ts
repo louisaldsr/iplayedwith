@@ -1,4 +1,4 @@
-import { getOrGenerate, listUpTo } from '@/repositories/dailyChallengesRepository'
+import { findByNumber, getOrGenerate, listUpTo } from '@/repositories/dailyChallengesRepository'
 import { getDailyChallenge } from '@/services/dailyChallengeService'
 import * as playersRepo from '@/repositories/playersRepository'
 import { ChallengeDay } from '@/domain/dailyChallenge'
@@ -38,13 +38,14 @@ describe("the day's solution before the end", () => {
   })
 })
 
-describe('the archive', () => {
+describe('the archive and shared links', () => {
   // A query builder that records the columns asked for, and answers with the whole row anyway.
   function recordingDb() {
     const selects: string[] = []
     const builder: Record<string, unknown> = {}
     for (const method of ['eq', 'lte', 'order']) builder[method] = () => builder
     builder.then = (resolve: (v: unknown) => void) => resolve({ data: [row], error: null })
+    builder.maybeSingle = () => Promise.resolve({ data: row, error: null })
     const db = {
       from: () => ({
         select: (columns: string) => {
@@ -62,5 +63,13 @@ describe('the archive', () => {
     expect(selects).toHaveLength(1)
     expect(selects[0]).not.toMatch(/solution|\*/)
     expect(JSON.stringify(result)).not.toContain('p-secret')
+  })
+
+  it('reads a shared day by its number without the solution', async () => {
+    const { db, selects } = recordingDb()
+    const stored = await findByNumber(db, 'rugby', 3)
+    expect(selects).toHaveLength(1)
+    expect(selects[0]).not.toMatch(/solution|\*/)
+    expect(JSON.stringify(stored)).not.toContain('p-secret')
   })
 })

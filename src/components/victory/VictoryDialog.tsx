@@ -11,6 +11,7 @@ import { DailyRanking } from '../daily/DailyRanking'
 import { SportId } from '../../domain/sport'
 import { dailyScore, formatScore } from '../../domain/dailyScore'
 import { formatTime } from '../../lib/formatTime'
+import { ShareButton } from '../daily/ShareButton'
 
 type Props = {
   open: boolean
@@ -29,6 +30,8 @@ type Props = {
   daily?: { sport: SportId; day: string }
   /** Daily only: closes the results and lays the proposed solution over the board. */
   onShowSolution?: () => void
+  /** Daily only: the message the result is shared with. */
+  shareText?: string
   /** Free play restarts in place; the daily has one pair a day, so it offers free play instead. */
   onPlayAgain?: () => void
   freePlayHref?: string
@@ -52,6 +55,7 @@ export function VictoryDialog({
   lives,
   daily,
   onShowSolution,
+  shareText,
   onPlayAgain,
   freePlayHref,
   archiveHref,
@@ -84,6 +88,7 @@ export function VictoryDialog({
               {t.daily.solution.show}
             </button>
           )}
+          {shareText && <ShareButton text={shareText} className="victory-score__share" />}
         </div>
       )}
 

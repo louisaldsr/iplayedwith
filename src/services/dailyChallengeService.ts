@@ -6,7 +6,7 @@ import { StoredDailyChallenge } from '@/repositories/dailyChallengesRepository'
 import { SportId } from '@/domain/sport'
 import { PlayerId } from '@/domain/ids'
 import { Player } from '@/domain/player'
-import { DailyChallenge, challengeDayOf } from '@/domain/dailyChallenge'
+import { DailyChallenge, challengeDayOf, isPlayableDay } from '@/domain/dailyChallenge'
 import { DailyArchive } from '@/domain/dailyArchive'
 import { VisitorId } from '@/domain/dailyResult'
 import { NotFoundError } from '@/services/errors'
@@ -22,6 +22,25 @@ export async function getDailyChallenge(
   now: Date = new Date(),
 ): Promise<DailyChallenge> {
   const stored = await dailyChallengesRepo.getOrGenerate(db, sport, challengeDayOf(now))
+  const players = await playersRepo.findManyByIds(db, [stored.playerAId, stored.playerBId])
+  return toChallenge(stored, new Map(players.map((p) => [p.id, p])))
+}
+
+/**
+ * The challenge a shared link names (`/rugby/412`), or null for a number with no challenge yet.
+ *
+ * Tomorrow's pair is drawn ahead of time (013): a number past today is null like one never drawn,
+ * or a link would show tomorrow's pair before midnight. Read only, never drawn.
+ */
+export async function getSharedChallenge(
+  db: SupabaseClient,
+  sport: SportId,
+  number: number,
+  now: Date = new Date(),
+): Promise<DailyChallenge | null> {
+  const stored = await dailyChallengesRepo.findByNumber(db, sport, number)
+  if (!stored || !isPlayableDay(stored.day, challengeDayOf(now))) return null
+
   const players = await playersRepo.findManyByIds(db, [stored.playerAId, stored.playerBId])
   return toChallenge(stored, new Map(players.map((p) => [p.id, p])))
 }

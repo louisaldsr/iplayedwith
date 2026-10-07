@@ -1,4 +1,4 @@
-import { getDailyArchive, getDailyChallenge } from '@/services/dailyChallengeService'
+import { getDailyArchive, getDailyChallenge, getSharedChallenge } from '@/services/dailyChallengeService'
 import * as dailyChallengesRepo from '@/repositories/dailyChallengesRepository'
 import * as dailyResultsRepo from '@/repositories/dailyResultsRepository'
 import * as playersRepo from '@/repositories/playersRepository'
@@ -136,5 +136,49 @@ describe('getDailyArchive', () => {
     expect(archive.days).toHaveLength(200)
     expect(mockedPlayers.findManyByIds).toHaveBeenCalledTimes(3) // 400 players, 150 a batch
     expect(Math.max(...mockedPlayers.findManyByIds.mock.calls.map(([, ids]) => ids.length))).toBe(150)
+  })
+})
+
+describe('getSharedChallenge', () => {
+  const stored = (day: string) => ({
+    sport: 'rugby' as const,
+    day: ChallengeDay(day),
+    number: 12,
+    playerAId: dupont.id,
+    playerBId: ntamack.id,
+    optimalLinks: 3,
+  })
+
+  beforeEach(() => mockedPlayers.findManyByIds.mockResolvedValue([dupont, ntamack]))
+
+  it("gives a past or today's number its challenge", async () => {
+    mockedChallenges.findByNumber.mockResolvedValue(stored('2026-07-15'))
+
+    const shared = await getSharedChallenge(db, 'rugby', 12, new Date('2026-07-15T10:00:00Z'))
+
+    expect(mockedChallenges.findByNumber).toHaveBeenCalledWith(db, 'rugby', 12)
+    expect(shared).toEqual({
+      sport: 'rugby',
+      day: '2026-07-15',
+      number: 12,
+      playerA: dupont,
+      playerB: ntamack,
+      optimalLinks: 3,
+    })
+  })
+
+  it("keeps tomorrow's pair, drawn ahead of time, out of a link", async () => {
+    mockedChallenges.findByNumber.mockResolvedValue(stored('2026-07-16'))
+
+    // 23:30 in Paris on the 15th: tomorrow is drawn, not yet public.
+    expect(await getSharedChallenge(db, 'rugby', 13, new Date('2026-07-15T21:30:00Z'))).toBeNull()
+    expect(mockedPlayers.findManyByIds).not.toHaveBeenCalled()
+  })
+
+  it('is null for a number never drawn — and never draws one', async () => {
+    mockedChallenges.findByNumber.mockResolvedValue(null)
+
+    expect(await getSharedChallenge(db, 'rugby', 999)).toBeNull()
+    expect(mockedChallenges.getOrGenerate).not.toHaveBeenCalled()
   })
 })

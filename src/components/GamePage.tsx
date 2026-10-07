@@ -22,6 +22,9 @@ import { SolutionOverlay } from './daily/SolutionOverlay'
 import { DailyBoard, DailyOutcome, readDailyRecord, saveDailyRecord } from '../lib/dailyProgress'
 import { readVisitor } from '../lib/visitor'
 import { recordDailyHint, startDailyChallenge } from '../lib/gameApi'
+import { dailyShareText } from '../lib/dailyShare'
+import { dailyScore } from '../domain/dailyScore'
+import { ShareButton } from './daily/ShareButton'
 
 /**
  * `victory`: the won board stays on screen, results in a pop-up over it.
@@ -374,6 +377,30 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
   const freePlayHref = daily ? `/${sport}/free` : undefined
   const archiveHref = daily ? `/${sport}/archive` : undefined
 
+  // The daily's message to share once it is over — from the board alone, players as squares.
+  const shareText =
+    daily && ended && state.game && state.lives !== null
+      ? dailyShareText(
+          {
+            sport: daily.sport,
+            number: daily.number,
+            playerA: daily.playerA,
+            playerB: daily.playerB,
+            added: state.players.slice(2).map((p) => p.id),
+            lives: { left: state.lives, total: DAILY_LIVES },
+            ...(state.phase === 'victory'
+              ? {
+                  outcome: 'won' as const,
+                  path: state.game.path,
+                  score: dailyScore(state.moveCount, daily.optimalLinks),
+                  elapsedMs: ended.elapsedMs,
+                }
+              : { outcome: 'lost' as const }),
+          },
+          t,
+        )
+      : null
+
   // A finished game keeps its board on screen: the results open over it, and this bar replaces the
   // move input to reopen them, lay the proposed solution over the board (daily), or move on.
   const endBar = ended && state.game && (
@@ -386,6 +413,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
         <button type="button" className="btn btn--ghost" onClick={() => dispatch({ type: 'SHOW_RESULTS', open: true })}>
           {t.victory.results}
         </button>
+        {shareText && <ShareButton text={shareText} />}
         {daily ? (
           <>
             <Link href={archiveHref!} className="btn btn--ghost">
@@ -467,6 +495,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           lives={state.lives === null ? undefined : { left: state.lives, total: DAILY_LIVES }}
           daily={daily ? { sport: daily.sport, day: daily.day } : undefined}
           onShowSolution={daily ? showSolution : undefined}
+          shareText={shareText ?? undefined}
           onPlayAgain={daily ? undefined : handlePlayAgain}
           freePlayHref={freePlayHref}
           archiveHref={archiveHref}
@@ -474,7 +503,13 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
       )}
 
       {state.phase === 'lost' && daily && (
-        <DefeatDialog open={state.resultsOpen} onClose={closeResults} challenge={daily} onShowSolution={showSolution} />
+        <DefeatDialog
+          open={state.resultsOpen}
+          onClose={closeResults}
+          challenge={daily}
+          onShowSolution={showSolution}
+          shareText={shareText ?? undefined}
+        />
       )}
     </div>
   )

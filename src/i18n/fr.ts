@@ -111,6 +111,13 @@ const fr: Translations = {
       extra === 0
         ? 'Chaîne la plus courte trouvée'
         : `${extra} ${extra === 1 ? 'joueur' : 'joueurs'} de plus que la chaîne la plus courte`,
+    share: {
+      button: 'Partager',
+      copied: 'Copié — collez-le à vos amis !',
+      failed: 'Copie impossible — réessayez.',
+      title: (sport: string, number: number) => `I Played With · ${sport} #${number}`,
+      dare: 'Ferez-vous mieux ?',
+    },
     solution: {
       show: 'Voir la solution proposée',
       toggle: 'Solution proposée',

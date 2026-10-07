@@ -92,3 +92,22 @@ export async function findSolution(db: SupabaseClient, sport: SportId, day: Chal
   if (error) throw new Error(error.message)
   return data ? (data.solution as string[]).map(PlayerId) : null
 }
+
+/**
+ * The sport's challenge numbered `number`, or null — read as stored, never drawn. A shared link
+ * names its day by number (`/rugby/412`). The solution column is not selected.
+ */
+export async function findByNumber(
+  db: SupabaseClient,
+  sport: SportId,
+  number: number,
+): Promise<StoredDailyChallenge | null> {
+  const { data, error } = await db
+    .from('daily_challenges')
+    .select(PUBLIC_COLUMNS)
+    .eq('sport', sport)
+    .eq('number', number)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  return data ? toStored(data as DailyChallengeRow) : null
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { CSSProperties, useState } from 'react'
 import Link from 'next/link'
 import { DailyChallenge } from '../../domain/dailyChallenge'
 import { Player } from '../../domain/player'
@@ -64,13 +64,13 @@ export function DailyIntro({ challenge, archived = false, onStart, done }: Props
         {archived && <p className="daily-intro__late">{t.archive.lateNote}</p>}
       </header>
 
-      {/* Not a match-up: two players to connect. The line between them holds one "?" per player
-          the best solution needs — the gap to fill, as the board will draw it. */}
+      {/* Not a match-up: two players to connect. The thread between them holds a ghost card per
+          player the best solution needs — the gap to fill. */}
       <div className="daily-intro__players">
         <PlayerButton player={challenge.playerA} onOpen={setCareerOf} />
         <span className="daily-intro__link" aria-hidden="true">
           {Array.from({ length: Math.min(challenge.optimalLinks - 1, MAX_MISSING) }, (_, i) => (
-            <span key={i} className="daily-intro__missing">
+            <span key={i} className="daily-intro__missing" style={{ '--i': i } as CSSProperties}>
               ?
             </span>
           ))}

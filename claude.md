@@ -1159,14 +1159,19 @@ jour : ni podium, ni rang, ni total. `YourPlace.rank` est `null` pour un résult
 
 ## ✅ Bloc 28 terminé — Intro du défi : deux joueurs à relier ; erreurs passagères
 
-- **Plus de « contre »** (`versus`, retiré) : le jeu ne les oppose pas, il les relie. A et B sont les
-  cartes **dorées** du plateau, reliées par un trait pointillé qui porte un **« ? » par joueur** de la
-  meilleure solution (`optimalLinks − 1`, au plus 4) — à l'horizontale, verticale sur téléphone.
+- **Plus de « contre »** (`versus`, retiré) : le jeu ne les oppose pas, il les relie. Les cartes de A et
+  B restent les mêmes ; entre elles, un **fil** violet qui s'estompe vers chaque carte, et dessus une
+  **carte fantôme « ? » par joueur** de la meilleure solution (`optimalLinks − 1`, au plus 4) —
+  pointillée, qui respire l'une après l'autre (figée sous `prefers-reduced-motion`). Fil vertical sur
+  téléphone, cartes fantômes côte à côte en travers.
   Ailleurs (archives, `DailyFinished`) : « A → B », comme le message de partage.
 - **Mise en page** : « Commencer » plus aéré ; partie libre et défis passés **en bas de page**
   (`.daily-intro` remplit la page, `margin-top: auto`).
 - **Coup refusé** : le bandeau rouge ne reste plus. Il part **au bout de 5 s** (`ERROR_BANNER_MS`) ou
-  **dès qu'on tape** le coup suivant (`MoveInput` `onEdit`).
+  **dès qu'on tape** le coup suivant (`MoveInput` `onEdit`). Il **flotte en haut du plateau**
+  (`.error-banner--toast`) : la barre du bas garde sa taille, les cœurs en bas restent dégagés — l'endroit
+  est libre pendant la partie, l'interrupteur de solution n'y arrive qu'une fois finie. Le champ se
+  cercle de rouge tant qu'il est affiché (`.game-screen-controls--refused`).
 
 ## Tests e2e — jamais la vraie base
 

@@ -437,9 +437,8 @@ jour ; **vertes avec ✓** quand le défi du jour est déjà gagné, pour pousse
 sports), et tout le reste en bas :
 
 - **partie libre** par sport en lien secondaire ;
-- **Comment jouer** (ouvre la pop-up des règles) et **À propos**.
-- **Bientôt** : Classement, Mes stats, Connexion — affichés désactivés pour que le menu ait déjà sa
-  forme finale ; ils arriveront avec l'identité (étape 17).
+- **Comment jouer** (ouvre la pop-up des règles), **Classement** (Bloc 22), **Mes stats** (Bloc 19)
+  et **À propos**. Pas de connexion : le visiteur anonyme suffit (Bloc 22).
 - Pendant une partie le menu est **caché** : un bouton « ☰ Menu » fixe en haut à gauche
   (`MenuButton`, pendant du « ? » à droite, 44 px tous les deux, à 12 px du haut et du bord)
   ramène à l'accueil — icône seule sur mobile. La barre du jeu fait 68 px pour les contenir. Absent de
@@ -530,8 +529,8 @@ gagnant, pop-up fermée. Un défi perdu, ou gagné avant cette version, s'ouvre 
 
 Le classement se calcule sur ce que **le serveur a vu**, jamais sur ce que le navigateur déclare.
 Le client ne dit que *qui* il est (`ipw.playerId`) ; le nombre de tentatives et les deux horodatages
-viennent du serveur. Pas encore d'écran : lecture par `npm run daily:ranking -- --sport=rugby
-[--day=YYYY-MM-DD]`.
+viennent du serveur. Les joueurs en voient le podium et leur rang (Bloc 22) ; le classement complet
+se lit par `npm run daily:ranking -- --sport=rugby [--day=YYYY-MM-DD]`.
 
 ### Stockage — `015_daily_results.sql`
 
@@ -569,6 +568,7 @@ trouvés.
 |---|---|
 | `POST /api/:sport/daily/start` | `{ day, visitorId }` → 204 ; horodate le départ (idempotent), 409 si `day` n'est plus aujourd'hui |
 | `POST /api/:sport/daily/stats` | `{ visitorId }` → stats perso du sport (Bloc 19) |
+| `POST /api/:sport/daily/ranking` | `{ visitorId? }` → podium du jour + rang du visiteur (Bloc 22) |
 | `POST /api/:sport/daily/solution` | `{ day, visitorId }` → une chaîne la plus courte, au format du plateau (Bloc 20) ; 403 tant que la journée n'est pas finie côté serveur |
 
 ---
@@ -721,9 +721,9 @@ qu'affiché ne change rien (il reste traduisible). Dans la barre du jeu, le nom 
   que le renommage y soit ajouté : tout ce que le renommage demande vit donc dans `021`.
 - Nom pris : badge ambré qui secoue la tête, bulle « déjà sur la feuille de match », suggestions
   en un clic. Pas une erreur rouge — quelqu'un est juste arrivé avant.
-- ⚠️ **Pas encore de filtre de mots** : le nom n'est montré qu'à son propriétaire et dans
-  `daily:ranking`. Il faudra la liste noire (FR/EN, leetspeak) et les noms de vrais joueurs réservés
-  **avant** d'afficher le classement aux joueurs.
+- ⚠️ **Pas de filtre de mots** : depuis le Bloc 22, le nom des trois premiers du jour est **public**.
+  Risque accepté tant que le trafic est faible ; la liste noire (FR/EN, leetspeak) et les noms de
+  vrais joueurs réservés restent à faire.
 - Qui connaît le `visitorId` d'un navigateur peut renommer ce visiteur — même modèle de confiance
   que les résultats ; la vraie garantie viendra des comptes.
 
@@ -761,7 +761,7 @@ score  = added − needed      → « Parfait ! », « +1 », « +2 »…, jamai
 ```
 
 - **Lisible d'un coup d'œil, sans jargon** : pas de vocabulaire de golf (« par », « coups ») —
-  « Parfait ! » + « Chaîne la plus courte trouvée », ou « +2 » + « 2 joueurs en trop ».
+  « Parfait ! » + « Chaîne la plus courte trouvée », ou « +2 » + « 2 joueurs de plus que la chaîne la plus courte ».
 - **Pas de plafond** : on peut ajouter autant de joueurs qu'on veut ; seules les vies font perdre.
 - **Tout joueur ajouté coûte 1**, sur la chaîne ou en cul-de-sac : ajouter des joueurs ne paie
   jamais. Classer à la longueur de la chaîne seule récompensait le spam — la chaîne est le plus
@@ -933,6 +933,42 @@ back-office, et `/api/health` en **503** — la base du serveur e2e est injoigna
 
 ---
 
+## ✅ Bloc 22 terminé — Classement du jour : podium + son rang
+
+Le classement n'était lisible que par `npm run daily:ranking`. Les joueurs en voient désormais
+**peu** : les **trois premiers gagnants** du jour et **leur propre rang** parmi tous ceux qui ont fini.
+
+- **Où** : bouton **Classement** du menu (`RankingDialog`, un onglet par sport — onglets partagés avec
+  Mes stats, `SportTabs`), et au-dessus des stats dans les pop-ups de victoire, de défaite et sur
+  `DailyFinished`. Le coup final est enregistré avant la réponse du coup : le rang est prêt à l'ouverture.
+- **Podium = gagnants seulement** (score puis temps), 🥇🥈🥉 ; moins de trois gagnants, podium plus
+  court. Égalité : rang partagé, même médaille ; une égalité sur la 3ᵉ marche est coupée par l'heure de
+  fin (le premier arrivé reste). Le visiteur y est marqué « Vous ».
+- **Son rang** : « Votre rang **12ᵉ / 87** » (gagné) · « Plus de vies aujourd'hui · 87 joueurs ont
+  fini » (perdu : pas de rang, les perdants le partagent) · « Finissez le défi pour avoir votre rang »
+  (en cours). Le total compte **tous les résultats finis**, perdants compris.
+- **Le récap de fin en sections** (pop-ups de victoire et de défaite) : la partie (titre, score,
+  chaîne, temps, vies) → **Classement du jour** → **Vos stats** → les boutons. Les titres de section
+  servent de séparateurs (« ── VOS STATS ── ») ; un trait isole les boutons. « Voir la solution
+  proposée » est posé **juste sous le score** (ou sous « une chaîne de N liens existait ») : la chaîne
+  à laquelle le score se compare.
+- **Pas de migration** : `toLeaderboard` (`src/domain/dailyLeaderboard.ts`) découpe `daily_ranking`
+  (022) côté serveur. Lu en entier : à déplacer en SQL quand un jour aura des milliers de résultats.
+- **Ne sort jamais** : l'id d'un autre visiteur (il permet de le renommer) ni une chaîne gagnante
+  (elle donnerait un plus court chemin à qui joue encore). Le type n'a pas de champ pour eux ; un test
+  vérifie le JSON.
+- **Noms publics sans filtre** : risque accepté (voir Bloc 17).
+- **Pas de connexion** : « Connexion » et toute la liste « Bientôt » quittent le menu ; le visiteur
+  anonyme (Bloc 7) suffit. Décoratif comme les stats : requête en échec, panneau absent.
+
+| Route | Rôle |
+|---|---|
+| `POST /api/:sport/daily/ranking` | `{ visitorId? }` → `{ day, total, podium, you }` du jour (Paris) ; 400 si `visitorId` n'est pas un UUID |
+
+e2e : `/api/:sport/daily/ranking` est mocké **vide par défaut** dans `fixtures.ts`.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -1008,15 +1044,15 @@ Saisie user
 27. ~~Prestige de club (revision 3)~~ — remplacé par la fame v3 à quatre piliers (étape 37)
 28. ~~Spike Wikidata~~ — fait : vues Wikipedia fr + en par ID partagé (`fame:exposure`)
 29. Appliquer `015_daily_results.sql` (contrôles en bas du fichier), jouer quelques jours, lire
-    `npm run daily:ranking` — puis afficher le classement aux joueurs
+    `npm run daily:ranking` — ~~puis afficher le classement aux joueurs~~ (podium + rang, Bloc 22)
 30. ~~Vrai score du défi~~ (joueurs en trop, Bloc 19) ; reste : trancher la fame des joueurs de la
     chaîne (simuler départage vs bonus sur les chaînes stockées), grille de partage 🟩🟨🟥
 31. Appliquer `016_daily_hints.sql` après `015` ; puis faire entrer les indices dans le vrai score
     (badge « sans indice » ou bonus), et envisager un indice plus fort payant (« un coéquipier de
     X chez C en S », contre une vie) pour les joueurs vraiment bloqués
-32. Appliquer `017_visitors.sql` ; puis afficher le classement du jour aux joueurs (noms, sa
-    propre ligne en évidence)
-33. Comptes (lien magique Supabase) : réclamer le visiteur, pseudo libre + sa modération
+32. Appliquer `017_visitors.sql` ; ~~puis afficher le classement du jour aux joueurs~~ (Bloc 22)
+33. ~~Comptes~~ — plus prévus pour l’instant, le visiteur anonyme suffit (Bloc 22) ; reste : filtre de mots des
+    pseudos (FR/EN, leetspeak, noms de vrais joueurs), maintenant que le podium est public
 34. Carte de partage par défi (`/[sport]/opengraph-image`, « Défi du jour #N · Rugby »)
 34. Appliquer `018_visitor_number.sql` (après `017`) et ses contrôles
 35. ~~Appliquer `020_visitor_username.sql`~~ ; appliquer `021_visitor_rename.sql` (le renommage

@@ -1186,37 +1186,9 @@ body {
   justify-content: center;
 }
 
-.home-menu__soon {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-  list-style: none;
-}
-
 .home-menu__links .btn {
   font-size: 0.95rem;
   padding: 11px 22px;
-}
-
-.home-menu__soon li {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border: 1px dashed var(--border-subtle);
-  border-radius: var(--radius-full);
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  cursor: not-allowed;
-}
-
-.home-menu__soon-badge {
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent-hover);
 }
 
 /* ─── About page ────────────────────────────────────────── */
@@ -2682,6 +2654,20 @@ body {
   animation: trophy-bounce 0.9s 0.2s ease-out both;
 }
 
+/* The recap's sections — ranking, stats, buttons — breathe more than the lines within them. */
+.victory-dialog .daily-ranking,
+.victory-dialog .daily-stats,
+.victory-dialog__divider {
+  margin-top: 16px;
+}
+
+.victory-dialog__divider {
+  width: min(420px, 100%);
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+  margin: 0;
+}
+
 .victory-dialog__actions {
   display: flex;
   flex-wrap: wrap;
@@ -2842,6 +2828,13 @@ body {
   color: var(--text-muted);
 }
 
+.victory-score__solution {
+  margin-top: 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  padding: 7px 16px;
+}
+
 /* ─── Daily stats: results pop-up, finished screen, menu ─── */
 .daily-stats {
   display: flex;
@@ -2853,10 +2846,26 @@ body {
   text-align: left;
 }
 
-.daily-stats__heading {
-  font-size: 1rem;
+/* The recap's section titles double as its separators: a label on a line, "── Your stats ──". */
+.daily-stats__heading,
+.daily-ranking__heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
-  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.daily-stats__heading::before,
+.daily-stats__heading::after,
+.daily-ranking__heading::before,
+.daily-ranking__heading::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
 }
 
 .daily-stats__empty {
@@ -3024,6 +3033,121 @@ body {
   }
 }
 
+/* ─── Daily ranking: the podium and the visitor's place ─── */
+.daily-ranking {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.daily-ranking__empty {
+  padding: 12px 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.daily-ranking__podium {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.daily-ranking__entry {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto 3.2rem;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  font-size: 0.9rem;
+}
+
+/* First place: the gold of Perfect and of the winning chain. */
+.daily-ranking__entry--1 {
+  border-color: var(--win-gold);
+  box-shadow: 0 0 14px rgba(255, 214, 107, 0.18);
+}
+
+.daily-ranking__entry--you {
+  outline: 2px solid var(--accent-hover);
+  outline-offset: -1px;
+}
+
+.daily-ranking__medal {
+  font-size: 1.3rem;
+  font-weight: 800;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.daily-ranking__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.daily-ranking__you {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.daily-ranking__score {
+  font-weight: 800;
+  color: var(--score-1);
+}
+.daily-ranking__entry--1 .daily-ranking__score {
+  color: var(--win-gold-text);
+}
+
+.daily-ranking__time {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.daily-ranking__place {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-muted);
+}
+.daily-ranking__place--won {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+}
+
+.daily-ranking__place-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
 /* ─── Menu: "My stats" — the visitor's name, then a tab per sport ─── */
 .stats-dialog .modal__body {
   gap: 20px;
@@ -3052,7 +3176,8 @@ body {
   overflow-wrap: anywhere;
 }
 
-.stats-dialog__tabs {
+/* The sport tabs of the menu's dialogs (My stats, Ranking). */
+.sport-tabs {
   display: flex;
   gap: 4px;
   padding: 4px;
@@ -3061,7 +3186,7 @@ body {
   border: 1px solid var(--border-subtle);
 }
 
-.stats-dialog__tab {
+.sport-tabs__tab {
   flex: 1;
   min-height: 40px;
   border: 0;
@@ -3072,19 +3197,19 @@ body {
   font-weight: 700;
   cursor: pointer;
 }
-.stats-dialog__tab:hover {
+.sport-tabs__tab:hover {
   color: var(--text-primary);
 }
-.stats-dialog__tab[aria-selected='true'] {
+.sport-tabs__tab[aria-selected='true'] {
   background: var(--accent);
   color: #fff;
 }
-.stats-dialog__tab:focus-visible {
+.sport-tabs__tab:focus-visible {
   outline: 2px solid var(--accent-hover);
   outline-offset: 2px;
 }
 
-.stats-dialog__panel {
+.stats-dialog .sport-tabs__panel {
   min-height: 330px;
 }
 

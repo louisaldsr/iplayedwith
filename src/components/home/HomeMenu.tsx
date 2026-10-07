@@ -10,6 +10,7 @@ import { useRules } from '../rules/RulesProvider'
 import { dailyOutcomesToday, DailyOutcome } from '../../lib/dailyProgress'
 import { VisitorBadge } from './VisitorBadge'
 import { StatsDialog } from './StatsDialog'
+import { RankingDialog } from './RankingDialog'
 
 const SPORT_ICONS: Record<SportId, string> = { rugby: '🏉', football: '⚽' }
 
@@ -19,8 +20,8 @@ const SPORT_ICONS: Record<SportId, string> = { rugby: '🏉', football: '⚽' }
  * The sports own the middle of the screen — each card opens that sport's daily challenge, which is
  * the game. A sport whose challenge is already over today turns green (won) or red (lost), nudging
  * towards the ones still to play.
- * Everything else sits at the bottom: free play (open to everyone), the rules, the visitor's stats,
- * About, and the features still to come (ranking, accounts), listed as "soon".
+ * Everything else sits at the bottom: free play (open to everyone), the rules, today's ranking, the
+ * visitor's stats and About. No accounts: the anonymous visitor (src/lib/visitor.ts) is enough.
  */
 export function HomeMenu() {
   const t = useTranslations()
@@ -29,6 +30,7 @@ export function HomeMenu() {
   const [outcomes, setOutcomes] = useState<Map<SportId, DailyOutcome>>(new Map())
   useEffect(() => setOutcomes(dailyOutcomesToday()), [])
   const [statsOpen, setStatsOpen] = useState(false)
+  const [rankingOpen, setRankingOpen] = useState(false)
 
   return (
     <nav className="home-screen" aria-label={t.menu.label}>
@@ -82,6 +84,9 @@ export function HomeMenu() {
           <button type="button" className="btn btn--ghost" onClick={openRules}>
             {t.rules.openLabel}
           </button>
+          <button type="button" className="btn btn--ghost" onClick={() => setRankingOpen(true)}>
+            {t.menu.ranking}
+          </button>
           <button type="button" className="btn btn--ghost" onClick={() => setStatsOpen(true)}>
             {t.menu.stats}
           </button>
@@ -89,16 +94,9 @@ export function HomeMenu() {
             {t.menu.about}
           </Link>
         </div>
-
-        <ul className="home-menu__soon" aria-label={t.menu.soon}>
-          {[t.menu.ranking, t.menu.logIn].map((label) => (
-            <li key={label} aria-disabled="true">
-              {label} <span className="home-menu__soon-badge">{t.menu.soon}</span>
-            </li>
-          ))}
-        </ul>
       </footer>
 
+      <RankingDialog open={rankingOpen} onClose={() => setRankingOpen(false)} icons={SPORT_ICONS} />
       <StatsDialog open={statsOpen} onClose={() => setStatsOpen(false)} icons={SPORT_ICONS} />
     </nav>
   )

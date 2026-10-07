@@ -7,8 +7,10 @@ import { useTranslations } from '../../i18n'
 import { Modal } from '../shared/Modal'
 import { Heart } from '../game/LivesBar'
 import { DailyStats } from '../daily/DailyStats'
+import { DailyRanking } from '../daily/DailyRanking'
 import { SportId } from '../../domain/sport'
 import { dailyScore, formatScore } from '../../domain/dailyScore'
+import { formatTime } from '../../lib/formatTime'
 
 type Props = {
   open: boolean
@@ -30,13 +32,6 @@ type Props = {
   /** Free play restarts in place; the daily has one pair a day, so it offers free play instead. */
   onPlayAgain?: () => void
   freePlayHref?: string
-}
-
-function formatTime(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000)
-  const minutes = Math.floor(totalSeconds / 60)
-  const seconds = totalSeconds % 60
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
 /**
@@ -76,6 +71,16 @@ export function VictoryDialog({
         <div className="victory-score">
           <span className="victory-score__value">{formatScore(score, t.daily.perfect)}</span>
           <span className="victory-score__hint">{t.daily.scoreHint(score)}</span>
+          {/* Right under the comparison: the shortest chain it is measured against. */}
+          {onShowSolution && (
+            <button
+              type="button"
+              className="btn btn--solution btn--sm victory-score__solution"
+              onClick={onShowSolution}
+            >
+              {t.daily.solution.show}
+            </button>
+          )}
         </div>
       )}
 
@@ -114,17 +119,16 @@ export function VictoryDialog({
         )}
       </div>
 
+      {daily && <DailyRanking sport={daily.sport} />}
       {daily && <DailyStats sport={daily.sport} />}
+
+      {/* Game, ranking, stats, then what to do next — each part set apart. */}
+      <hr className="victory-dialog__divider" />
 
       <div className="victory-dialog__actions">
         <button type="button" className="btn btn--ghost btn--lg" onClick={onClose}>
           {t.victory.viewBoard}
         </button>
-        {onShowSolution && (
-          <button type="button" className="btn btn--ghost btn--lg" onClick={onShowSolution}>
-            {t.daily.solution.show}
-          </button>
-        )}
         {onPlayAgain && (
           <button type="button" className="btn btn--primary btn--lg" onClick={onPlayAgain}>
             {t.victory.playAgain}

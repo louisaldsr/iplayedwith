@@ -53,6 +53,11 @@ test.describe('refused before any database access', () => {
     expect(noDay.status()).toBe(400)
   })
 
+  test('a ranking asked for with a malformed visitor id', async ({ request }) => {
+    const res = await request.post('/api/rugby/daily/ranking', { data: { visitorId: 'me' } })
+    expect(res.status()).toBe(400)
+  })
+
   test('a daily move without a proper visitor id, or in hard mode', async ({ request }) => {
     const noId = await request.post('/api/rugby/move', { data: { ...move, daily: { visitorId: 'me' } } })
     expect(noId.status()).toBe(400)

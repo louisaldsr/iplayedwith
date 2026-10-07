@@ -8,6 +8,7 @@ import { Game } from '../../game/game'
 import { playerKey } from '../../game/graphBuilder'
 import { useTranslations } from '../../i18n'
 import { DailyStats } from './DailyStats'
+import { DailyRanking } from './DailyRanking'
 import { GameBoard } from '../game/GameBoard'
 import { SolutionOverlay } from './SolutionOverlay'
 import { useDailySolution } from './useDailySolution'
@@ -71,6 +72,7 @@ export function DailyFinished({ challenge, outcome, livesLeft }: Props) {
       </div>
       <p className="daily-finished__note">{t.daily.boardNotKept}</p>
       <p className="daily-finished__tomorrow">{t.daily.comeBackTomorrow}</p>
+      <DailyRanking sport={challenge.sport} />
       <DailyStats sport={challenge.sport} />
       <div className="daily-finished__actions">
         <Link href={`/${challenge.sport}/free`} className="btn btn--primary">

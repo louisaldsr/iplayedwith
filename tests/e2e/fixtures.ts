@@ -8,10 +8,11 @@ import { test as base, expect, Page } from '@playwright/test'
  * recently added route first). After the test, any call that reached the guard fails it — so a
  * page that starts calling a new endpoint is caught here, instead of silently hitting the server.
  *
- * Three endpoints are mocked by default: `/api/visitor`, the name the menu shows;
- * `/api/:sport/daily/stats` (empty), which the results and the finished screen show; and
- * `/api/:sport/daily/solution`, refused (403) as for a day the server never saw finished. Any test
- * can reach them, and none should have to care; a test about one mocks it again (its route wins).
+ * Four endpoints are mocked by default: `/api/visitor`, the name the menu shows;
+ * `/api/:sport/daily/stats` and `/api/:sport/daily/ranking` (both empty), which the results and the
+ * finished screen show; and `/api/:sport/daily/solution`, refused (403) as for a day the server
+ * never saw finished. Any test can reach them, and none should have to care; a test about one mocks
+ * it again (its route wins).
  *
  * The server side is covered separately: the e2e dev server has no real database to reach (see
  * playwright.config.ts). Only requests the server answers WITHOUT the database — input
@@ -32,6 +33,10 @@ export const test = base.extend<{ unmockedApiCalls: string[] }>({
       await page.route(
         (url) => /^\/api\/[^/]+\/daily\/stats$/.test(url.pathname),
         (route) => route.fulfill({ json: emptyDailyStats }),
+      )
+      await page.route(
+        (url) => /^\/api\/[^/]+\/daily\/ranking$/.test(url.pathname),
+        (route) => route.fulfill({ json: emptyDailyLeaderboard() }),
       )
       await page.route(
         (url) => /^\/api\/[^/]+\/daily\/solution$/.test(url.pathname),
@@ -117,6 +122,21 @@ export const sampleDailyStats = {
   lost: 1,
   today: 0,
 }
+
+/** A day nobody has finished yet. A function: the day is read when the test runs. */
+export const emptyDailyLeaderboard = () => ({ day: parisToday(), total: 0, podium: [], you: null })
+
+/** Twelve finished: a podium with a tie for second, and the visitor 5th. */
+export const sampleDailyLeaderboard = () => ({
+  day: parisToday(),
+  total: 12,
+  podium: [
+    { rank: 1, username: 'hasty:prop:042', score: 0, durationMs: 62_000, you: false },
+    { rank: 2, username: 'Dupont', score: 1, durationMs: 45_000, you: false },
+    { rank: 2, username: null, score: 1, durationMs: 80_000, you: false },
+  ],
+  you: { rank: 5, outcome: 'won', score: 2, durationMs: 130_000 },
+})
 
 export const sampleCareer = {
   player: samplePlayers[0],

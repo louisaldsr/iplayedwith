@@ -1,4 +1,5 @@
 import {
+  getDailyLeaderboard,
   getDailyRanking,
   getDailyStats,
   recordDailyHint,
@@ -141,6 +142,39 @@ describe('getDailyRanking', () => {
     }
     repo.ranking.mockResolvedValue([entry])
     await expect(getDailyRanking(db, 'rugby', ChallengeDay('2026-07-16'))).resolves.toEqual([entry])
+  })
+})
+
+describe('getDailyLeaderboard', () => {
+  it("cuts today's ranking — the Paris day — down to the podium and the visitor's place", async () => {
+    repo.ranking.mockResolvedValue([
+      {
+        rank: 1,
+        visitorId,
+        username: 'hasty:prop:042',
+        outcome: 'won',
+        score: 0,
+        added: 1,
+        needed: 1,
+        attempts: 1,
+        durationMs: 61_000,
+        livesLost: 0,
+        links: 2,
+        hints: 0,
+        pathPlayerIds: ['p-a', 'p-c', 'p-b'],
+        finishedAt: '2026-07-16T08:00:00Z',
+      },
+    ])
+
+    const board = await getDailyLeaderboard(db, 'rugby', visitorId, now)
+
+    expect(repo.ranking).toHaveBeenCalledWith(db, 'rugby', '2026-07-16')
+    expect(board).toEqual({
+      day: '2026-07-16',
+      total: 1,
+      podium: [{ rank: 1, username: 'hasty:prop:042', score: 0, durationMs: 61_000, you: true }],
+      you: { rank: 1, outcome: 'won', score: 0, durationMs: 61_000 },
+    })
   })
 })
 

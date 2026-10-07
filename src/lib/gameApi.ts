@@ -8,6 +8,7 @@ import { DailyChallenge } from '@/domain/dailyChallenge'
 import { CareerStint } from '@/domain/career'
 import { DailyStats } from '@/domain/dailyScore'
 import { DailySolution } from '@/domain/dailySolution'
+import { DailyLeaderboard } from '@/domain/dailyLeaderboard'
 
 /**
  * Browser-side calls the game makes.
@@ -63,6 +64,22 @@ export function recordDailyHint(sport: SportId, day: string, visitorId: string, 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ day, visitorId, playerId }),
   }).catch(() => {})
+}
+
+/** Today's podium in the sport, and this visitor's place — `visitorId` null for the podium alone. */
+export async function getDailyLeaderboard(
+  sport: SportId,
+  visitorId: string | null,
+  signal?: AbortSignal,
+): Promise<DailyLeaderboard> {
+  const res = await fetch(`/api/${sport}/daily/ranking`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ visitorId }),
+    signal,
+  })
+  if (!res.ok) throw new Error(`/api/${sport}/daily/ranking failed with ${res.status}`)
+  return res.json()
 }
 
 /** This visitor's daily stats in the sport, from the results the server recorded. */

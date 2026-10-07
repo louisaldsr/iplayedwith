@@ -5,6 +5,7 @@ import {
   asReturningVisitor,
   sampleDailyChallenge,
   sampleDailyStats,
+  sampleDailyLeaderboard,
   parisToday,
 } from './fixtures'
 
@@ -52,13 +53,32 @@ test("yesterday's result does not colour today's menu", async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Rugby — Daily challenge', exact: true })).toBeVisible()
 })
 
-test('features that need an account are listed as coming soon, not as links', async ({ page }) => {
+test("the menu opens today's ranking: the podium and the visitor's place, a tab per sport", async ({ page }) => {
+  await mockApi(page, '/api/rugby/daily/ranking', sampleDailyLeaderboard())
   await page.goto('/')
-  const soon = page.getByRole('list', { name: 'Soon' })
-  for (const entry of ['Ranking', 'Log in']) {
-    await expect(soon.getByText(entry)).toBeVisible()
-    await expect(page.getByRole('link', { name: entry })).toHaveCount(0)
-  }
+  // No accounts: nothing announced as coming.
+  await expect(page.getByText('Log in')).toHaveCount(0)
+  await expect(page.getByText('Soon')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Ranking' }).click()
+  const dialog = page.getByRole('dialog', { name: "Today's ranking" })
+  const rugby = dialog.getByRole('tabpanel', { name: 'Rugby' })
+  const podium = rugby.getByRole('list', { name: 'Podium' }).getByRole('listitem')
+  await expect(podium).toHaveCount(3)
+  // Generated names read in the reader's language, a typed one as is, a missing one as Anonymous.
+  await expect(podium.nth(0)).toContainText('Hasty Prop 042')
+  await expect(podium.nth(0)).toContainText('Perfect')
+  await expect(podium.nth(0)).toContainText('1:02')
+  await expect(podium.nth(1)).toContainText('Dupont')
+  await expect(podium.nth(1)).toContainText('+1')
+  await expect(podium.nth(2)).toContainText('Anonymous')
+  await expect(rugby.locator('.daily-ranking__place')).toHaveText('Your rank5th / 12')
+
+  // Football is mocked empty by default.
+  await dialog.getByRole('tab', { name: 'Football' }).click()
+  const football = dialog.getByRole('tabpanel', { name: 'Football' })
+  await expect(football.getByText('Nobody has finished today yet.')).toBeVisible()
+  await expect(football.getByText('Finish today to get your rank.')).toBeVisible()
 })
 
 test("the menu opens the visitor's stats: its name first, then a tab per sport", async ({ page }) => {

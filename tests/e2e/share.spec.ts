@@ -5,6 +5,8 @@ import {
   mockApi,
   asReturningVisitor,
   sampleDailyChallenge,
+  sampleDailyArchive,
+  pastDailyChallenge,
   linkingPlayer,
   winningMove,
   notConnectedMove,
@@ -85,8 +87,28 @@ test('a lost day is shared too, with a dare', async ({ page }) => {
   )
 })
 
-test("a shared link opens today's challenge", async ({ page }) => {
-  await page.goto('/rugby/3')
+test('a shared link opens the day it names — a past one from the archive', async ({ page }) => {
+  await mockApi(page, '/api/rugby/daily/archive', sampleDailyArchive)
+  await page.goto(`/rugby/${pastDailyChallenge.number}`)
+
+  await expect(page.getByRole('heading', { name: `Challenge #${pastDailyChallenge.number}` })).toBeVisible()
+  await expect(page.getByText('Played late: it counts in your stats')).toBeVisible()
+  await expect(page).toHaveURL(`/rugby/${pastDailyChallenge.number}`)
+})
+
+test("a shared link to today opens today's page", async ({ page }) => {
+  await mockApi(page, '/api/rugby/daily/archive', sampleDailyArchive)
+  await page.goto(`/rugby/${sampleDailyChallenge.number}`)
+
+  await expect(page).toHaveURL('/rugby')
+  await expect(page.getByRole('heading', { name: /Daily Challenge/ })).toBeVisible()
+})
+
+test("a day the archive cannot give still leads to a game: today's", async ({ page }) => {
+  await mockApi(page, '/api/rugby/daily/archive', sampleDailyArchive)
+  await page.goto('/rugby/99')
+
+  await expect(page).toHaveURL('/rugby')
   await expect(page.getByRole('button', { name: 'Start' })).toBeVisible()
 })
 

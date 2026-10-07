@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { isSportId } from '@/domain/sport'
 import en from '@/i18n/en'
 import { SITE_NAME } from '@/lib/siteUrl'
-import { DailyChallengePage } from '@/components/daily/DailyChallengePage'
+import { ArchivedChallengePage } from '@/components/daily/ArchivedChallengePage'
 import { parseChallengeNumber, sharedChallengeOrNull } from './sharedChallenge'
 
 type Props = {
@@ -13,7 +13,8 @@ type Props = {
 /**
  * A shared daily: `/rugby/412`, the link in a finished day's message. It previews as that day's card
  * (`opengraph-image`) — messaging apps cache a preview per URL, so the link names its day — and opens
- * today's challenge: the one a friend can still play.
+ * that day: a past one from the archive, today's on its own page. Found in the browser, from the
+ * archive, so the page never waits on the database.
  *
  * Canonical on `/rugby`: one page to index, not one per day.
  */
@@ -36,8 +37,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function SharedDailyPage({ params }: Props) {
-  const { sport, number } = await params
-  if (!isSportId(sport) || parseChallengeNumber(number) === null) notFound()
+  const { sport, number: raw } = await params
+  const number = parseChallengeNumber(raw)
+  if (!isSportId(sport) || number === null) notFound()
 
-  return <DailyChallengePage sport={sport} />
+  return <ArchivedChallengePage sport={sport} number={number} />
 }

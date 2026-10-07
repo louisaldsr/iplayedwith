@@ -114,7 +114,9 @@ const en = {
     perfect: 'Perfect!',
     perfectBucket: 'Perfect',
     scoreHint: (extra: number) =>
-      extra === 0 ? 'Shortest chain found' : `${extra} extra ${extra === 1 ? 'player' : 'players'}`,
+      extra === 0
+        ? 'Shortest chain found'
+        : `${extra} ${extra === 1 ? 'player' : 'players'} more than the shortest chain`,
     solution: {
       show: 'Show the proposed solution',
       toggle: 'Proposed Solution',

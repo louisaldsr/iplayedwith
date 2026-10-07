@@ -2654,6 +2654,13 @@ body {
   animation: trophy-bounce 0.9s 0.2s ease-out both;
 }
 
+/* The recap's sections — ranking, stats, buttons — breathe more than the lines within them. */
+.victory-dialog .daily-ranking,
+.victory-dialog .daily-stats,
+.victory-dialog__divider {
+  margin-top: 16px;
+}
+
 .victory-dialog__divider {
   width: min(420px, 100%);
   border: 0;
@@ -2819,6 +2826,13 @@ body {
 .victory-score__hint {
   font-size: 0.8rem;
   color: var(--text-muted);
+}
+
+.victory-score__solution {
+  margin-top: 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  padding: 7px 16px;
 }
 
 /* ─── Daily stats: results pop-up, finished screen, menu ─── */

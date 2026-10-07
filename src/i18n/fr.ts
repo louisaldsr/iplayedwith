@@ -107,7 +107,9 @@ const fr: Translations = {
     perfect: 'Parfait !',
     perfectBucket: 'Parfait',
     scoreHint: (extra: number) =>
-      extra === 0 ? 'Chaîne la plus courte trouvée' : `${extra} ${extra === 1 ? 'joueur' : 'joueurs'} en trop`,
+      extra === 0
+        ? 'Chaîne la plus courte trouvée'
+        : `${extra} ${extra === 1 ? 'joueur' : 'joueurs'} de plus que la chaîne la plus courte`,
     solution: {
       show: 'Voir la solution proposée',
       toggle: 'Solution proposée',

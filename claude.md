@@ -761,7 +761,7 @@ score  = added − needed      → « Parfait ! », « +1 », « +2 »…, jamai
 ```
 
 - **Lisible d'un coup d'œil, sans jargon** : pas de vocabulaire de golf (« par », « coups ») —
-  « Parfait ! » + « Chaîne la plus courte trouvée », ou « +2 » + « 2 joueurs en trop ».
+  « Parfait ! » + « Chaîne la plus courte trouvée », ou « +2 » + « 2 joueurs de plus que la chaîne la plus courte ».
 - **Pas de plafond** : on peut ajouter autant de joueurs qu'on veut ; seules les vies font perdre.
 - **Tout joueur ajouté coûte 1**, sur la chaîne ou en cul-de-sac : ajouter des joueurs ne paie
   jamais. Classer à la longueur de la chaîne seule récompensait le spam — la chaîne est le plus
@@ -949,7 +949,9 @@ Le classement n'était lisible que par `npm run daily:ranking`. Les joueurs en v
   (en cours). Le total compte **tous les résultats finis**, perdants compris.
 - **Le récap de fin en sections** (pop-ups de victoire et de défaite) : la partie (titre, score,
   chaîne, temps, vies) → **Classement du jour** → **Vos stats** → les boutons. Les titres de section
-  servent de séparateurs (« ── VOS STATS ── ») ; un trait isole les boutons.
+  servent de séparateurs (« ── VOS STATS ── ») ; un trait isole les boutons. « Voir la solution
+  proposée » est posé **juste sous le score** (ou sous « une chaîne de N liens existait ») : la chaîne
+  à laquelle le score se compare.
 - **Pas de migration** : `toLeaderboard` (`src/domain/dailyLeaderboard.ts`) découpe `daily_ranking`
   (022) côté serveur. Lu en entier : à déplacer en SQL quand un jour aura des milliers de résultats.
 - **Ne sort jamais** : l'id d'un autre visiteur (il permet de le renommer) ni une chaîne gagnante

@@ -71,6 +71,16 @@ export function VictoryDialog({
         <div className="victory-score">
           <span className="victory-score__value">{formatScore(score, t.daily.perfect)}</span>
           <span className="victory-score__hint">{t.daily.scoreHint(score)}</span>
+          {/* Right under the comparison: the shortest chain it is measured against. */}
+          {onShowSolution && (
+            <button
+              type="button"
+              className="btn btn--solution btn--sm victory-score__solution"
+              onClick={onShowSolution}
+            >
+              {t.daily.solution.show}
+            </button>
+          )}
         </div>
       )}
 
@@ -119,11 +129,6 @@ export function VictoryDialog({
         <button type="button" className="btn btn--ghost btn--lg" onClick={onClose}>
           {t.victory.viewBoard}
         </button>
-        {onShowSolution && (
-          <button type="button" className="btn btn--ghost btn--lg" onClick={onShowSolution}>
-            {t.daily.solution.show}
-          </button>
-        )}
         {onPlayAgain && (
           <button type="button" className="btn btn--primary btn--lg" onClick={onPlayAgain}>
             {t.victory.playAgain}

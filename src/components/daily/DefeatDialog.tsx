@@ -31,7 +31,13 @@ export function DefeatDialog({ open, onClose, challenge, onShowSolution }: Props
       <h2 id="defeat-title" className="defeat-dialog__heading">
         {t.daily.lostTitle}
       </h2>
-      <p className="defeat-dialog__text">{t.daily.lostText(challenge.optimalLinks)}</p>
+      <div className="victory-score">
+        <p className="defeat-dialog__text">{t.daily.lostText(challenge.optimalLinks)}</p>
+        {/* Right under "a chain existed": that chain. */}
+        <button type="button" className="btn btn--solution btn--sm victory-score__solution" onClick={onShowSolution}>
+          {t.daily.solution.show}
+        </button>
+      </div>
 
       <DailyRanking sport={challenge.sport} />
       <DailyStats sport={challenge.sport} />
@@ -42,9 +48,6 @@ export function DefeatDialog({ open, onClose, challenge, onShowSolution }: Props
       <div className="victory-dialog__actions">
         <button type="button" className="btn btn--ghost btn--lg" onClick={onClose}>
           {t.victory.viewBoard}
-        </button>
-        <button type="button" className="btn btn--solution btn--lg" onClick={onShowSolution}>
-          {t.daily.solution.show}
         </button>
         <Link href={`/${challenge.sport}/free`} className="btn btn--primary btn--lg">
           {t.daily.freePlay}

@@ -10,6 +10,10 @@ export type TotalsRow = {
   teamAbbr: string
   phase: SeasonPhase
   games: number
+  /** Games started; null when the source leaves it blank (not tracked before 1981-82, nor in older playoffs). */
+  starts: number | null
+  /** Minutes played; null when blank. */
+  minutes: number | null
 }
 
 const TABLES: Record<string, SeasonPhase> = {
@@ -54,9 +58,25 @@ export function parseTotalsPage(html: string): TotalsRow[] {
         throw new Error(`${tableId}: ${playerId} (${teamAbbr}) has an unreadable games count "${gamesText}"`)
       }
 
-      rows.push({ playerId, name, teamAbbr, phase, games: Number(gamesText) })
+      rows.push({
+        playerId,
+        name,
+        teamAbbr,
+        phase,
+        games: Number(gamesText),
+        starts: optionalCount(row.find('[data-stat="games_started"]').text(), `${tableId}: ${playerId} games_started`),
+        minutes: optionalCount(row.find('[data-stat="mp"]').text(), `${tableId}: ${playerId} mp`),
+      })
     })
   }
 
   return rows
+}
+
+/** A blank or missing cell is unknown (null); anything else must be a whole number. */
+function optionalCount(cellText: string, label: string): number | null {
+  const text = cellText.trim()
+  if (text === '') return null
+  if (!/^\d+$/.test(text)) throw new Error(`${label}: unreadable "${text}"`)
+  return Number(text)
 }

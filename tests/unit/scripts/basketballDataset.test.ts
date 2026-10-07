@@ -7,7 +7,14 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { buildDataset, firstEndYear, lastEndYear, seasonFromEndYear } from '../../../scripts/basketball/lib/dataset'
-import { parseTeamPage, type TeamSeasonPage } from '../../../scripts/basketball/lib/rosterParser'
+import { parsePlayoffs, parseTeamPage, type TeamSeasonPage } from '../../../scripts/basketball/lib/rosterParser'
+import {
+  capsByNation,
+  parseFibaPlayerPage,
+  parseFibaRanking,
+  UNKNOWN_NATION,
+  type FibaRankedNation,
+} from '../../../scripts/basketball/lib/fiba'
 import { parseTotalsPage, type TotalsRow } from '../../../scripts/basketball/lib/totalsParser'
 import { LATEST_SEASON } from '@/domain/season'
 
@@ -18,9 +25,33 @@ describe('parseTotalsPage', () => {
 
   it('keeps one row per (player, team, phase) and drops the 2TM aggregate and league-average rows', () => {
     expect(rows.filter((r) => r.playerId === 'siakapa01')).toEqual([
-      { playerId: 'siakapa01', name: 'Pascal Siakam', teamAbbr: 'TOR', phase: 'regular', games: 39 },
-      { playerId: 'siakapa01', name: 'Pascal Siakam', teamAbbr: 'IND', phase: 'regular', games: 41 },
-      { playerId: 'siakapa01', name: 'Pascal Siakam', teamAbbr: 'IND', phase: 'playoffs', games: 17 },
+      {
+        playerId: 'siakapa01',
+        name: 'Pascal Siakam',
+        teamAbbr: 'TOR',
+        phase: 'regular',
+        games: 39,
+        starts: 39,
+        minutes: 1300,
+      },
+      {
+        playerId: 'siakapa01',
+        name: 'Pascal Siakam',
+        teamAbbr: 'IND',
+        phase: 'regular',
+        games: 41,
+        starts: 41,
+        minutes: 1350,
+      },
+      {
+        playerId: 'siakapa01',
+        name: 'Pascal Siakam',
+        teamAbbr: 'IND',
+        phase: 'playoffs',
+        games: 17,
+        starts: 17,
+        minutes: 600,
+      },
     ])
     expect(rows).toHaveLength(6)
   })
@@ -34,6 +65,10 @@ describe('parseTotalsPage', () => {
 
   it('strips the Hall of Fame asterisk from names', () => {
     expect(rows.find((r) => r.playerId === 'jordami01')?.name).toBe('Michael Jordan')
+  })
+
+  it('reads a blank games-started cell as unknown, not 0', () => {
+    expect(rows.find((r) => r.playerId === 'jordami01')).toMatchObject({ starts: null, minutes: 3000 })
   })
 
   it('throws on an unreadable games count instead of skipping the row', () => {
@@ -58,6 +93,20 @@ describe('parseTeamPage', () => {
     ])
   })
 
+  it('sums the playoff wins of every series and spots the title', () => {
+    expect([team.playoffWins, team.champion]).toEqual([15, true])
+  })
+
+  it("counts the wins of a lost series too — the team's own wins come first", () => {
+    expect(
+      parsePlayoffs(
+        'Won NBA Western Conference First Round (2-1) versus Portland Trail Blazers ' +
+          'Lost NBA Western Conference Finals (1-4) versus Los Angeles Lakers',
+      ),
+    ).toEqual({ playoffWins: 3, champion: false })
+    expect(parsePlayoffs('')).toEqual({ playoffWins: 0, champion: false })
+  })
+
   it('throws on a heading it does not recognise', () => {
     expect(() => parseTeamPage('<h1>Franchise Index</h1>')).toThrow(/Unrecognised team page heading/)
   })
@@ -72,22 +121,32 @@ describe('season range', () => {
 })
 
 describe('buildDataset', () => {
-  const team = (name: string, roster: TeamSeasonPage['roster'] = []): TeamSeasonPage => ({
+  const team = (
+    name: string,
+    roster: TeamSeasonPage['roster'] = [],
+    playoffs: Partial<Pick<TeamSeasonPage, 'playoffWins' | 'champion'>> = {},
+  ): TeamSeasonPage => ({
     name,
     logoUrl: `https://logo/${name}.png`,
     roster,
+    playoffWins: 0,
+    champion: false,
+    ...playoffs,
   })
   const row = (
     playerId: string,
     teamAbbr: string,
     games: number,
     phase: TotalsRow['phase'] = 'regular',
+    starts: number | null = games,
   ): TotalsRow => ({
     playerId,
     name: playerId.toUpperCase(),
     teamAbbr,
     phase,
     games,
+    starts,
+    minutes: games * 30,
   })
 
   it('sums regular season and playoff games into one membership per team', () => {
@@ -106,6 +165,8 @@ describe('buildDataset', () => {
         season: '1990-1991',
         competition: 'NBA',
         games: 99,
+        starts: 99,
+        minutes: 2970,
       },
     ])
   })
@@ -154,7 +215,7 @@ describe('buildDataset', () => {
         teams: new Map([['BBB', team('B', [{ playerId: 'p1', countryCode: 'zz' }])]]),
       },
     ])
-    expect(dataset.players).toEqual([{ sourceId: 'p1', name: 'P1', nationality: 'FR' }])
+    expect(dataset.players).toEqual([{ sourceId: 'p1', name: 'P1', nationality: 'FR', capsByNation: null }])
     expect(warnings).toEqual([{ kind: 'unknown-country-code', detail: '"zz" on 1 roster row(s)' }])
   })
 
@@ -182,5 +243,104 @@ describe('buildDataset', () => {
         },
       ]),
     ).toThrow(/111 games/)
+  })
+
+  it("drops a whole squad's starts when one member's are unknown, and keeps its minutes", () => {
+    const { dataset } = buildDataset([
+      {
+        endYear: 1981,
+        totals: [row('a', 'BOS', 80), row('b', 'BOS', 70, 'regular', null), row('c', 'LAL', 60)],
+        teams: new Map([
+          ['BOS', team('Boston Celtics')],
+          ['LAL', team('Los Angeles Lakers')],
+        ]),
+      },
+    ])
+    expect(dataset.memberships.map((m) => [m.playerSourceId, m.starts, m.minutes])).toEqual([
+      ['a', null, 2400],
+      ['b', null, 2100],
+      ['c', 60, 1800],
+    ])
+  })
+
+  it('keeps the playoff run of every team that reached them, title included', () => {
+    const { dataset } = buildDataset([
+      {
+        endYear: 1986,
+        totals: [row('a', 'BOS', 80), row('b', 'NYK', 80)],
+        teams: new Map([
+          ['BOS', team('Boston Celtics', [], { playoffWins: 15, champion: true })],
+          ['NYK', team('New York Knicks')],
+        ]),
+      },
+    ])
+    expect(dataset.clubSeasons).toEqual([
+      { clubSourceId: 'Boston Celtics', season: '1985-1986', playoffWins: 15, champion: true },
+    ])
+  })
+
+  it('reads caps from FIBA pages: unknown without one, the nation coded through the ranking', () => {
+    const { dataset } = buildDataset(
+      [
+        {
+          endYear: 2010,
+          totals: [row('parketo01', 'SAS', 80), row('x', 'SAS', 80)],
+          teams: new Map([['SAS', team('San Antonio Spurs')]]),
+        },
+      ],
+      new Map([['parketo01', [parseFibaPlayerPage(fixture('fiba-player.html'))]]]),
+      [{ fibaCode: 'FRA', countryName: 'France', worldRank: 3 }],
+    )
+    expect(dataset.players.map((p) => [p.sourceId, p.capsByNation])).toEqual([
+      ['parketo01', { FRA: 25 }],
+      ['x', null],
+    ])
+  })
+})
+
+describe('FIBA', () => {
+  const page = parseFibaPlayerPage(fixture('fiba-player.html'))
+  const ranking: FibaRankedNation[] = [{ fibaCode: 'FRA', countryName: 'France', worldRank: 3 }]
+
+  it('reads the senior table only, the title country and the nationality field', () => {
+    expect(page).toEqual({
+      titleCountry: 'France',
+      nationalityCodes: ['BEL', 'FRA', 'USA'],
+      seniorEvents: [
+        { year: 2016, event: 'Olympic Games: Tournament for Men', games: 5 },
+        { year: 2015, event: 'EuroBasket', games: 9 },
+        { year: 2013, event: 'EuroBasket', games: 11 },
+      ],
+    })
+  })
+
+  it('counts an event listed on two duplicate FIBA pages once', () => {
+    expect(capsByNation([page, page], ranking)).toEqual({ FRA: 25 })
+  })
+
+  it('falls back on a single nationality code, and on "unknown" for a dual national with no title country', () => {
+    const noTitle = { ...page, titleCountry: null }
+    expect(capsByNation([{ ...noTitle, nationalityCodes: ['USA'] }], ranking)).toEqual({ USA: 25 })
+    expect(capsByNation([noTitle], ranking)).toEqual({ [UNKNOWN_NATION]: 25 })
+  })
+
+  it('gives no caps entry at all to a player with no senior game', () => {
+    expect(capsByNation([{ ...page, seniorEvents: [] }], ranking)).toEqual({})
+  })
+
+  it('reads the ranked nations from the payload the ranking page embeds', () => {
+    // The page escapes its payload's quotes (\\"), as the real one does; 120 nations, codes AAA, AAB…
+    const code = (i: number) => `A${String.fromCharCode(65 + Math.floor(i / 26))}${String.fromCharCode(65 + (i % 26))}`
+    const name = (i: number) => (i === 8 ? 'T\\u00fcrkiye' : `Nation ${i}`)
+    const html = Array.from(
+      { length: 120 },
+      (_, i) =>
+        `{\\"worldRank\\":${i + 1},\\"countryName\\":\\"${name(i)}\\",\\"zoneRank\\":1,` +
+        `\\"iocCode\\":\\"${code(i)}\\",\\"fibaCode\\":\\"${code(i)}\\",\\"currentPoints\\":1}`,
+    ).join(',')
+
+    const nations = parseFibaRanking(html)
+    expect(nations).toHaveLength(120)
+    expect(nations[8]).toEqual({ fibaCode: 'AAI', countryName: 'Türkiye', worldRank: 9 })
   })
 })

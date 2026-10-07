@@ -1259,7 +1259,7 @@ partout où un club est lu (`findManyByIds` le sélectionne) : **aucun changemen
   
 ---
 
-## Bloc 31 — Basketball (NBA, 1979-80 → 2025-26)
+## Bloc 32 — Basketball (NBA, 1979-80 → 2025-26)
 
 ### La liste des sports devient une donnée
 
@@ -1289,21 +1289,39 @@ Dataset : 39 clubs, 3 820 joueurs, 23 047 memberships. `nationality` = **pays de
 (Tony Parker sort belge) — seule donnée de la source.
 
 ```
-seed:basketball:fetch → :build → :clubs → :players → :memberships   puis 028 (alias)
+seed:basketball:fetch → :build → :clubs → :players → :memberships → :fame → :prestige   puis 028 (alias)
 ```
 
 ### ⚠️ Seeder les memberships lance le défi du jour
 
-`ensure_daily_challenges` (cron horaire) tire un défi pour chaque sport présent dans
-`memberships` : le premier tirage basketball fixe son #1. Sans scores de fame, le tirage retombe
-sur deux joueurs connectés quelconques. La fame basketball (v3) doit donc précéder `:memberships`
-— ou le lancement est assumé tel quel.
+`ensure_daily_challenges` (cron à :05 chaque heure) tire aujourd'hui et demain pour chaque sport
+présent dans `memberships` : le premier tirage basketball fixe son #1. La fame ne peut pas précéder
+`:memberships` (elle écrit `starts`/`minutes` sur les memberships et s'en calcule), donc toute la
+suite tient **dans la même heure**, lancée juste après un :05 :
 
-### Fame basketball — reste à faire
+```
+:memberships → :fame → :prestige → fame:exposure -- --sport=basketball
+```
 
-Ligne `fame_calibration` basketball (sans elle `compute_fame_scores` refuse de tourner) ; `starts`
-et `minutes` par membership (colonnes `gs` et `mp` de la même page totals) ; titres NBA dans
-`club_titles` ; `fame:exposure` pour les vues Wikipedia. Pas de caps dans la source : `P_intl` à 0.
+Les vues Wikipedia du mois sont déjà en cache (`scripts/input/wikipedia/`), l'exposition va vite.
+
+### Fame basketball (v3, sans changer la formule)
+
+- **Caps** : la source n'en a pas. FIBA.basketball les liste (tableau « National Team: Senior »),
+  joint par Wikidata qui porte les deux IDs (P2685 Basketball-Reference, P12338 FIBA) — 90 % des
+  joueurs, 99 % des non-Américains. Nation = pays du titre de la page, codé par le classement FIBA,
+  sinon le champ `nationality` s'il est unique. Paliers = règle commune sur le classement mondial
+  (`scripts/common/nationTiers.ts`, partagée avec le football).
+- **Le CDN de FIBA** sert sa page d'accueil (en 200) pour une page froide : chaque page est
+  réveillée ~30 s avant d'être lue, rien de générique n'est mis en cache. ~4 h pour 3 500 pages.
+- **Club** : `starts`/`minutes` (colonnes `gs`/`mp`), tout-ou-rien par effectif — un effectif où
+  des titularisations manquent (avant 1981-82) passe aux minutes. Prestige : les victoires en
+  playoffs tiennent le rôle d'un parcours européen (`NBA Playoffs`), le titre NBA celui d'un titre.
+- **Constantes** (`029`, mesurées sur un Postgres local chargé du dataset) : `k_games` 1 700,
+  `k_club` 0,50, `k_rate` 15, `k_continental` 16, `v_max` 8 M (LeBron). Résultat local : LeBron 88,
+  Parker 83, Kobe 82, Durant 81, Jordan / Gasol / O'Neal 80. La bande de tirage 60–80 compte
+  **114** joueurs (~300 en rugby et football) — un vivier plus étroit, que des noms connus.
+- `MAX_PLAUSIBLE_STARTS` passe de 100 à 250 (le plafond de `games`) : 98 saisons NBA dépassent 100.
 
 ## Tests e2e — jamais la vraie base
 
@@ -1405,7 +1423,7 @@ Saisie user
     (requêtes « i played with », pages indexées) et ajouter des liens vers le site
 40. Appliquer `026_daily_archive.sql` **avant** de déployer les archives, puis ses contrôles ; lire
     `npm run daily:ranking -- --day=…` sur un jour joué en retard (colonne `late`)
-41. Basketball (Bloc 31) : appliquer `027`, fame basketball v3, puis `:clubs` → `:players` →
-    `:memberships` (lance le défi du jour), `028`, et merger la branche
+41. Basketball (Bloc 32) : appliquer `027` puis `029`, `:clubs` → `:players`, puis dans la même heure
+    `:memberships` → `:fame` → `:prestige` → `fame:exposure` ; lire `fame:report` ; `028` ; merger
 42. F1 : source Jolpica-F1 (successeur d'Ergast) ; `Season` en `YYYY-YYYY` ne colle pas à une
     saison sur une seule année — décision domaine à prendre d'abord

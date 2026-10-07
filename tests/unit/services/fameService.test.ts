@@ -137,6 +137,12 @@ describe('importMembershipStats', () => {
     await expect(importMembershipStats(db, 'rugby', [stats({ season: '23/24' })])).rejects.toThrow(/invalid season/)
     expect(mockedMemberships.applyMembershipStats).not.toHaveBeenCalled()
   })
+
+  it('accepts a full NBA season of starts, playoffs included, and still rejects a games-sized typo', async () => {
+    mockedMemberships.applyMembershipStats.mockResolvedValue(1)
+    await expect(importMembershipStats(db, 'basketball', [stats({ starts: 104 })])).resolves.toEqual({ written: 1 })
+    await expect(importMembershipStats(db, 'basketball', [stats({ starts: 251 })])).rejects.toThrow(/implausibly/)
+  })
 })
 
 describe('importNationTiers', () => {

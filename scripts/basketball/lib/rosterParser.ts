@@ -11,6 +11,10 @@ export type TeamSeasonPage = {
   name: string
   logoUrl: string | null
   roster: RosterEntry[]
+  /** Playoff games won that season — 0 for a team that missed them. */
+  playoffWins: number
+  /** Won the NBA Finals. */
+  champion: boolean
 }
 
 /** "1985-86 Boston Celtics Roster and Stats" → "Boston Celtics". */
@@ -40,5 +44,29 @@ export function parseTeamPage(html: string): TeamSeasonPage {
     roster.push({ playerId, countryCode })
   })
 
-  return { name, logoUrl: $('img.teamlogo').first().attr('src') ?? null, roster }
+  const playoffs = parsePlayoffs(
+    $('p')
+      .filter((_, p) => $(p).find('a[href^="/playoffs/NBA_"]').length > 0)
+      .first()
+      .text(),
+  )
+
+  return { name, logoUrl: $('img.teamlogo').first().attr('src') ?? null, roster, ...playoffs }
+}
+
+/** "Won NBA Western Conference Semifinals (4-3) versus …" — the team's own wins come first, won or lost. */
+const SERIES = /(Won|Lost) (NBA [A-Za-z ]+?) \((\d+)-(\d+)\) versus/g
+
+/**
+ * The team's playoff run, from the summary line of its season page. Every series of 1979-80 to
+ * 2025-26 reads as above: four rounds per conference, then the Finals — no play-in rows.
+ */
+export function parsePlayoffs(summary: string): { playoffWins: number; champion: boolean } {
+  let playoffWins = 0
+  let champion = false
+  for (const [, result, series, wins] of summary.replace(/\s+/g, ' ').matchAll(SERIES)) {
+    playoffWins += Number(wins)
+    if (result === 'Won' && series === 'NBA Finals') champion = true
+  }
+  return { playoffWins, champion }
 }

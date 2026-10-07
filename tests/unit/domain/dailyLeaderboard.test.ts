@@ -11,6 +11,7 @@ const won = (n: number, rank: number, score: number, durationMs = 60_000): Daily
   visitorId: visitor(n),
   username: `name${n}`,
   outcome: 'won',
+  late: false,
   score,
   added: score + 1,
   needed: 1,

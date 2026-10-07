@@ -49,6 +49,9 @@ export function DefeatDialog({ open, onClose, challenge, onShowSolution }: Props
         <button type="button" className="btn btn--ghost btn--lg" onClick={onClose}>
           {t.victory.viewBoard}
         </button>
+        <Link href={`/${challenge.sport}/archive`} className="btn btn--ghost btn--lg">
+          {t.archive.link}
+        </Link>
         <Link href={`/${challenge.sport}/free`} className="btn btn--primary btn--lg">
           {t.daily.freePlay}
         </Link>

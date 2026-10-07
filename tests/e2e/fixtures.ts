@@ -99,6 +99,40 @@ export const sampleDailyChallenge = {
   optimalLinks: 2,
 }
 
+/** The Paris day `days` before today. */
+export const parisDaysAgo = (days: number) => {
+  const date = new Date(`${parisToday()}T00:00:00Z`)
+  date.setUTCDate(date.getUTCDate() - days)
+  return date.toISOString().slice(0, 10)
+}
+
+/** A past day's pair — the sample pair again, so `winningMove` wins it too. */
+export const pastDailyChallenge = { ...sampleDailyChallenge, day: parisDaysAgo(3), number: 4 }
+
+/**
+ * The rugby archive, newest first: today (never started), yesterday (lost on its day), two days ago
+ * (won "+1", late), three days ago (never started).
+ */
+export const sampleDailyArchive = {
+  today: parisToday(),
+  days: [
+    { ...sampleDailyChallenge, result: null },
+    {
+      ...sampleDailyChallenge,
+      day: parisDaysAgo(1),
+      number: 6,
+      result: { outcome: 'lost', score: null, livesLost: 3, late: false },
+    },
+    {
+      ...sampleDailyChallenge,
+      day: parisDaysAgo(2),
+      number: 5,
+      result: { outcome: 'won', score: 1, livesLost: 0, late: true },
+    },
+    { ...pastDailyChallenge, result: null },
+  ],
+}
+
 /** A visitor who never finished a daily. */
 export const emptyDailyStats = {
   played: 0,

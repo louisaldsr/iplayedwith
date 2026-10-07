@@ -6,6 +6,7 @@ import { Season, isSeason } from '@/domain/season'
 import { applyMove, type GraphState, type MoveRequest } from '@/services/moveService'
 import { recordDailyMove } from '@/services/dailyResultService'
 import { isVisitorId, VisitorId } from '@/domain/dailyResult'
+import { ChallengeDay } from '@/domain/dailyChallenge'
 import { UserInput } from '@/game/userInput'
 import { ValidationError } from '@/services/errors'
 import { toErrorResponse } from '@/lib/apiErrors'
@@ -19,9 +20,10 @@ import { toErrorResponse } from '@/lib/apiErrors'
  * store or expire. Nothing here trusts that payload: `applyMove` re-checks every submitted
  * edge against the database before using it.
  *
- * A daily move carries `daily: { visitorId }`: once judged, it is counted towards the visitor's
- * result for the day (attempts, lives, win) — the ranking's source. Recording never fails the
- * move: the player's game matters more than the ranking, so a failure is only logged.
+ * A daily move carries `daily: { visitorId, day }`: once judged, it is counted towards the
+ * visitor's result for that day (attempts, lives, win) — the ranking's source. `day` is today's or
+ * a past one from the archive; left out, today. Recording never fails the move: the player's game
+ * matters more than the ranking, so a failure is only logged.
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ sport: string }> }) {
   const { sport } = await params
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ spo
     const result = await applyMove(supabase, sport, parsed)
 
     if (daily) {
-      const move = { visitorId: daily.visitorId, playerAId: parsed.playerAId, playerBId: parsed.playerBId }
+      const move = { ...daily, playerAId: parsed.playerAId, playerBId: parsed.playerBId }
       await recordDailyMove(supabaseAdmin(), sport, move, result).catch((err) =>
         console.error('daily result not recorded', err),
       )
@@ -70,13 +72,18 @@ function parseMoveRequest(body: unknown): MoveRequest {
 }
 
 /** The daily is easy mode only — one set of rules, one ranking. */
-function parseDaily(body: unknown, req: MoveRequest): { visitorId: VisitorId } | null {
+function parseDaily(body: unknown, req: MoveRequest): { visitorId: VisitorId; day?: ChallengeDay } | null {
   const daily = (body as Record<string, unknown>).daily
   if (daily === undefined) return null
-  const visitorId = asObject(daily, 'daily').visitorId
-  if (!isVisitorId(visitorId)) throw new ValidationError('daily.visitorId must be a UUID')
+  const raw = asObject(daily, 'daily')
+  if (!isVisitorId(raw.visitorId)) throw new ValidationError('daily.visitorId must be a UUID')
   if (req.difficulty !== 'easy') throw new ValidationError('the daily challenge is played in easy mode')
-  return { visitorId }
+  if (raw.day === undefined) return { visitorId: raw.visitorId }
+  try {
+    return { visitorId: raw.visitorId, day: ChallengeDay(String(raw.day)) }
+  } catch {
+    throw new ValidationError('daily.day must be a YYYY-MM-DD date')
+  }
 }
 
 function parseGraph(value: unknown): GraphState {

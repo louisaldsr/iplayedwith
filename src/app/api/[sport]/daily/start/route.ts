@@ -8,9 +8,10 @@ import { toErrorResponse } from '@/lib/apiErrors'
 /**
  * POST /api/:sport/daily/start  — body `{ day, visitorId }`
  *
- * Stamps the moment a visitor starts the day's challenge: the ranking's time counts from here, on
- * the server's clock. Idempotent — starting again (another tab, a resumed board) keeps the first
- * time. 409 when `day` is no longer today.
+ * Stamps the moment a visitor starts a day's challenge — today's, or a past one from the archive:
+ * the ranking's time counts from here, on the server's clock, and a Start after the day marks the
+ * result late. Idempotent — starting again (another tab, a resumed board) keeps the first time.
+ * 409 for a future day.
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ sport: string }> }) {
   const { sport } = await params

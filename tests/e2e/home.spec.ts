@@ -33,6 +33,15 @@ test('the menu leads to each sport daily challenge, and to free play', async ({ 
   await expect(page.getByRole('link', { name: 'Football — Free play' })).toHaveAttribute('href', '/football/free')
 })
 
+test("the menu leads to each sport's past challenges", async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('link', { name: 'Rugby — Past challenges' })).toHaveAttribute('href', '/rugby/archive')
+  await expect(page.getByRole('link', { name: 'Football — Past challenges' })).toHaveAttribute(
+    'href',
+    '/football/archive',
+  )
+})
+
 test("today's finished challenges are marked won or lost; yesterday's are not", async ({ page }) => {
   await page.addInitScript((day) => {
     window.localStorage.setItem('ipw.daily.rugby', JSON.stringify({ day, livesLeft: 2, outcome: 'won' }))

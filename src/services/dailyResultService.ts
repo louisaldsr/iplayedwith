@@ -2,7 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import * as dailyResultsRepo from '@/repositories/dailyResultsRepository'
 import { ensureUsername } from '@/services/visitorService'
 import { SportId } from '@/domain/sport'
-import { ChallengeDay, challengeDayOf, DAILY_LIVES } from '@/domain/dailyChallenge'
+import { ChallengeDay, challengeDayOf, DAILY_LIVES, isPlayableDay } from '@/domain/dailyChallenge'
 import { DailyRankingEntry, VisitorId } from '@/domain/dailyResult'
 import { DailyStats, dailyStats } from '@/domain/dailyScore'
 import { DailyLeaderboard, toLeaderboard } from '@/domain/dailyLeaderboard'
@@ -12,15 +12,16 @@ import { ConflictError } from '@/services/errors'
 /**
  * The server's record of each visitor's daily challenge — what the day's ranking is computed from.
  *
- * The browser only says who it is. What it did is what the server saw: the moves it judged and
- * the times on its own clock. The day is always the server's (`challengeDayOf`).
+ * The browser only says who it is, and which day it plays: today's, or a past one from the archive —
+ * never a future one. What it did is what the server saw: the moves it judged and the times on its
+ * own clock. Whether a day was played late is the server's call too: Start on its clock, after the
+ * day (026_daily_archive.sql).
  *
  * `now` is a parameter so the day boundary can be tested; callers leave it out.
  */
 
 /**
- * Stamps "Start" on today's challenge. `day` is the one the client was shown: past midnight it is
- * stale.
+ * Stamps "Start" on a day's challenge — today's, or a past one played late.
  *
  * Also the visitor's first sight by the server: it gets its generated name here, once. A name that
  * fails to be drawn is only logged — the result matters more than the name, and the next Start
@@ -33,7 +34,7 @@ export async function startDailyResult(
   visitorId: VisitorId,
   now: Date = new Date(),
 ): Promise<void> {
-  if (day !== challengeDayOf(now)) throw new ConflictError(`${day} is not today's challenge`)
+  if (!isPlayableDay(day, challengeDayOf(now))) throw new ConflictError(`${day} is not playable yet`)
   await ensureUsername(db, visitorId).catch((err) => console.error('visitor name not created', err))
   await dailyResultsRepo.start(db, sport, day, visitorId)
 }
@@ -44,23 +45,29 @@ export async function startDailyResult(
  * move after the end is not an attempt, and a move that never reached the rules is not recorded at
  * all.
  *
- * The pair is checked in SQL against today's: a board left open past midnight is not recorded.
+ * `day` is the one the board was drawn for; a client from before the archive sends none, which
+ * means today. The pair is checked in SQL against that day's: a move cannot be counted on a day it
+ * was not played for. A future day is never recorded.
  */
 export async function recordDailyMove(
   db: SupabaseClient,
   sport: SportId,
-  move: { visitorId: VisitorId; playerAId: string; playerBId: string },
+  move: { visitorId: VisitorId; day?: ChallengeDay; playerAId: string; playerBId: string },
   result: MoveResult,
   now: Date = new Date(),
 ): Promise<void> {
   const costsLife = !result.ok && result.code === 'not-connected'
   if (!result.ok && !costsLife) return
 
+  const today = challengeDayOf(now)
+  const { day = today, ...played } = move
+  if (!isPlayableDay(day, today)) return
+
   const won = result.ok && result.victory
   await dailyResultsRepo.recordMove(db, {
     sport,
-    day: challengeDayOf(now),
-    ...move,
+    day,
+    ...played,
     costsLife,
     links: won ? result.path.length - 1 : null,
     path: won ? result.path : null,
@@ -69,8 +76,8 @@ export async function recordDailyMove(
 }
 
 /**
- * Records a career opened during today's challenge — a hint. `day` is the one the client was
- * shown: past midnight it is stale. A, B, unknown players and finished days are filtered in SQL.
+ * Records a career opened during a day's challenge — a hint. Today's or a past one, never a future
+ * one. A, B, unknown players and finished days are filtered in SQL.
  */
 export async function recordDailyHint(
   db: SupabaseClient,
@@ -80,13 +87,13 @@ export async function recordDailyHint(
   playerId: string,
   now: Date = new Date(),
 ): Promise<void> {
-  if (day !== challengeDayOf(now)) throw new ConflictError(`${day} is not today's challenge`)
+  if (!isPlayableDay(day, challengeDayOf(now))) throw new ConflictError(`${day} is not playable yet`)
   await dailyResultsRepo.recordHint(db, sport, day, visitorId, playerId)
 }
 
 /**
- * The day's ranking: winners by score (extra players), then fastest; then everyone who lost, on
- * one shared rank.
+ * The day's ranking: winners by score (extra players), then fastest — on-time ones, then late ones;
+ * then everyone who lost, on one shared rank.
  */
 export function getDailyRanking(db: SupabaseClient, sport: SportId, day: ChallengeDay): Promise<DailyRankingEntry[]> {
   return dailyResultsRepo.ranking(db, sport, day)

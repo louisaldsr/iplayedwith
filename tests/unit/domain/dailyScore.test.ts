@@ -9,9 +9,18 @@ import {
   scoreBucketOf,
 } from '@/domain/dailyScore'
 
-const won = (day: string, score: number): DailyDayResult => ({ day: ChallengeDay(day), outcome: 'won', score })
-const lost = (day: string): DailyDayResult => ({ day: ChallengeDay(day), outcome: 'lost', score: null })
-const unfinished = (day: string): DailyDayResult => ({ day: ChallengeDay(day), outcome: null, score: null })
+const result = (day: string, outcome: DailyDayResult['outcome'], score: number | null): DailyDayResult => ({
+  day: ChallengeDay(day),
+  outcome,
+  score,
+  livesLost: outcome === 'lost' ? 3 : 0,
+  late: false,
+})
+const won = (day: string, score: number) => result(day, 'won', score)
+const lost = (day: string) => result(day, 'lost', null)
+const unfinished = (day: string) => result(day, null, null)
+/** Played from the archive, after its day. */
+const late = (r: DailyDayResult): DailyDayResult => ({ ...r, late: true })
 const today = ChallengeDay('2026-10-05')
 
 describe('dailyScore — the extra players', () => {
@@ -92,6 +101,16 @@ describe('dailyStats', () => {
       today,
     )
     expect(stats).toMatchObject({ bestStreak: 3, currentStreak: 1 })
+  })
+
+  it('counts a day played late in played, won and the distribution', () => {
+    const stats = dailyStats([late(won('2026-10-01', 2)), late(lost('2026-10-02'))], today)
+    expect(stats).toMatchObject({ played: 2, won: 1, lost: 1, distribution: [0, 0, 1, 0, 0, 0], averageScore: 2 })
+  })
+
+  it('never fills a streak with a day played late — a missed day stays missed', () => {
+    const stats = dailyStats([won('2026-10-02', 0), late(won('2026-10-03', 0)), won('2026-10-04', 0)], today)
+    expect(stats).toMatchObject({ currentStreak: 1, bestStreak: 1, won: 3 })
   })
 
   it('puts today in its bucket, overflow included', () => {

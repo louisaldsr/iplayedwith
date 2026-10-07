@@ -69,6 +69,7 @@ type RankingRow = {
   visitor_id: string
   username: string | null
   outcome: 'won' | 'lost'
+  late?: boolean
   score: number | null
   added: number
   needed: number
@@ -89,6 +90,8 @@ export async function ranking(db: SupabaseClient, sport: SportId, day: Challenge
     visitorId: r.visitor_id as VisitorId,
     username: r.username,
     outcome: r.outcome,
+    // Absent before 026_daily_archive.sql: every result was played on its day.
+    late: r.late ?? false,
     score: r.score,
     added: r.added,
     needed: r.needed,
@@ -106,13 +109,22 @@ type StatsRow = {
   day: string
   outcome: 'won' | 'lost' | null
   score: number | null
+  lives_lost?: number
+  late?: boolean
 }
 
 /** Every day the visitor has a result for in the sport, unfinished ones included, oldest first. */
 export async function visitorDays(db: SupabaseClient, sport: SportId, visitorId: VisitorId): Promise<DailyDayResult[]> {
   const { data, error } = await db.rpc('daily_stats', { p_sport: sport, p_visitor: visitorId })
   if (error) throw new Error(error.message)
-  return (data as StatsRow[]).map((r) => ({ day: ChallengeDay(r.day), outcome: r.outcome, score: r.score }))
+  return (data as StatsRow[]).map((r) => ({
+    day: ChallengeDay(r.day),
+    outcome: r.outcome,
+    score: r.score,
+    // Both absent before 026_daily_archive.sql: every result was played on its day.
+    livesLost: r.lives_lost ?? 0,
+    late: r.late ?? false,
+  }))
 }
 
 /** How the visitor's day ended — null while it is being played, or never started. */

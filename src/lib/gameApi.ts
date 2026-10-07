@@ -9,6 +9,7 @@ import { CareerStint } from '@/domain/career'
 import { DailyStats } from '@/domain/dailyScore'
 import { DailySolution } from '@/domain/dailySolution'
 import { DailyLeaderboard } from '@/domain/dailyLeaderboard'
+import { DailyArchive } from '@/domain/dailyArchive'
 
 /**
  * Browser-side calls the game makes.
@@ -42,8 +43,23 @@ export function getDailyChallenge(sport: SportId, signal?: AbortSignal): Promise
 }
 
 /**
- * Tells the server this visitor starts today's challenge — the ranking's time counts from its
- * clock, not the browser's. Fire and forget: the game never waits on it, and a failure only means
+ * Every challenge of the sport up to today, newest first, with this visitor's result on each — also
+ * where a past day's pair is read from. Without a visitor id (no storage), the days alone.
+ */
+export async function getDailyArchive(sport: SportId, visitorId: string, signal?: AbortSignal): Promise<DailyArchive> {
+  const res = await fetch(`/api/${sport}/daily/archive`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(visitorId ? { visitorId } : {}),
+    signal,
+  })
+  if (!res.ok) throw new Error(`/api/${sport}/daily/archive failed with ${res.status}`)
+  return res.json()
+}
+
+/**
+ * Tells the server this visitor starts a day's challenge, today's or a past one — the ranking's
+ * time counts from its clock, not the browser's. Fire and forget: the game never waits on it, and a failure only means
  * the time will count from the first move instead.
  */
 export function startDailyChallenge(sport: SportId, day: string, visitorId: string): void {
@@ -55,7 +71,7 @@ export function startDailyChallenge(sport: SportId, day: string, visitorId: stri
 }
 
 /**
- * Tells the server a career was opened during today's challenge — a hint, recorded for a future
+ * Tells the server a career was opened during a day's challenge — a hint, recorded for a future
  * score. Fire and forget, like the start: the career opens whatever happens here.
  */
 export function recordDailyHint(sport: SportId, day: string, visitorId: string, playerId: string): void {

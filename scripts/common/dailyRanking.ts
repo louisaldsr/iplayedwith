@@ -16,8 +16,8 @@ import { getDb } from './env'
  *   npm run daily:ranking -- --sport=rugby [--day=YYYY-MM-DD] [--lang=fr|en]
  *   (default: today in Paris, names in French)
  *
- * Every finished result: winners by score (extra players), then fastest; then everyone who lost,
- * on one shared rank. Visitors are anonymous browsers, shown by their username and the start of
+ * Every finished result: winners by score (extra players), then fastest — on-time ones, then those
+ * who played the day late from the archive ("late"); then everyone who lost, on one shared rank. Visitors are anonymous browsers, shown by their username and the start of
  * their id.
  *
  * "chain u/k/f" counts the unsung / known / famous players in the middle of each winning chain (A
@@ -44,7 +44,8 @@ async function main() {
   const db = getDb()
   const ranking = await getDailyRanking(db, sport, day)
   const won = ranking.filter((r) => r.outcome === 'won').length
-  console.log(`\n=== ${sport} — ${day} — ${won} won, ${ranking.length - won} lost ===\n`)
+  const late = ranking.filter((r) => r.late).length
+  console.log(`\n=== ${sport} — ${day} — ${won} won, ${ranking.length - won} lost, ${late} late ===\n`)
   if (ranking.length === 0) return
 
   const middles = (path: string[]) => path.slice(1, -1)
@@ -64,7 +65,7 @@ async function main() {
 
   const NAME_WIDTH = 32
   console.log(
-    `rank  ${'name'.padEnd(NAME_WIDTH)}  visitor    score  added  needed  time      lives lost  hints  chain u/k/f`,
+    `rank  ${'name'.padEnd(NAME_WIDTH)}  visitor    late    score  added  needed  time      lives lost  hints  chain u/k/f`,
   )
   for (const r of ranking) {
     console.log(
@@ -72,6 +73,7 @@ async function main() {
         String(r.rank).padStart(4),
         (r.username ? formatUsername(r.username, labels) : '—').padEnd(NAME_WIDTH),
         r.visitorId.slice(0, 8),
+        (r.late ? 'late' : '').padEnd(4),
         (r.score === null ? 'Failed' : formatScore(r.score, 'Perfect')).padStart(7),
         String(r.added).padStart(5),
         String(r.needed).padStart(6),

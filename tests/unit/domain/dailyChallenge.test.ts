@@ -1,4 +1,4 @@
-import { ChallengeDay, challengeDayOf } from '@/domain/dailyChallenge'
+import { isPlayableDay, ChallengeDay, challengeDayOf } from '@/domain/dailyChallenge'
 
 describe('ChallengeDay', () => {
   it('accepts a real calendar day', () => {
@@ -24,5 +24,20 @@ describe('challengeDayOf — one day for everyone, on Paris time', () => {
   it('follows the winter offset (UTC+1)', () => {
     expect(challengeDayOf(new Date('2026-01-10T22:59:59Z'))).toBe('2026-01-10')
     expect(challengeDayOf(new Date('2026-01-10T23:00:00Z'))).toBe('2026-01-11')
+  })
+})
+
+describe('isPlayableDay — today, or the archive', () => {
+  const today = ChallengeDay('2026-07-15')
+
+  it("plays today's day and every past one, across months and years", () => {
+    expect(isPlayableDay(today, today)).toBe(true)
+    expect(isPlayableDay(ChallengeDay('2026-06-30'), today)).toBe(true)
+    expect(isPlayableDay(ChallengeDay('2025-12-31'), today)).toBe(true)
+  })
+
+  it("never plays a future day — tomorrow's pair is drawn ahead, and hidden", () => {
+    expect(isPlayableDay(ChallengeDay('2026-07-16'), today)).toBe(false)
+    expect(isPlayableDay(ChallengeDay('2027-01-01'), today)).toBe(false)
   })
 })

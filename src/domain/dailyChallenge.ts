@@ -46,6 +46,16 @@ export function challengeDayOf(now: Date): ChallengeDay {
 }
 
 /**
+ * Whether `day` can be played on `today`: today's challenge, or any past one — the archive. Never a
+ * future day: tomorrow's pair is drawn ahead of time and must stay hidden until then.
+ *
+ * "YYYY-MM-DD" strings order like the dates they spell.
+ */
+export function isPlayableDay(day: ChallengeDay, today: ChallengeDay): boolean {
+  return day <= today
+}
+
+/**
  * Lives per daily challenge: a guess that connects to nobody on the board costs one, and the day
  * is lost at zero. Flat — the same for every pair, whatever its distance.
  */

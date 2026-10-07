@@ -7,6 +7,7 @@ import { Player } from '../domain/player'
 import { Club } from '../domain/club'
 import { SportId } from '../domain/sport'
 import { DailyChallenge, DAILY_LIVES } from '../domain/dailyChallenge'
+import { DailyArchiveResult } from '../domain/dailyArchive'
 import { RemoteEngine, RemoteInputResult, createRemoteEngine } from '../game/remoteEngine'
 import { UserInput } from '../game/userInput'
 import { useTranslations } from '../i18n'
@@ -67,7 +68,10 @@ type Action =
   | { type: 'SHOW_RESULTS'; open: boolean }
   | { type: 'PLAY_AGAIN' }
 
-/** Where a daily stands in this browser today, read once on mount. Null in free play. */
+/**
+ * Where a daily stands in this browser, read once on mount — and, for a past day, on the server.
+ * Null in free play.
+ */
 type DailyStart = {
   livesLeft: number
   outcome: DailyOutcome | null
@@ -81,22 +85,32 @@ function readDailyStart(mode: GameMode): DailyStart | null {
   if (mode.kind !== 'daily') return null
   const { sport, day, playerA, playerB } = mode.challenge
   const record = readDailyRecord(sport, day)
-  const outcome = record.outcome ?? (record.livesLeft === 0 ? 'lost' : null)
+  // A past day may have been played elsewhere (another browser, or before this one kept every
+  // day): the server's lives and outcome win over a fresh local record — no replaying a lost day.
+  const server = mode.archived
+  const livesLeft = Math.max(0, Math.min(record.livesLeft, DAILY_LIVES - (server?.livesLost ?? 0)))
+  const outcome = record.outcome ?? server?.outcome ?? (livesLeft === 0 ? 'lost' : null)
   // A finished board comes back to be looked at again — a won one only with its chain.
   const board = outcome === 'won' && !record.board?.path?.length ? undefined : record.board
   const engine = board
     ? createRemoteEngine(sport, playerA, playerB, 'easy', {
         resume: { ...board, startedAt: new Date(board.startedAt) },
-        dailyVisitorId: readVisitor().playerId,
+        daily: dailyOptions(day),
       })
     : null
   return {
-    livesLeft: record.livesLeft,
+    livesLeft,
     outcome,
     engine,
     moveCount: board?.moveCount ?? 0,
     finishedAt: board?.finishedAt ? new Date(board.finishedAt) : null,
   }
+}
+
+/** What a daily's engine sends with each move — nothing without a visitor id (no storage): played, not ranked. */
+function dailyOptions(day: string): { visitorId: string; day: string } | undefined {
+  const visitorId = readVisitor().playerId
+  return visitorId ? { visitorId, day } : undefined
 }
 
 /**
@@ -247,8 +261,11 @@ function reducer(state: UIState, action: Action): UIState {
 /**
  * Free play: the user picks the pair and the difficulty.
  * Daily: the pair is the day's challenge, always in easy mode — one set of rules for everyone.
+ * `archived` marks a past day, played from the archive, with the visitor's result on the server
+ * (null if never started).
  */
-export type GameMode = { kind: 'free' } | { kind: 'daily'; challenge: DailyChallenge }
+export type GameMode =
+  { kind: 'free' } | { kind: 'daily'; challenge: DailyChallenge; archived?: DailyArchiveResult | null }
 
 const FREE_PLAY: GameMode = { kind: 'free' }
 
@@ -294,11 +311,9 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
     // The daily's result is kept by the server, under this browser's anonymous id: Start stamps
     // the time, each move is counted. Without storage there is no id — the game is played, not
     // ranked.
-    const visitorId = daily ? readVisitor().playerId : ''
-    if (daily && visitorId) startDailyChallenge(daily.sport, daily.day, visitorId)
-    engineRef.current = createRemoteEngine(sport, playerA, playerB, difficulty, {
-      dailyVisitorId: visitorId || undefined,
-    })
+    const dailyMoves = daily ? dailyOptions(daily.day) : undefined
+    if (daily && dailyMoves) startDailyChallenge(daily.sport, daily.day, dailyMoves.visitorId)
+    engineRef.current = createRemoteEngine(sport, playerA, playerB, difficulty, { daily: dailyMoves })
     dispatch({
       type: 'START_GAME',
       game: engineRef.current.game,
@@ -357,6 +372,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
       : null
   const victory = state.phase === 'victory' ? ended : null
   const freePlayHref = daily ? `/${sport}/free` : undefined
+  const archiveHref = daily ? `/${sport}/archive` : undefined
 
   // A finished game keeps its board on screen: the results open over it, and this bar replaces the
   // move input to reopen them, lay the proposed solution over the board (daily), or move on.
@@ -371,9 +387,14 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           {t.victory.results}
         </button>
         {daily ? (
-          <Link href={freePlayHref!} className="btn btn--primary">
-            {t.daily.freePlay}
-          </Link>
+          <>
+            <Link href={archiveHref!} className="btn btn--ghost">
+              {t.archive.link}
+            </Link>
+            <Link href={freePlayHref!} className="btn btn--primary">
+              {t.daily.freePlay}
+            </Link>
+          </>
         ) : (
           <button type="button" className="btn btn--primary" onClick={handlePlayAgain}>
             {t.victory.playAgain}
@@ -385,7 +406,13 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
 
   return (
     <div className="game-page">
-      {state.phase === 'setup' && daily && <DailyIntro challenge={daily} onStart={handleStart} />}
+      {state.phase === 'setup' && daily && (
+        <DailyIntro
+          challenge={daily}
+          archived={mode.kind === 'daily' && mode.archived !== undefined}
+          onStart={handleStart}
+        />
+      )}
 
       {state.phase === 'setup' && !daily && (
         <SetupScreen
@@ -442,6 +469,7 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
           onShowSolution={daily ? showSolution : undefined}
           onPlayAgain={daily ? undefined : handlePlayAgain}
           freePlayHref={freePlayHref}
+          archiveHref={archiveHref}
         />
       )}
 

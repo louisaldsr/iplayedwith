@@ -20,6 +20,7 @@ const fr: Translations = {
     button: 'Menu',
     daily: 'Défi du jour',
     freePlay: 'Ou en partie libre :',
+    archive: 'Défis passés :',
     about: 'À propos',
     ranking: 'Classement',
     stats: 'Mes stats',
@@ -141,6 +142,20 @@ const fr: Translations = {
           ? 'Finissez le défi pour avoir votre rang.'
           : `Finissez le défi pour avoir votre rang · ${finished(total)}`,
     },
+  },
+  archive: {
+    link: 'Défis passés',
+    pageTitle: (sport: string) => `Défis passés — ${sport}`,
+    intro: 'Tous les défis du jour depuis le lancement. Vous en avez manqué un ? Jouez-le maintenant.',
+    title: 'Défi',
+    lateNote: 'Joué en retard : il compte dans vos stats, marqué « en retard » au classement du jour.',
+    back: 'Retour aux défis passés',
+    today: 'Aujourd’hui',
+    toPlay: 'À jouer',
+    inProgress: 'En cours',
+    late: 'en retard',
+    notFound: 'Il n’y a pas de défi ce jour-là.',
+    empty: 'Aucun défi pour l’instant.',
   },
   setup: {
     title: 'Choisissez vos joueurs',

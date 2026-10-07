@@ -9,9 +9,10 @@ import { GameEdge } from '@/graph/edge'
 /**
  * This browser's progress on each sport's daily challenge — browser-side only, like `visitor.ts`.
  *
- * One key per sport, `ipw.daily.<sport>`, holding the latest day played there: lives left and,
- * once over, whether it was won or lost; the board itself while it is played, and once over. Only the latest day matters — a record for another day
- * reads as a fresh start, so yesterday's goes stale by itself at midnight (Paris).
+ * Per sport and day: lives left and, once over, whether it was won or lost; the board itself while
+ * it is played, and once over. `ipw.daily.<sport>` holds the latest day played there — what the
+ * menu reads to colour the sport today; an older day, played from the archive or pushed out by a
+ * newer one, lives in `ipw.daily.<sport>.<day>`. A day with no record reads as a fresh start.
  *
  * It is what makes lives stick: without it a reload would refill them, and a lost day could be
  * replayed at once — and leaving the page mid-game resumes the same board. It is NOT tamper-proof — clearing site data resets it. Real enforcement needs
@@ -53,13 +54,16 @@ export type DailyRecord = {
 
 type StoredRecord = DailyRecord & { day: string }
 
-const keyOf = (sport: SportId) => `ipw.daily.${sport}`
+/** The latest day played in the sport. */
+const latestKeyOf = (sport: SportId) => `ipw.daily.${sport}`
+/** Any other day. */
+const dayKeyOf = (sport: SportId, day: string) => `ipw.daily.${sport}.${day}`
 
 const fresh = (): DailyRecord => ({ livesLeft: DAILY_LIVES })
 
-function readStored(sport: SportId): StoredRecord | null {
+function readStored(key: string): StoredRecord | null {
   try {
-    const raw = window.localStorage.getItem(keyOf(sport))
+    const raw = window.localStorage.getItem(key)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<StoredRecord>
     if (typeof parsed.day !== 'string' || typeof parsed.livesLeft !== 'number') return null
@@ -106,16 +110,37 @@ function isBoard(v: unknown): v is DailyBoard {
   )
 }
 
+function readStoredDay(sport: SportId, day: ChallengeDay): StoredRecord | null {
+  const latest = readStored(latestKeyOf(sport))
+  if (latest?.day === day) return latest
+  const stored = readStored(dayKeyOf(sport, day))
+  return stored?.day === day ? stored : null
+}
+
 /** Where this browser stands on the sport's challenge for `day` — a fresh start if never played. */
 export function readDailyRecord(sport: SportId, day: ChallengeDay): DailyRecord {
-  const stored = readStored(sport)
-  if (!stored || stored.day !== day) return fresh()
+  const stored = readStoredDay(sport, day)
+  if (!stored) return fresh()
   return { livesLeft: stored.livesLeft, outcome: stored.outcome, board: stored.board }
 }
 
+/**
+ * Saves the day's record: as the latest day when it is (or is newer than the latest, which moves
+ * to a key of its own — its lives and board stay); under its own key when it is an older day.
+ */
 export function saveDailyRecord(sport: SportId, day: ChallengeDay, record: DailyRecord): void {
   try {
-    window.localStorage.setItem(keyOf(sport), JSON.stringify({ day, ...record }))
+    const value = JSON.stringify({ day, ...record })
+    const latest = readStored(latestKeyOf(sport))
+    if (latest && latest.day > day) {
+      window.localStorage.setItem(dayKeyOf(sport, day), value)
+      return
+    }
+    if (latest && latest.day < day) {
+      window.localStorage.setItem(dayKeyOf(sport, latest.day), JSON.stringify(latest))
+    }
+    window.localStorage.setItem(latestKeyOf(sport), value)
+    window.localStorage.removeItem(dayKeyOf(sport, day))
   } catch {
     // Lives will not survive a reload; the game itself still works.
   }
@@ -126,7 +151,7 @@ export function dailyOutcomesToday(now: Date = new Date()): Map<SportId, DailyOu
   const today = challengeDayOf(now)
   const outcomes = new Map<SportId, DailyOutcome>()
   for (const sport of SPORTS) {
-    const stored = readStored(sport)
+    const stored = readStored(latestKeyOf(sport))
     if (stored?.day === today && stored.outcome) outcomes.set(sport, stored.outcome)
   }
   return outcomes

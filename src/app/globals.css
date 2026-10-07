@@ -1165,6 +1165,15 @@ body {
   align-self: end;
 }
 
+/* Free play and the past challenges: two lines of the same kind, kept together. */
+.home-menu__other-plays {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
 .home-menu__free-play {
   font-size: 0.95rem;
   color: var(--text-muted);
@@ -1402,6 +1411,169 @@ body {
 
 .daily-intro__free-play:hover {
   color: var(--accent-hover);
+}
+
+/* A past day, played from the archive: says how it counts, before Start. */
+.daily-intro__late {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  max-width: 420px;
+}
+
+/* ─── Archive: the sport's past daily challenges ────────── */
+.archive-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 720px;
+  padding: 88px 16px 48px;
+  margin-bottom: auto;
+}
+
+.archive-page__header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+}
+
+.archive-page__title {
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+.archive-page__intro {
+  color: var(--text-muted);
+}
+
+.archive-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Each day's tone colours its result like the stats' bars: Perfect gold, +1 green … lost red. */
+.archive-day {
+  --tone: var(--text-muted);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-subtle);
+  border-left: 4px solid var(--tone);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.archive-day:hover {
+  border-color: var(--border-active);
+  border-left-color: var(--tone);
+  background: var(--bg-elevated);
+}
+
+.archive-day--b0 {
+  --tone: var(--win-gold);
+}
+.archive-day--b1 {
+  --tone: var(--score-1);
+}
+.archive-day--b2 {
+  --tone: var(--score-2);
+}
+.archive-day--b3 {
+  --tone: var(--score-3);
+}
+.archive-day--b4 {
+  --tone: var(--score-4);
+}
+.archive-day--b5 {
+  --tone: var(--score-5);
+}
+.archive-day--lost {
+  --tone: var(--score-lost);
+}
+.archive-day--in-progress {
+  --tone: var(--accent);
+}
+.archive-day--to-play {
+  --tone: var(--border-active);
+}
+
+.archive-day__number {
+  font-weight: 800;
+  color: var(--accent-hover);
+  font-variant-numeric: tabular-nums;
+}
+
+.archive-day__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.archive-day__date {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.archive-day__date::first-letter {
+  text-transform: uppercase;
+}
+
+.archive-day__pair {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archive-day__result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.archive-day__status {
+  font-weight: 700;
+  color: var(--tone);
+  white-space: nowrap;
+}
+
+.archive-day--b0 .archive-day__status {
+  color: var(--win-gold-text);
+}
+
+.archive-day--to-play .archive-day__status {
+  color: var(--text-muted);
+}
+
+.archive-day__late {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 640px) {
+  .archive-page {
+    padding-top: 80px;
+  }
+
+  .archive-day {
+    gap: 10px;
+    padding: 10px 12px;
+  }
 }
 
 @media (max-width: 640px) {

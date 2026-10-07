@@ -64,8 +64,13 @@ describe('startDailyResult', () => {
     expect(repo.start).toHaveBeenCalled()
   })
 
-  it('refuses a day that is no longer today — a page left open past midnight', async () => {
-    await expect(startDailyResult(db, 'rugby', ChallengeDay('2026-07-15'), visitorId, now)).rejects.toThrow(
+  it('stamps the start of a past day — played late, from the archive', async () => {
+    await startDailyResult(db, 'rugby', ChallengeDay('2026-07-02'), visitorId, now)
+    expect(repo.start).toHaveBeenCalledWith(db, 'rugby', '2026-07-02', visitorId)
+  })
+
+  it("refuses a future day — tomorrow's pair is drawn, and hidden", async () => {
+    await expect(startDailyResult(db, 'rugby', ChallengeDay('2026-07-17'), visitorId, now)).rejects.toThrow(
       ConflictError,
     )
     expect(repo.start).not.toHaveBeenCalled()
@@ -102,6 +107,16 @@ describe('recordDailyMove', () => {
     )
   })
 
+  it('counts the move on the day its board was drawn for — a past one, from the archive', async () => {
+    await recordDailyMove(db, 'rugby', { ...move, day: ChallengeDay('2026-07-02') }, accepted(false), now)
+    expect(repo.recordMove).toHaveBeenCalledWith(db, expect.objectContaining({ day: '2026-07-02', visitorId }))
+  })
+
+  it('never counts a move on a future day', async () => {
+    await recordDailyMove(db, 'rugby', { ...move, day: ChallengeDay('2026-07-17') }, accepted(true), now)
+    expect(repo.recordMove).not.toHaveBeenCalled()
+  })
+
   it.each(['already-on-board', 'wrong-kind', 'game-over'] as const)('does not count a %s refusal', async (code) => {
     await recordDailyMove(db, 'rugby', move, { ok: false, code, reason: '' }, now)
     expect(repo.recordMove).not.toHaveBeenCalled()
@@ -114,8 +129,13 @@ describe('recordDailyHint', () => {
     expect(repo.recordHint).toHaveBeenCalledWith(db, 'rugby', '2026-07-16', visitorId, 'p-c')
   })
 
-  it('refuses a day that is no longer today', async () => {
-    await expect(recordDailyHint(db, 'rugby', ChallengeDay('2026-07-15'), visitorId, 'p-c', now)).rejects.toThrow(
+  it('records a hint on a past day, played late', async () => {
+    await recordDailyHint(db, 'rugby', ChallengeDay('2026-07-15'), visitorId, 'p-c', now)
+    expect(repo.recordHint).toHaveBeenCalledWith(db, 'rugby', '2026-07-15', visitorId, 'p-c')
+  })
+
+  it('refuses a future day', async () => {
+    await expect(recordDailyHint(db, 'rugby', ChallengeDay('2026-07-17'), visitorId, 'p-c', now)).rejects.toThrow(
       ConflictError,
     )
     expect(repo.recordHint).not.toHaveBeenCalled()
@@ -129,6 +149,7 @@ describe('getDailyRanking', () => {
       visitorId,
       username: 'hasty:prop:042',
       outcome: 'won' as const,
+      late: false,
       score: 0,
       added: 1,
       needed: 1,
@@ -153,6 +174,7 @@ describe('getDailyLeaderboard', () => {
         visitorId,
         username: 'hasty:prop:042',
         outcome: 'won',
+        late: false,
         score: 0,
         added: 1,
         needed: 1,
@@ -181,8 +203,8 @@ describe('getDailyLeaderboard', () => {
 describe('getDailyStats', () => {
   it("computes the visitor's stats as of today — the Paris day", async () => {
     repo.visitorDays.mockResolvedValue([
-      { day: ChallengeDay('2026-07-15'), outcome: 'won', score: 0 },
-      { day: ChallengeDay('2026-07-16'), outcome: 'won', score: 2 },
+      { day: ChallengeDay('2026-07-15'), outcome: 'won', score: 0, livesLost: 0, late: false },
+      { day: ChallengeDay('2026-07-16'), outcome: 'won', score: 2, livesLost: 1, late: false },
     ])
 
     const stats = await getDailyStats(db, 'rugby', visitorId, now)

@@ -40,7 +40,34 @@ export async function getOrGenerate(
   const { data, error } = await db.rpc('generate_daily_challenge', { p_sport: sport, p_day: day })
   if (error) throw new Error(error.message)
 
-  const row = data as DailyChallengeRow
+  return toStored(data as DailyChallengeRow)
+}
+
+// Never `*`: the row holds the solution.
+const PUBLIC_COLUMNS = 'sport, day, number, player_a_id, player_b_id, optimal_links'
+
+/**
+ * Every challenge of the sport up to `lastDay` included, newest first — the archive. `lastDay` is
+ * today: tomorrow's pair is already drawn, and must not be listed.
+ *
+ * Unbounded: one row a day since the launch, a few hundred a year.
+ */
+export async function listUpTo(
+  db: SupabaseClient,
+  sport: SportId,
+  lastDay: ChallengeDay,
+): Promise<StoredDailyChallenge[]> {
+  const { data, error } = await db
+    .from('daily_challenges')
+    .select(PUBLIC_COLUMNS)
+    .eq('sport', sport)
+    .lte('day', lastDay)
+    .order('day', { ascending: false })
+  if (error) throw new Error(error.message)
+  return (data as DailyChallengeRow[]).map(toStored)
+}
+
+function toStored(row: DailyChallengeRow): StoredDailyChallenge {
   return {
     sport: row.sport,
     day: ChallengeDay(row.day),

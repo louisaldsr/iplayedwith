@@ -79,17 +79,17 @@ describe('createRemoteEngine — daily moves', () => {
   const answer = () =>
     jest.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: false, code: 'not-connected', reason: '…' }) })
 
-  it("carries the visitor's id, for the server to count the move towards the day's result", async () => {
+  it("carries the visitor's id and the day, for the server to count the move towards that day's result", async () => {
     const fetchMock = answer()
     global.fetch = fetchMock
-    const visitorId = '6f1c2b1e-8a5d-4c1b-9d3e-2f7a1b0c9e11'
+    const daily = { visitorId: '6f1c2b1e-8a5d-4c1b-9d3e-2f7a1b0c9e11', day: '2026-07-02' }
 
-    await createRemoteEngine('rugby', playerA, playerB, 'easy', { dailyVisitorId: visitorId }).addInput({
+    await createRemoteEngine('rugby', playerA, playerB, 'easy', { daily }).addInput({
       kind: 'easy',
       playerId: charlie.id,
     })
 
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body).daily).toEqual({ visitorId })
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).daily).toEqual(daily)
   })
 
   it('sends nothing of the sort in free play', async () => {

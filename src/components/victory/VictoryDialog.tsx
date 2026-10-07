@@ -142,24 +142,26 @@ export function VictoryDialog({
       <hr className="victory-dialog__divider" />
 
       <div className="victory-dialog__actions">
-        <button type="button" className="btn btn--ghost btn--lg" onClick={onClose}>
+        <button type="button" className="btn btn--primary victory-dialog__main" onClick={onClose}>
           {t.victory.viewBoard}
         </button>
-        {onPlayAgain && (
-          <button type="button" className="btn btn--primary btn--lg" onClick={onPlayAgain}>
-            {t.victory.playAgain}
-          </button>
-        )}
-        {archiveHref && (
-          <Link href={archiveHref} className="btn btn--ghost btn--lg">
-            {t.archive.link}
-          </Link>
-        )}
-        {freePlayHref && (
-          <Link href={freePlayHref} className="btn btn--primary btn--lg">
-            {t.daily.freePlay}
-          </Link>
-        )}
+        <div className="victory-dialog__more">
+          {onPlayAgain && (
+            <button type="button" className="btn btn--ghost btn--lg" onClick={onPlayAgain}>
+              {t.victory.playAgain}
+            </button>
+          )}
+          {archiveHref && (
+            <Link href={archiveHref} className="btn btn--ghost btn--lg">
+              {t.archive.link}
+            </Link>
+          )}
+          {freePlayHref && (
+            <Link href={freePlayHref} className="btn btn--ghost btn--lg">
+              {t.daily.freePlay}
+            </Link>
+          )}
+        </div>
       </div>
     </Modal>
   )

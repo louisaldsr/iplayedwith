@@ -56,6 +56,8 @@ type UIState = {
   finishedAt: Date | null
   /** The results pop-up over a finished board; closed, the board stays to be looked at. */
   resultsOpen: boolean
+  /** A daily already over, opened again: the intro sums it up first, the board one click away. */
+  summary: boolean
 }
 
 type Action =
@@ -67,6 +69,7 @@ type Action =
   | { type: 'SUBMIT_INPUT'; result: RemoteInputResult; message: string; at: Date }
   | { type: 'DISMISS_ERROR' }
   | { type: 'SHOW_RESULTS'; open: boolean }
+  | { type: 'SHOW_BOARD' }
   | { type: 'PLAY_AGAIN' }
 
 /**
@@ -116,8 +119,9 @@ function dailyOptions(day: string): { visitorId: string; day: string } | undefin
 
 /**
  * Free play starts on its setup screen. A daily starts where this browser left it today: on the
- * board as it was, with the lives already lost; or on the finished board, won or lost, results
- * closed — leaving and coming back must neither refill lives, replay a lost day, nor lose the board.
+ * board as it was, with the lives already lost; or, once over, on its intro summed up — the result,
+ * the board one click away (won or lost, results closed) — leaving and coming back must neither
+ * refill lives, replay a lost day, nor lose the board.
  */
 function initState(start: DailyStart | null): UIState {
   const base = freshState()
@@ -131,6 +135,7 @@ function initState(start: DailyStart | null): UIState {
     outcome,
     finishedAt,
     phase: outcome === 'won' ? 'victory' : outcome === 'lost' ? 'lost' : 'playing',
+    summary: outcome !== null,
     game: { ...engine.game },
     players: [...engine.players],
     clubs: [...engine.clubs],
@@ -173,6 +178,7 @@ function freshState(): UIState {
     outcome: null,
     finishedAt: null,
     resultsOpen: false,
+    summary: false,
   }
 }
 
@@ -250,6 +256,9 @@ function reducer(state: UIState, action: Action): UIState {
 
     case 'SHOW_RESULTS':
       return { ...state, resultsOpen: action.open }
+
+    case 'SHOW_BOARD':
+      return { ...state, summary: false }
 
     case 'PLAY_AGAIN':
       return freshState()
@@ -426,6 +435,19 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
         />
       )}
 
+      {state.summary && daily && state.outcome && (
+        <DailyIntro
+          challenge={daily}
+          archived={mode.kind === 'daily' && mode.archived !== undefined}
+          onStart={() => dispatch({ type: 'SHOW_BOARD' })}
+          done={{
+            outcome: state.outcome,
+            score: state.outcome === 'won' ? dailyScore(state.moveCount, daily.optimalLinks) : null,
+            late,
+          }}
+        />
+      )}
+
       {state.phase === 'setup' && !daily && (
         <SetupScreen
           sport={sport}
@@ -439,26 +461,30 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
         />
       )}
 
-      {(state.phase === 'playing' || state.phase === 'victory' || state.phase === 'lost') && state.game && (
-        <GameScreen
-          game={state.game}
-          sport={sport}
-          players={state.players}
-          clubs={state.clubs}
-          submitting={state.submitting}
-          onSubmit={handleSubmit}
-          lastError={state.lastError}
-          onDismissError={() => dispatch({ type: 'DISMISS_ERROR' })}
-          lives={
-            state.lives === null ? undefined : { left: state.lives, total: DAILY_LIVES, lostCount: state.lifeLostCount }
-          }
-          inputResetKey={state.rejectedCount}
-          over={ended ? { elapsedMs: ended.elapsedMs, bar: endBar } : undefined}
-          solution={solution.shown ?? undefined}
-          boardOverlay={dailyOver ? <SolutionOverlay solution={solution} /> : undefined}
-          onCareerOpened={handleCareerOpened}
-        />
-      )}
+      {(state.phase === 'playing' || state.phase === 'victory' || state.phase === 'lost') &&
+        state.game &&
+        !state.summary && (
+          <GameScreen
+            game={state.game}
+            sport={sport}
+            players={state.players}
+            clubs={state.clubs}
+            submitting={state.submitting}
+            onSubmit={handleSubmit}
+            lastError={state.lastError}
+            onDismissError={() => dispatch({ type: 'DISMISS_ERROR' })}
+            lives={
+              state.lives === null
+                ? undefined
+                : { left: state.lives, total: DAILY_LIVES, lostCount: state.lifeLostCount }
+            }
+            inputResetKey={state.rejectedCount}
+            over={ended ? { elapsedMs: ended.elapsedMs, bar: endBar } : undefined}
+            solution={solution.shown ?? undefined}
+            boardOverlay={dailyOver ? <SolutionOverlay solution={solution} /> : undefined}
+            onCareerOpened={handleCareerOpened}
+          />
+        )}
 
       {state.phase === 'finished' && daily && state.outcome && (
         <DailyFinished challenge={daily} outcome={state.outcome} livesLeft={state.lives ?? 0} />

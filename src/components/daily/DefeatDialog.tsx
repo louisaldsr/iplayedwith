@@ -50,15 +50,17 @@ export function DefeatDialog({ open, onClose, challenge, onShowSolution, shareTe
       <hr className="victory-dialog__divider" />
 
       <div className="victory-dialog__actions">
-        <button type="button" className="btn btn--ghost btn--lg" onClick={onClose}>
+        <button type="button" className="btn btn--primary victory-dialog__main" onClick={onClose}>
           {t.victory.viewBoard}
         </button>
-        <Link href={`/${challenge.sport}/archive`} className="btn btn--ghost btn--lg">
-          {t.archive.link}
-        </Link>
-        <Link href={`/${challenge.sport}/free`} className="btn btn--primary btn--lg">
-          {t.daily.freePlay}
-        </Link>
+        <div className="victory-dialog__more">
+          <Link href={`/${challenge.sport}/archive`} className="btn btn--ghost btn--lg">
+            {t.archive.link}
+          </Link>
+          <Link href={`/${challenge.sport}/free`} className="btn btn--ghost btn--lg">
+            {t.daily.freePlay}
+          </Link>
+        </div>
       </div>
     </Modal>
   )

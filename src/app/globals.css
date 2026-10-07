@@ -1381,6 +1381,78 @@ body {
   color: var(--accent);
 }
 
+/* A day already over: its result where the best solution was — in its score's colour, as in the archive. */
+.daily-intro__done {
+  --tone: var(--score-1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 420px;
+  padding: 18px 20px;
+  border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--tone) 12%, var(--bg-surface));
+}
+.daily-intro__done--b0 {
+  --tone: var(--win-gold);
+}
+.daily-intro__done--b1 {
+  --tone: var(--score-1);
+}
+.daily-intro__done--b2 {
+  --tone: var(--score-2);
+}
+.daily-intro__done--b3 {
+  --tone: var(--score-3);
+}
+.daily-intro__done--b4 {
+  --tone: var(--score-4);
+}
+.daily-intro__done--b5 {
+  --tone: var(--score-5);
+}
+.daily-intro__done--lost {
+  --tone: var(--score-lost);
+}
+
+.daily-intro__done-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.daily-intro__done-score {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--tone);
+  font-variant-numeric: tabular-nums;
+}
+
+.daily-intro__done--b0 .daily-intro__done-score {
+  color: var(--win-gold-text);
+}
+
+.daily-intro__done-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Played late: the outline only, greyed — as in the archive. */
+.daily-intro__done--late {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--tone) 35%, transparent);
+  background: transparent;
+}
+
+.daily-intro__done--late .daily-intro__done-score {
+  color: var(--text-muted);
+}
+
 /* Under Start: free play and the past challenges, side by side — the sport's other ways to play. */
 .daily-intro__more {
   display: grid;
@@ -2910,11 +2982,34 @@ body {
   margin: 0;
 }
 
+/* What next: the board first — the main button, full width — then the other ways to play, set apart
+   below it, side by side at one size. */
 .victory-dialog__actions {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 18px;
+  width: min(420px, 100%);
+}
+
+.victory-dialog__main {
+  width: 100%;
+  padding: 15px 24px;
+  font-size: 1.05rem;
+}
+
+.victory-dialog__more {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.victory-dialog__more .btn {
+  width: 100%;
+  padding: 12px 10px;
+  color: var(--text-primary);
+  white-space: normal;
+  text-align: center;
 }
 
 @keyframes victory-pop {

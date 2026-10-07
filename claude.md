@@ -521,7 +521,7 @@ après l'autre depuis A (`--path-step`, 180 ms) ; ses liens coulent en pointill�
 passe à 40 %. Le badge de fame reste. Figé sous `prefers-reduced-motion`.
 
 Un défi **gagné** garde son plateau (`board.path`, `board.finishedAt`) : y revenir rouvre le plateau
-gagnant, pop-up fermée. Un défi perdu, ou gagné avant cette version, s'ouvre sur `DailyFinished`.
+gagnant, pop-up fermée — depuis le Bloc 27, après un écran résumé. Un défi perdu, ou gagné avant cette version, s'ouvre sur `DailyFinished`.
 
 ---
 
@@ -1144,6 +1144,18 @@ jour : ni podium, ni rang, ni total. `YourPlace.rank` est `null` pour un résult
   Le jeu le sait sans le serveur : un jour des archives jamais commencé, ou commencé en retard.
 - **Classement** : à la place du rang, une ligne pointillée « Joué en retard — hors du classement de ce jour ».
 - Jamais commencé, dans les archives : plus de pastille « À jouer », la ligne seule.
+
+## ✅ Bloc 27 terminé — Résumé d'un jour fini, boutons de fin
+
+- **Revenir sur un jour fini** (gagné ou perdu, plateau gardé) n'ouvre plus le plateau directement :
+  c'est l'**intro du défi, résumée** (`DailyIntro` `done`). Le résultat prend la place de « Meilleure
+  solution » (score aux couleurs des stats, « Plus de vies » en rouge, grisé si joué en retard),
+  **« Voir le plateau »** celle de « Commencer », puis les deux cartes partie libre / défis passés.
+  `UIState.summary`, posé à l'ouverture seulement : juste après le coup final, on reste sur le plateau,
+  pop-up ouverte.
+- **Boutons des pop-ups de fin** : « Voir le plateau » en bouton principal, pleine largeur, un peu plus
+  grand ; dessous, à l'écart, les autres façons de jouer côte à côte et **de même taille** (défis passés
+  + partie libre, ou « Rejouer » en partie libre).
 
 ## Tests e2e — jamais la vraie base
 

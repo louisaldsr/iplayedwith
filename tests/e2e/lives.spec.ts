@@ -46,8 +46,12 @@ test('a guess linked to nobody costs a life and flashes the screen; the third en
   await guess(page)
   await expect(page.getByRole('dialog', { name: 'Out of lives' })).toBeVisible()
 
-  // The day is over: coming back shows the lost board, not a fresh game — no input, no Start.
+  // The day is over: coming back sums it up — no Start, no fresh game — the lost board one click away.
   await page.reload()
+  await expect(page.locator('.daily-intro__done--lost')).toContainText('Out of lives')
+  await expect(page.getByRole('link', { name: /Free play/ })).toHaveAttribute('href', '/rugby/free')
+  await expect(page.getByRole('link', { name: /Past challenges/ })).toHaveAttribute('href', '/rugby/archive')
+  await page.getByRole('button', { name: 'See the board' }).click()
   await expect(page.locator('.won-bar--lost').getByRole('button', { name: 'Results' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Submit' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Start' })).toHaveCount(0)

@@ -5,6 +5,7 @@ import { DailyChallenge } from '../../domain/dailyChallenge'
 import { useTranslations } from '../../i18n'
 import { Modal } from '../shared/Modal'
 import { DailyStats } from './DailyStats'
+import { DailyRanking } from './DailyRanking'
 
 type Props = {
   open: boolean
@@ -32,6 +33,7 @@ export function DefeatDialog({ open, onClose, challenge, onShowSolution }: Props
       </h2>
       <p className="defeat-dialog__text">{t.daily.lostText(challenge.optimalLinks)}</p>
 
+      <DailyRanking sport={challenge.sport} />
       <DailyStats sport={challenge.sport} />
 
       <div className="victory-dialog__actions">

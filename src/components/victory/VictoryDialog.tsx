@@ -7,8 +7,10 @@ import { useTranslations } from '../../i18n'
 import { Modal } from '../shared/Modal'
 import { Heart } from '../game/LivesBar'
 import { DailyStats } from '../daily/DailyStats'
+import { DailyRanking } from '../daily/DailyRanking'
 import { SportId } from '../../domain/sport'
 import { dailyScore, formatScore } from '../../domain/dailyScore'
+import { formatTime } from '../../lib/formatTime'
 
 type Props = {
   open: boolean
@@ -30,13 +32,6 @@ type Props = {
   /** Free play restarts in place; the daily has one pair a day, so it offers free play instead. */
   onPlayAgain?: () => void
   freePlayHref?: string
-}
-
-function formatTime(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000)
-  const minutes = Math.floor(totalSeconds / 60)
-  const seconds = totalSeconds % 60
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
 /**
@@ -114,6 +109,7 @@ export function VictoryDialog({
         )}
       </div>
 
+      {daily && <DailyRanking sport={daily.sport} />}
       {daily && <DailyStats sport={daily.sport} />}
 
       <div className="victory-dialog__actions">

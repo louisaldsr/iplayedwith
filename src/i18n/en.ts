@@ -1,6 +1,14 @@
 import type { NameAdjective, NameNoun } from '../domain/visitorName'
 import type { UsernameProblem } from '../domain/username'
 
+/** 1st, 2nd, 3rd, 4th… 11th, 12th, 13th… 21st. */
+function ordinal(n: number): string {
+  const suffix = n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th')
+  return `${n}${suffix}`
+}
+
+const finished = (total: number) => `${total} ${total === 1 ? 'player' : 'players'} finished today`
+
 const en = {
   home: {
     title: 'I Played With',
@@ -22,7 +30,6 @@ const en = {
     about: 'About',
     ranking: 'Ranking',
     stats: 'My stats',
-    logIn: 'Log in',
     yourName: 'Your name in the rankings',
     rename: {
       open: 'Change your name',
@@ -44,7 +51,6 @@ const en = {
     },
     doneToday: 'done today',
     lostToday: 'lost today',
-    soon: 'Soon',
   },
   about: {
     title: 'About',
@@ -124,6 +130,18 @@ const en = {
       lost: 'Lost',
       today: 'Today',
       empty: 'No daily challenge finished yet.',
+    },
+    ranking: {
+      title: "Today's ranking",
+      podium: 'Podium',
+      anonymous: 'Anonymous',
+      you: 'You',
+      noWinner: (total: number): string =>
+        total === 0 ? 'Nobody has finished today yet.' : 'Nobody has won today yet.',
+      place: (rank: number, total: number) => `You are ${ordinal(rank)} of ${total}`,
+      failed: (total: number) => `Out of lives today · ${finished(total)}`,
+      unfinished: (total: number) =>
+        total === 0 ? 'Finish today to get your rank.' : `Finish today to get your rank · ${finished(total)}`,
     },
   },
   setup: {

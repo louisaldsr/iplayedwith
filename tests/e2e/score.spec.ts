@@ -5,6 +5,7 @@ import {
   asReturningVisitor,
   sampleDailyChallenge,
   sampleDailyStats,
+  sampleDailyLeaderboard,
   linkingPlayer,
   winningMove,
 } from './fixtures'
@@ -16,12 +17,13 @@ test.beforeEach(async ({ page }) => {
   await asReturningVisitor(page)
 })
 
-test('winning the daily shows the score and the stats, today lit', async ({ page }) => {
+test('winning the daily shows the score, the ranking and the stats, today lit', async ({ page }) => {
   await mockApi(page, '/api/rugby/daily', sampleDailyChallenge)
   await mockApi(page, '/api/players', [linkingPlayer])
   await mockApi(page, '/api/rugby/daily/start', {})
   await mockApi(page, '/api/rugby/move', winningMove)
   await mockApi(page, '/api/rugby/daily/stats', sampleDailyStats)
+  await mockApi(page, '/api/rugby/daily/ranking', sampleDailyLeaderboard())
   await page.goto('/rugby')
 
   await page.getByRole('button', { name: 'Start' }).click()
@@ -37,21 +39,30 @@ test('winning the daily shows the score and the stats, today lit', async ({ page
   await expect(results.getByText('Moves')).toHaveCount(0)
   await expect(results.getByText('Time')).toBeVisible()
 
+  const ranking = results.getByRole('region', { name: "Today's ranking" })
+  await expect(ranking.getByRole('list', { name: 'Podium' }).getByRole('listitem')).toHaveCount(3)
+  await expect(ranking.getByText('You are 5th of 12')).toBeVisible()
+
   const stats = results.getByRole('region', { name: 'Your stats' })
   await expect(stats.locator('.daily-stats__bar--today')).toContainText('Perfect')
   await expect(stats.locator('.daily-stats__bar--today')).toContainText('2')
 })
 
-test('a lost day shows the stats on its finished screen', async ({ page }) => {
+test('a lost day shows the ranking and the stats on its finished screen', async ({ page }) => {
   await page.addInitScript(
     (day) => window.localStorage.setItem('ipw.daily.rugby', JSON.stringify({ day, livesLeft: 0, outcome: 'lost' })),
     sampleDailyChallenge.day,
   )
   await mockApi(page, '/api/rugby/daily', sampleDailyChallenge)
   await mockApi(page, '/api/rugby/daily/stats', { ...sampleDailyStats, currentStreak: 0, today: 'lost' })
+  await mockApi(page, '/api/rugby/daily/ranking', {
+    ...sampleDailyLeaderboard(),
+    you: { rank: 4, outcome: 'lost', score: null, durationMs: 90_000 },
+  })
   await page.goto('/rugby')
 
   await expect(page.getByRole('heading', { name: 'Out of lives' })).toBeVisible()
+  await expect(page.getByText('Out of lives today · 12 players finished today')).toBeVisible()
   await expect(page.getByRole('region', { name: 'Your stats' }).locator('.daily-stats__bar--today')).toContainText(
     'Lost',
   )

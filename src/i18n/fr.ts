@@ -1,5 +1,7 @@
 import type { Translations } from './en'
 
+const finished = (total: number) => `${total} ${total === 1 ? 'joueur a fini' : 'joueurs ont fini'} aujourd’hui`
+
 const fr: Translations = {
   home: {
     title: 'I Played With',
@@ -21,7 +23,6 @@ const fr: Translations = {
     about: 'À propos',
     ranking: 'Classement',
     stats: 'Mes stats',
-    logIn: 'Connexion',
     yourName: 'Votre nom dans les classements',
     rename: {
       open: 'Changer de nom',
@@ -43,7 +44,6 @@ const fr: Translations = {
     },
     doneToday: 'fait aujourd’hui',
     lostToday: 'perdu aujourd’hui',
-    soon: 'Bientôt',
   },
   about: {
     title: 'À propos',
@@ -123,6 +123,20 @@ const fr: Translations = {
       lost: 'Perdu',
       today: 'Aujourd’hui',
       empty: 'Aucun défi du jour terminé pour l’instant.',
+    },
+    ranking: {
+      title: 'Classement du jour',
+      podium: 'Podium',
+      anonymous: 'Anonyme',
+      you: 'Vous',
+      noWinner: (total: number) =>
+        total === 0 ? 'Personne n’a encore fini aujourd’hui.' : 'Personne n’a encore gagné aujourd’hui.',
+      place: (rank: number, total: number) => `Vous êtes ${rank === 1 ? '1ᵉʳ' : `${rank}ᵉ`} sur ${total}`,
+      failed: (total: number) => `Plus de vies aujourd’hui · ${finished(total)}`,
+      unfinished: (total: number) =>
+        total === 0
+          ? 'Finissez le défi pour avoir votre rang.'
+          : `Finissez le défi pour avoir votre rang · ${finished(total)}`,
     },
   },
   setup: {

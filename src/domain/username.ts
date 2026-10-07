@@ -11,8 +11,8 @@ import { normalizeSearch } from '@/lib/searchNormalize'
  * No ':' — the allowed characters exclude it. That is what keeps a typed username from ever being
  * read as a generated one (USERNAME_SEPARATOR).
  *
- * No word filter yet: the name is only shown to its owner (menu, top bar) and in the ranking
- * script. It must come before the ranking is shown to players.
+ * No word filter: the day's top three are shown to everyone (src/domain/dailyLeaderboard.ts), names
+ * as typed. A risk accepted while traffic is low — the filter is still to come.
  */
 
 export const USERNAME_MIN_LENGTH = 3

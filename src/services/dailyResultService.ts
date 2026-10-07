@@ -5,6 +5,7 @@ import { SportId } from '@/domain/sport'
 import { ChallengeDay, challengeDayOf, DAILY_LIVES } from '@/domain/dailyChallenge'
 import { DailyRankingEntry, VisitorId } from '@/domain/dailyResult'
 import { DailyStats, dailyStats } from '@/domain/dailyScore'
+import { DailyLeaderboard, toLeaderboard } from '@/domain/dailyLeaderboard'
 import { MoveResult } from '@/services/moveService'
 import { ConflictError } from '@/services/errors'
 
@@ -89,6 +90,23 @@ export async function recordDailyHint(
  */
 export function getDailyRanking(db: SupabaseClient, sport: SportId, day: ChallengeDay): Promise<DailyRankingEntry[]> {
   return dailyResultsRepo.ranking(db, sport, day)
+}
+
+/**
+ * What players see of today's ranking (Paris): the podium and the visitor's own place, out of
+ * everyone who finished. `visitorId` is null for a browser without one: the podium alone.
+ *
+ * Cut from the whole ranking, read in full: fine while a day has hundreds of results. When it has
+ * thousands, move the cut into SQL.
+ */
+export async function getDailyLeaderboard(
+  db: SupabaseClient,
+  sport: SportId,
+  visitorId: VisitorId | null,
+  now: Date = new Date(),
+): Promise<DailyLeaderboard> {
+  const day = challengeDayOf(now)
+  return toLeaderboard(await dailyResultsRepo.ranking(db, sport, day), day, visitorId)
 }
 
 /** The visitor's stats in the sport — played, streaks, score distribution — as of today (Paris). */

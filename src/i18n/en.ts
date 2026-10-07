@@ -27,6 +27,7 @@ const en = {
     button: 'Menu',
     daily: 'Daily challenge',
     freePlay: 'Or free play:',
+    archive: 'Past challenges:',
     about: 'About',
     ranking: 'Ranking',
     stats: 'My stats',
@@ -146,6 +147,30 @@ const en = {
       unfinished: (total: number) =>
         total === 0 ? 'Finish today to get your rank.' : `Finish today to get your rank · ${finished(total)}`,
     },
+  },
+  archive: {
+    link: 'Past challenges',
+    pageTitle: (sport: string) => `Past challenges — ${sport}`,
+    intro: 'Every daily challenge since the launch. Missed one? Play it now.',
+    title: 'Challenge',
+    lateNote: 'Played late: it counts in your stats, marked late in the day’s ranking.',
+    back: 'Back to past challenges',
+    today: 'Today',
+    toPlay: 'To play',
+    inProgress: 'In progress',
+    late: 'late',
+    notFound: 'There is no challenge on that day.',
+    ranking: {
+      title: 'Ranking of the day',
+      noWinner: (total: number): string =>
+        total === 0 ? 'Nobody has finished this challenge yet.' : 'Nobody has won this challenge yet.',
+      failed: (total: number) => `Out of lives · ${finished(total)}`,
+      unfinished: (total: number) =>
+        total === 0
+          ? 'Finish the challenge to get your rank.'
+          : `Finish the challenge to get your rank · ${finished(total)}`,
+    },
+    empty: 'No challenge yet.',
   },
   setup: {
     title: 'Choose Your Players',

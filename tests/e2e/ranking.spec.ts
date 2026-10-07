@@ -32,7 +32,7 @@ test('starting the daily and every move carry the same anonymous visitor id', as
   expect(visitorId).toMatch(UUID)
   expect(sent).toEqual([
     { path: '/api/rugby/daily/start', body: { day: sampleDailyChallenge.day, visitorId } },
-    { path: '/api/rugby/move', body: expect.objectContaining({ daily: { visitorId } }) },
+    { path: '/api/rugby/move', body: expect.objectContaining({ daily: { visitorId, day: sampleDailyChallenge.day } }) },
   ])
 })
 
@@ -46,6 +46,11 @@ test.describe('refused before any database access', () => {
     move: { kind: 'easy', playerId: 'p-charlie' },
   }
 
+  test('an archive request with a malformed visitor id', async ({ request }) => {
+    const res = await request.post('/api/rugby/daily/archive', { data: { visitorId: 'me' } })
+    expect(res.status()).toBe(400)
+  })
+
   test('a start without a proper visitor id or day', async ({ request }) => {
     const noId = await request.post('/api/rugby/daily/start', { data: { day: '2026-07-15', visitorId: 'me' } })
     expect(noId.status()).toBe(400)
@@ -58,9 +63,11 @@ test.describe('refused before any database access', () => {
     expect(res.status()).toBe(400)
   })
 
-  test('a daily move without a proper visitor id, or in hard mode', async ({ request }) => {
+  test('a daily move without a proper visitor id or day, or in hard mode', async ({ request }) => {
     const noId = await request.post('/api/rugby/move', { data: { ...move, daily: { visitorId: 'me' } } })
     expect(noId.status()).toBe(400)
+    const noDay = await request.post('/api/rugby/move', { data: { ...move, daily: { visitorId, day: 'yesterday' } } })
+    expect(noDay.status()).toBe(400)
     const hard = await request.post('/api/rugby/move', { data: { ...move, difficulty: 'hard', daily: { visitorId } } })
     expect(hard.status()).toBe(400)
   })

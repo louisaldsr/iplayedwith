@@ -16,8 +16,9 @@ export function isVisitorId(raw: unknown): raw is VisitorId {
 
 /**
  * One line of a day's ranking — every finished result. Winners first, by score (extra players,
- * `src/domain/dailyScore.ts`) then time; then everyone who lost, all on the rank after the last
- * winner. Lives lost and hints are shown, not ranked.
+ * `src/domain/dailyScore.ts`) then time — those who played on the day, then those who played it late
+ * from the archive; then everyone who lost, all on the rank after the last winner. Lives lost and
+ * hints are shown, not ranked.
  */
 export type DailyRankingEntry = {
   rank: number
@@ -25,6 +26,8 @@ export type DailyRankingEntry = {
   /** The visitor's username — null if it was never created (Start did not reach the server). */
   username: string | null
   outcome: 'won' | 'lost'
+  /** Started after the day was over, from the archive — ranked after every on-time winner. */
+  late: boolean
   /** Extra players beyond the fewest needed — won results only. */
   score: number | null
   /** Players added to the board: accepted moves. */

@@ -9,10 +9,10 @@ import { toErrorResponse } from '@/lib/apiErrors'
 /**
  * POST /api/:sport/daily/hint  — body `{ day, visitorId, playerId }`
  *
- * Records that a visitor opened a player's career during today's challenge — a hint, kept for a
- * future score to reward games solved without. Never refused for being a hint: the career is free.
- * Ignored for A and B, for an unknown player and once the day is over. 409 when `day` is no longer
- * today.
+ * Records that a visitor opened a player's career during a day's challenge (today's, or a past one
+ * from the archive) — a hint, kept for a future score to reward games solved without. Never refused
+ * for being a hint: the career is free. Ignored for A and B, for an unknown player and once the
+ * visitor's day is over. 409 for a future day.
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ sport: string }> }) {
   const { sport } = await params

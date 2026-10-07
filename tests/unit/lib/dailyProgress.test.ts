@@ -34,6 +34,39 @@ describe('readDailyRecord', () => {
   })
 })
 
+describe('past days, played from the archive', () => {
+  const yesterday = ChallengeDay('2026-07-14')
+  const lastWeek = ChallengeDay('2026-07-08')
+
+  it("keeps yesterday's lives and outcome when today's day starts", () => {
+    saveDailyRecord('rugby', yesterday, { livesLeft: 1 })
+    saveDailyRecord('rugby', today, { livesLeft: 2 })
+
+    expect(readDailyRecord('rugby', yesterday)).toEqual({ livesLeft: 1, outcome: undefined })
+    expect(readDailyRecord('rugby', today)).toEqual({ livesLeft: 2, outcome: undefined })
+  })
+
+  it("plays a past day beside today's without touching it — the menu still reads today", () => {
+    saveDailyRecord('rugby', today, { livesLeft: 3, outcome: 'won' })
+    saveDailyRecord('rugby', lastWeek, { livesLeft: 0, outcome: 'lost' })
+
+    expect(readDailyRecord('rugby', lastWeek)).toEqual({ livesLeft: 0, outcome: 'lost' })
+    expect(readDailyRecord('rugby', today)).toEqual({ livesLeft: 3, outcome: 'won' })
+    expect(dailyOutcomesToday(now)).toEqual(new Map([['rugby', 'won']]))
+  })
+
+  it('keeps every day apart, in each sport', () => {
+    saveDailyRecord('rugby', lastWeek, { livesLeft: 2 })
+    saveDailyRecord('rugby', yesterday, { livesLeft: 1 })
+    saveDailyRecord('football', lastWeek, { livesLeft: 0, outcome: 'lost' })
+
+    expect(readDailyRecord('rugby', lastWeek).livesLeft).toBe(2)
+    expect(readDailyRecord('rugby', yesterday).livesLeft).toBe(1)
+    expect(readDailyRecord('football', lastWeek).outcome).toBe('lost')
+    expect(readDailyRecord('football', yesterday)).toEqual({ livesLeft: DAILY_LIVES })
+  })
+})
+
 describe('the board of a day in progress', () => {
   const board = {
     nodes: [

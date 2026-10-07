@@ -39,7 +39,7 @@ export function DefeatDialog({ open, onClose, challenge, onShowSolution }: Props
         </button>
       </div>
 
-      <DailyRanking sport={challenge.sport} />
+      <DailyRanking sport={challenge.sport} day={challenge.day} />
       <DailyStats sport={challenge.sport} />
 
       {/* Game, ranking, stats, then what to do next — each part set apart. */}
@@ -49,6 +49,9 @@ export function DefeatDialog({ open, onClose, challenge, onShowSolution }: Props
         <button type="button" className="btn btn--ghost btn--lg" onClick={onClose}>
           {t.victory.viewBoard}
         </button>
+        <Link href={`/${challenge.sport}/archive`} className="btn btn--ghost btn--lg">
+          {t.archive.link}
+        </Link>
         <Link href={`/${challenge.sport}/free`} className="btn btn--primary btn--lg">
           {t.daily.freePlay}
         </Link>

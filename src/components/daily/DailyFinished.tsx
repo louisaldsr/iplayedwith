@@ -21,7 +21,7 @@ type Props = {
 
 /**
  * The daily once it is over — straight after the last life is lost, or when coming back to a day
- * already won or lost. One pair a day: there is nothing left to play until tomorrow.
+ * already won or lost. One pair a day: what is left to play is the archive's past days.
  *
  * Only for a day without a board to show — lost before lost boards were kept, or won before won
  * ones were. Otherwise the board stays, and the proposed solution is laid over it.
@@ -72,11 +72,14 @@ export function DailyFinished({ challenge, outcome, livesLeft }: Props) {
       </div>
       <p className="daily-finished__note">{t.daily.boardNotKept}</p>
       <p className="daily-finished__tomorrow">{t.daily.comeBackTomorrow}</p>
-      <DailyRanking sport={challenge.sport} />
+      <DailyRanking sport={challenge.sport} day={challenge.day} />
       <DailyStats sport={challenge.sport} />
       <div className="daily-finished__actions">
         <Link href={`/${challenge.sport}/free`} className="btn btn--primary">
           {t.daily.freePlay}
+        </Link>
+        <Link href={`/${challenge.sport}/archive`} className="btn btn--ghost">
+          {t.archive.link}
         </Link>
         <Link href="/" className="btn btn--ghost">
           {t.about.back}

@@ -56,6 +56,10 @@ export type DailyDayResult = {
   outcome: 'won' | 'lost' | null
   /** Won days only. */
   score: number | null
+  /** Guesses linked to nobody — the lives spent. */
+  livesLost: number
+  /** Started after the day was over — from the archive (026_daily_archive.sql). */
+  late: boolean
 }
 
 /** Today's place in the stats: the bucket it fell in, or `'lost'`. */
@@ -65,7 +69,7 @@ export type DailyStats = {
   /** Finished days, won or lost. */
   played: number
   won: number
-  /** Days won in a row, up to today — or up to yesterday while today is not finished. */
+  /** Days won in a row, on their own day, up to today — or up to yesterday while today is not finished. */
   currentStreak: number
   bestStreak: number
   /** Mean score of the won days; null before the first win. */
@@ -89,10 +93,15 @@ function shiftDay(day: string, days: number): string {
  *
  * Streaks follow the calendar: a challenge is posted every day (`ensure_daily_challenges`), so a
  * day not played, or started and never finished, breaks the run. Today, not finished yet, does not.
+ *
+ * A day played late, from the archive, counts in everything but the streaks: a missed day must not
+ * be filled in afterwards.
  */
 export function dailyStats(results: DailyDayResult[], today: ChallengeDay): DailyStats {
   const distribution = new Array<number>(SCORE_BUCKET_COUNT).fill(0)
   const wonDays = new Set<string>()
+  /** The won days the streaks read: those played on their own day. */
+  const wonOnTime = new Set<string>()
   let lost = 0
   let scoreSum = 0
   let todayBucket: TodayBucket | null = null
@@ -102,6 +111,7 @@ export function dailyStats(results: DailyDayResult[], today: ChallengeDay): Dail
       const bucket = scoreBucketOf(r.score)
       distribution[bucket]++
       wonDays.add(r.day)
+      if (!r.late) wonOnTime.add(r.day)
       scoreSum += r.score
       if (r.day === today) todayBucket = bucket
     } else if (r.outcome === 'lost') {
@@ -113,16 +123,16 @@ export function dailyStats(results: DailyDayResult[], today: ChallengeDay): Dail
   // Today counts once won, ends the run once lost, and is skipped while unfinished.
   let currentStreak = 0
   if (todayBucket !== 'lost') {
-    for (let day = todayBucket === null ? shiftDay(today, -1) : today; wonDays.has(day); day = shiftDay(day, -1)) {
+    for (let day = todayBucket === null ? shiftDay(today, -1) : today; wonOnTime.has(day); day = shiftDay(day, -1)) {
       currentStreak++
     }
   }
 
   let bestStreak = 0
-  for (const day of wonDays) {
-    if (wonDays.has(shiftDay(day, -1))) continue // not the start of a run
+  for (const day of wonOnTime) {
+    if (wonOnTime.has(shiftDay(day, -1))) continue // not the start of a run
     let run = 0
-    for (let d = day; wonDays.has(d); d = shiftDay(d, 1)) run++
+    for (let d = day; wonOnTime.has(d); d = shiftDay(d, 1)) run++
     bestStreak = Math.max(bestStreak, run)
   }
 

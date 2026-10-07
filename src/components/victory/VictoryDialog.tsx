@@ -32,6 +32,8 @@ type Props = {
   /** Free play restarts in place; the daily has one pair a day, so it offers free play instead. */
   onPlayAgain?: () => void
   freePlayHref?: string
+  /** Daily only: the sport's past challenges, still to play. */
+  archiveHref?: string
 }
 
 /**
@@ -52,6 +54,7 @@ export function VictoryDialog({
   onShowSolution,
   onPlayAgain,
   freePlayHref,
+  archiveHref,
 }: Props) {
   const t = useTranslations()
   const playerMap = new Map(players.map((p) => [p.id as string, p.name]))
@@ -119,7 +122,7 @@ export function VictoryDialog({
         )}
       </div>
 
-      {daily && <DailyRanking sport={daily.sport} />}
+      {daily && <DailyRanking sport={daily.sport} day={daily.day} />}
       {daily && <DailyStats sport={daily.sport} />}
 
       {/* Game, ranking, stats, then what to do next — each part set apart. */}
@@ -133,6 +136,11 @@ export function VictoryDialog({
           <button type="button" className="btn btn--primary btn--lg" onClick={onPlayAgain}>
             {t.victory.playAgain}
           </button>
+        )}
+        {archiveHref && (
+          <Link href={archiveHref} className="btn btn--ghost btn--lg">
+            {t.archive.link}
+          </Link>
         )}
         {freePlayHref && (
           <Link href={freePlayHref} className="btn btn--primary btn--lg">

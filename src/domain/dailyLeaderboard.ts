@@ -2,9 +2,10 @@ import { ChallengeDay } from './dailyChallenge'
 import { DailyRankingEntry, VisitorId } from './dailyResult'
 
 /**
- * What players see of the day's ranking: the podium — the first winners — and their own place
- * among everyone who finished. Cut from the full ranking (`daily_ranking`, 022_daily_score.sql),
- * which keeps the order: winners by score then time, then everyone who lost on one shared rank.
+ * What players see of a day's ranking: the podium — the first winners — and their own place
+ * among everyone who finished. Cut from the full ranking (`daily_ranking`, 026_daily_archive.sql),
+ * which keeps the order: winners by score then time — on-time ones, then those who played the day
+ * late from the archive — then everyone who lost on one shared rank.
  *
  * Never in here, because it leaves for the browser:
  * - another visitor's id — whoever has it can rename that visitor;
@@ -20,6 +21,8 @@ export type PodiumEntry = {
   username: string | null
   score: number
   durationMs: number
+  /** Played late, from the archive — on the podium only when fewer have won on time. */
+  late: boolean
   /** The visitor asking. */
   you: boolean
 }
@@ -31,11 +34,12 @@ export type YourPlace = {
   /** Won days only. */
   score: number | null
   durationMs: number
+  late: boolean
 }
 
 export type DailyLeaderboard = {
   day: ChallengeDay
-  /** Every result finished today, won or lost. */
+  /** Every result finished on that day's challenge, won or lost. */
   total: number
   /** Up to `PODIUM_SIZE` winners, best first. Shorter when fewer have won — losers never stand on it. */
   podium: PodiumEntry[]
@@ -61,6 +65,7 @@ export function toLeaderboard(
       username: e.username,
       score: e.score as number,
       durationMs: e.durationMs,
+      late: e.late,
       you: e.visitorId === visitorId,
     }))
   const mine = visitorId ? ranking.find((e) => e.visitorId === visitorId) : undefined
@@ -68,6 +73,8 @@ export function toLeaderboard(
     day,
     total: ranking.length,
     podium,
-    you: mine ? { rank: mine.rank, outcome: mine.outcome, score: mine.score, durationMs: mine.durationMs } : null,
+    you: mine
+      ? { rank: mine.rank, outcome: mine.outcome, score: mine.score, durationMs: mine.durationMs, late: mine.late }
+      : null,
   }
 }

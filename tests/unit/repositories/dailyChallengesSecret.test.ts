@@ -1,4 +1,4 @@
-import { getOrGenerate } from '@/repositories/dailyChallengesRepository'
+import { getOrGenerate, listUpTo } from '@/repositories/dailyChallengesRepository'
 import { getDailyChallenge } from '@/services/dailyChallengeService'
 import * as playersRepo from '@/repositories/playersRepository'
 import { ChallengeDay } from '@/domain/dailyChallenge'
@@ -35,5 +35,32 @@ describe("the day's solution before the end", () => {
     const challenge = await getDailyChallenge(db, 'rugby', new Date('2026-10-06T10:00:00Z'))
     expect(Object.keys(challenge).sort()).toEqual(['day', 'number', 'optimalLinks', 'playerA', 'playerB', 'sport'])
     expect(JSON.stringify(challenge)).not.toContain('p-secret')
+  })
+})
+
+describe('the archive', () => {
+  // A query builder that records the columns asked for, and answers with the whole row anyway.
+  function recordingDb() {
+    const selects: string[] = []
+    const builder: Record<string, unknown> = {}
+    for (const method of ['eq', 'lte', 'order']) builder[method] = () => builder
+    builder.then = (resolve: (v: unknown) => void) => resolve({ data: [row], error: null })
+    const db = {
+      from: () => ({
+        select: (columns: string) => {
+          selects.push(columns)
+          return builder
+        },
+      }),
+    } as never
+    return { db, selects }
+  }
+
+  it('never selects the solution, nor lets it through', async () => {
+    const { db, selects } = recordingDb()
+    const result = await listUpTo(db, 'rugby', ChallengeDay('2026-10-06'))
+    expect(selects).toHaveLength(1)
+    expect(selects[0]).not.toMatch(/solution|\*/)
+    expect(JSON.stringify(result)).not.toContain('p-secret')
   })
 })

@@ -6,20 +6,13 @@ import { DailyChallenge } from '../../domain/dailyChallenge'
 import { Player } from '../../domain/player'
 import { useTranslations } from '../../i18n'
 import { PlayerCareerDialog } from '../shared/PlayerCareerDialog'
+import { formatDay } from '../../lib/formatDay'
 
 type Props = {
   challenge: DailyChallenge
+  /** A past day, from the archive: it counts late — in the stats and the day's ranking, not the streak. */
+  archived?: boolean
   onStart: () => void
-}
-
-/** "2026-09-25" → the reader's own long date. UTC on both sides, so the day never shifts. */
-function formatDay(day: string): string {
-  return new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, {
-    timeZone: 'UTC',
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  })
 }
 
 /** A player of the pair: opens their career, for anyone who does not know them. */
@@ -37,7 +30,7 @@ function PlayerButton({ player, onOpen }: { player: Player; onOpen: (p: Player) 
 }
 
 /** The daily's setup phase: nothing to choose, only the pair to discover before starting. */
-export function DailyIntro({ challenge, onStart }: Props) {
+export function DailyIntro({ challenge, archived = false, onStart }: Props) {
   const t = useTranslations()
   const [careerOf, setCareerOf] = useState<Player | null>(null)
 
@@ -45,9 +38,10 @@ export function DailyIntro({ challenge, onStart }: Props) {
     <div className="daily-intro">
       <header className="daily-intro__header">
         <h1 className="daily-intro__title">
-          {t.daily.title} <span className="daily-intro__number">#{challenge.number}</span>
+          {archived ? t.archive.title : t.daily.title} <span className="daily-intro__number">#{challenge.number}</span>
         </h1>
-        <p className="daily-intro__date">{formatDay(challenge.day)}</p>
+        <p className="daily-intro__date">{formatDay(challenge.day, archived)}</p>
+        {archived && <p className="daily-intro__late">{t.archive.lateNote}</p>}
       </header>
 
       <div className="daily-intro__players">
@@ -64,9 +58,15 @@ export function DailyIntro({ challenge, onStart }: Props) {
         {t.daily.start}
       </button>
 
-      <Link href={`/${challenge.sport}/free`} className="daily-intro__free-play">
-        {t.daily.freePlayLink}
-      </Link>
+      {archived ? (
+        <Link href={`/${challenge.sport}/archive`} className="daily-intro__free-play">
+          {t.archive.back}
+        </Link>
+      ) : (
+        <Link href={`/${challenge.sport}/free`} className="daily-intro__free-play">
+          {t.daily.freePlayLink}
+        </Link>
+      )}
 
       <PlayerCareerDialog player={careerOf} onClose={() => setCareerOf(null)} />
     </div>

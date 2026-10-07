@@ -8,10 +8,13 @@ import { formatUsername } from '../../domain/visitorName'
 import { getDailyLeaderboard } from '../../lib/gameApi'
 import { formatTime } from '../../lib/formatTime'
 import { readVisitor } from '../../lib/visitor'
+import { challengeDayOf } from '../../domain/dailyChallenge'
 import { useTranslations } from '../../i18n'
 
 type Props = {
   sport: SportId
+  /** The challenge's day; today when left out. A past one, from the archive, says so in its wording. */
+  day?: string
   /** Shown above the ranking; `false` for none — the menu's dialog says it in its title. */
   heading?: string | false
 }
@@ -19,28 +22,29 @@ type Props = {
 const MEDALS: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' }
 
 /**
- * Today's ranking in one sport, kept short: the podium — the first three winners, by score then
+ * A day's ranking in one sport — today's, or a past day's from the archive — kept short: the podium — the first three winners, by score then
  * time — and the visitor's own place among everyone who finished.
  *
  * Read from the server (`POST /api/:sport/daily/ranking`), which never sends another visitor's id
  * or a winning chain. Decorative: if the request fails, the panel is simply absent.
  */
-export function DailyRanking({ sport, heading }: Props) {
+export function DailyRanking({ sport, day, heading }: Props) {
   const t = useTranslations()
   const [board, setBoard] = useState<DailyLeaderboard | null>(null)
 
   useEffect(() => {
     const { playerId } = readVisitor()
     const controller = new AbortController()
-    getDailyLeaderboard(sport, playerId, controller.signal)
+    getDailyLeaderboard(sport, playerId, day, controller.signal)
       .then(setBoard)
       .catch(() => {})
     return () => controller.abort()
-  }, [sport])
+  }, [sport, day])
 
   if (!board) return null
 
-  const r = t.daily.ranking
+  // The server's day, as it answered: "today" only when it is.
+  const r = board.day === challengeDayOf(new Date()) ? t.daily.ranking : { ...t.daily.ranking, ...t.archive.ranking }
   const title = heading === undefined ? r.title : heading
   const { you, total } = board
 
@@ -63,6 +67,7 @@ export function DailyRanking({ sport, heading }: Props) {
                 </span>
                 <span className="daily-ranking__name">
                   {entry.username ? formatUsername(entry.username, t.visitorNames) : r.anonymous}
+                  {entry.late && <span className="daily-ranking__late">{t.archive.late}</span>}
                   {entry.you && <span className="daily-ranking__you">{r.you}</span>}
                 </span>
                 <span className="daily-ranking__score">{formatScore(entry.score, t.daily.perfectBucket)}</span>
@@ -78,6 +83,7 @@ export function DailyRanking({ sport, heading }: Props) {
           <>
             <span className="daily-ranking__place-label">{r.yourRank}</span>
             <strong className="daily-ranking__place-value">{r.place(you.rank, total)}</strong>
+            {you.late && <span className="daily-ranking__late">{t.archive.late}</span>}
           </>
         ) : you ? (
           r.failed(total)

@@ -9,9 +9,12 @@ import { NotFoundError } from '@/services/errors'
 const MAX_DRAWS = 5
 
 /**
- * The visitor's username, created on first sight: all three parts drawn here, and drawn again
+ * The visitor's username, created if it has none: all three parts drawn here, and drawn again
  * whole when the database refuses a name already taken. An existing visitor gets back the
  * username it has.
+ *
+ * Only for a visitor with a result: a visitor is registered at its first Start
+ * (`startDailyResult`), never for opening a page — a browser that never plays leaves no row.
  *
  * `random` is a parameter so the retries can be tested; callers leave it out.
  */
@@ -27,6 +30,11 @@ export async function ensureUsername(
       if (draw >= MAX_DRAWS) throw err
     }
   }
+}
+
+/** The visitor's username, if it is registered; null otherwise. Never creates one. */
+export function findUsername(db: SupabaseClient, id: VisitorId): Promise<string | null> {
+  return visitorsRepo.find(db, id)
 }
 
 /** How many alternatives to offer when a name is taken. */

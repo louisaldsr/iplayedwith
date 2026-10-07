@@ -15,6 +15,13 @@ export async function ensure(db: SupabaseClient, id: VisitorId, username: string
   return data
 }
 
+/** The visitor's username — null for an id the server never registered. Requires the service_role client. */
+export async function find(db: SupabaseClient, id: VisitorId): Promise<string | null> {
+  const { data, error } = await db.from('visitors').select('username').eq('id', id).maybeSingle()
+  if (error) throw new Error(error.message)
+  return typeof data?.username === 'string' ? data.username : null
+}
+
 export type RenameOutcome = 'renamed' | 'taken' | 'unknown'
 
 /**

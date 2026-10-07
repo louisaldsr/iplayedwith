@@ -23,9 +23,9 @@ import { ConflictError } from '@/services/errors'
 /**
  * Stamps "Start" on a day's challenge — today's, or a past one played late.
  *
- * Also the visitor's first sight by the server: it gets its generated name here, once. A name that
- * fails to be drawn is only logged — the result matters more than the name, and the next Start
- * tries again.
+ * Also where a visitor is registered: once its first result exists, it gets its generated name —
+ * never before (a browser that never plays leaves no row). Returns the name, or null when it fails
+ * to be drawn: only logged — the result matters more than the name, and the next Start tries again.
  */
 export async function startDailyResult(
   db: SupabaseClient,
@@ -33,10 +33,13 @@ export async function startDailyResult(
   day: ChallengeDay,
   visitorId: VisitorId,
   now: Date = new Date(),
-): Promise<void> {
+): Promise<string | null> {
   if (!isPlayableDay(day, challengeDayOf(now))) throw new ConflictError(`${day} is not playable yet`)
-  await ensureUsername(db, visitorId).catch((err) => console.error('visitor name not created', err))
   await dailyResultsRepo.start(db, sport, day, visitorId)
+  return ensureUsername(db, visitorId).catch((err) => {
+    console.error('visitor name not created', err)
+    return null
+  })
 }
 
 /**

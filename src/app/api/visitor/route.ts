@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { isVisitorId } from '@/domain/dailyResult'
-import { ensureUsername, renameVisitor } from '@/services/visitorService'
+import { findUsername, renameVisitor } from '@/services/visitorService'
 import { ValidationError } from '@/services/errors'
 import { toErrorResponse } from '@/lib/apiErrors'
 import { setVisitorCookie } from '@/lib/visitorCookie'
@@ -9,20 +9,23 @@ import { setVisitorCookie } from '@/lib/visitorCookie'
 /**
  * POST /api/visitor  — body `{ visitorId }`
  *
- * The visitor's username `{ username }` — generated on first call, the same on every later one.
- * The client formats it (`formatUsername`). The menu shows it; the browser caches it, so this runs about once per browser.
- * Also sets the visitor cookie (`src/lib/visitorCookie.ts`), the copy of the id that survives Safari's storage purge.
+ * The visitor's username `{ username }`, or `{ username: null }` for a visitor that never started a
+ * daily challenge. **Never creates one**: a visitor is registered by its first Start
+ * (`POST /api/:sport/daily/start`), so a browser that only looks around leaves no row — and a script
+ * minting ids here writes nothing. The client formats the name (`formatUsername`) and caches it.
+ * A registered visitor also gets the visitor cookie (`src/lib/visitorCookie.ts`), the copy of the id
+ * that survives Safari's storage purge.
  *
- * A POST, since the first call creates the visitor.
+ * A POST, to keep the id out of URLs and logs: whoever knows it can rename the visitor.
  */
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json().catch(() => null)) as Record<string, unknown> | null
     if (!isVisitorId(body?.visitorId)) throw new ValidationError('visitorId must be a UUID')
 
-    const username = await ensureUsername(supabaseAdmin(), body.visitorId)
+    const username = await findUsername(supabaseAdmin(), body.visitorId)
     const res = NextResponse.json({ username }, { headers: { 'Cache-Control': 'no-store' } })
-    setVisitorCookie(res, req.nextUrl, body.visitorId)
+    if (username) setVisitorCookie(res, req.nextUrl, body.visitorId)
     return res
   } catch (err) {
     return toErrorResponse(err)

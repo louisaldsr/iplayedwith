@@ -611,7 +611,8 @@ paires ; depuis `018`, un numéro les rend uniques (Bloc 15).
 - Règles des listes : bienveillant (taquin au plus), aucun double sens dans une langue (pas de
   « hooker »), noms français tous masculins — l'adjectif n'a jamais à s'accorder.
 - Créé au **Start** (`ensure_visitor`, idempotent) ; un échec est seulement logué. Pas de FK depuis
-  `daily_results` : un coup peut arriver avant le Start, le nom manque alors (`—`).
+  `daily_results` : un coup peut arriver avant le Start, le nom manque alors (`—`). Depuis le Bloc 29,
+  le Start est le **seul** endroit qui crée un visiteur.
 - `visitors` est l'endroit où un compte s'accrochera : s'inscrire **réclamera** le visiteur et ses
   résultats, sans repartir de zéro.
 - `npm run daily:ranking -- --sport=rugby [--lang=en]` affiche les noms (français par défaut).
@@ -652,11 +653,13 @@ absolue est bâtie sur `iplayedwith.com` (`metadataBase`, Bloc 21).
   `{ adjective, noun, number }` — POST car le premier appel crée le visiteur.
 - **Badge en haut à gauche du menu** (`VisitorBadge`), là où le bouton Menu se trouve en partie :
   mis en cache dans `ipw.name` (avec l'id auquel il appartient) → affiché sans requête dès la
-  deuxième visite. Pas de nom sans stockage ; échec serveur = pas de badge.
+  deuxième visite. Pas de nom sans stockage ; échec serveur = pas de badge ; pas encore joué = pas
+  de badge (Bloc 29).
 - **Toujours visible en partie** : dans la barre du haut du plateau, à côté du badge de difficulté ;
   sur téléphone, sur une ligne à lui sous les joueurs et le chrono (la barre passe en grille,
   1ʳᵉ ligne de 44 px alignée sur les boutons fixes). Même source que le badge : `useVisitorName`.
-- e2e : `/api/visitor` est mocké **par défaut** dans `fixtures.ts` (toute page peut mener au menu).
+- e2e : `/api/visitor` est mocké **par défaut** dans `fixtures.ts` (toute page peut mener au menu) ;
+  `asRegisteredVisitor` installe un visiteur déjà nommé (id, cache, cookie).
 
 ---
 
@@ -1091,7 +1094,8 @@ ses stats et son classement (toujours en base, devenus injoignables).
   plafonne à 7 jours les cookies écrits par script, pas ceux d'un `Set-Cookie`, et les cookies ne
   sont pas dans la purge. **Pas HttpOnly** exprès : `readVisitor` le lit de façon synchrone, sans
   requête. Même modèle de confiance que le `localStorage`.
-- **Posé** par `POST /api/visitor` (réponse avec le nom) ; **prolongé** de 400 jours (le maximum
+- **Posé** par le premier `POST /api/:sport/daily/start` (Bloc 29), ou `POST /api/visitor` pour un visiteur
+  déjà enregistré ; jamais pour un id inconnu. **Prolongé** de 400 jours (le maximum
   d'un navigateur) par le middleware sur `/api/:sport/daily/*` — routes dynamiques, jamais en cache,
   que tout joueur appelle. Un joueur qui revient une fois par an le garde.
 - `Domain=iplayedwith.com` sur le site (partagé avec `www.`), sans domaine ailleurs (dev, préviews
@@ -1172,6 +1176,28 @@ jour : ni podium, ni rang, ni total. `YourPlace.rank` est `null` pour un résult
   (`.error-banner--toast`) : la barre du bas garde sa taille, les cœurs en bas restent dégagés — l'endroit
   est libre pendant la partie, l'interrupteur de solution n'y arrive qu'une fois finie. Le champ se
   cercle de rouge tant qu'il est affiché (`.game-screen-controls--refused`).
+
+## ✅ Bloc 29 terminé — Un visiteur n'existe qu'une fois qu'il a joué
+
+Le menu créait un visiteur (ligne `visitors` + un des 1 120 000 noms) **à la première page vue** : un
+visiteur parti tout de suite, un robot qui exécute le JavaScript, ou un script qui envoie des UUID au
+hasard à `POST /api/visitor` remplissait la table et épuisait les noms. Désormais, un visiteur est
+**enregistré à son premier « Commencer »** d'un défi du jour, une fois son résultat écrit :
+
+- `POST /api/:sport/daily/start` écrit le résultat **puis** le nom (`startDailyResult`) : un résultat qui
+  échoue ne crée pas de visiteur. Répond `{ username }` (null si le nom n'a pas pu être tiré, le Start
+  suivant réessaie) et pose le cookie `ipw_vid`.
+- `POST /api/visitor` **ne crée plus rien** : `{ username }` pour un visiteur enregistré (et le cookie),
+  `{ username: null }` sinon. Une lecture indexée, aucune écriture — appelé en boucle, il ne remplit rien.
+- **Navigateur** : sans nom en cache ni cookie, le visiteur n'a jamais joué → **aucune requête**. Le nom
+  arrive avec la réponse du Start (`announceUsername`, `useUsername`) : la barre du jeu, montée avant la
+  réponse, l'affiche dès qu'il arrive ; le menu l'a ensuite en cache. Seuls le cookie sans le cache (Safari)
+  ou le cache sans le cookie (avant le Bloc 24) demandent le nom.
+- **Avant de jouer** : pas de badge, donc pas de renommage (`PATCH` → 404 pour un inconnu). Mes stats
+  s'ouvrent sans pseudo.
+- **Pas de migration**. Les visiteurs créés par le menu avant ce bloc et jamais joué restent en base.
+- **Ne protège pas** d'un script qui appelle « start » avec des UUID au hasard : la porte est unique
+  maintenant, mais il reste à la limiter (règle de pare-feu Vercel par IP, BotID).
 
 ## Tests e2e — jamais la vraie base
 

@@ -4,6 +4,7 @@ import { isSportId } from '@/domain/sport'
 import { startDailyResult } from '@/services/dailyResultService'
 import { parseDailyRequest } from '@/lib/dailyRequest'
 import { toErrorResponse } from '@/lib/apiErrors'
+import { setVisitorCookie } from '@/lib/visitorCookie'
 
 /**
  * POST /api/:sport/daily/start  — body `{ day, visitorId }`
@@ -12,6 +13,9 @@ import { toErrorResponse } from '@/lib/apiErrors'
  * the ranking's time counts from here, on the server's clock, and a Start after the day marks the
  * result late. Idempotent — starting again (another tab, a resumed board) keeps the first time.
  * 409 for a future day.
+ *
+ * Also registers the visitor, at its first Start: answers `{ username }` (null if the name could
+ * not be drawn) and sets the visitor cookie — the game bar shows the name from here.
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ sport: string }> }) {
   const { sport } = await params
@@ -21,8 +25,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ spo
 
   try {
     const { day, visitorId } = parseDailyRequest(await req.json().catch(() => null))
-    await startDailyResult(supabaseAdmin(), sport, day, visitorId)
-    return new NextResponse(null, { status: 204 })
+    const username = await startDailyResult(supabaseAdmin(), sport, day, visitorId)
+    const res = NextResponse.json({ username }, { headers: { 'Cache-Control': 'no-store' } })
+    if (username) setVisitorCookie(res, req.nextUrl, visitorId)
+    return res
   } catch (err) {
     return toErrorResponse(err)
   }

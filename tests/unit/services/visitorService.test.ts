@@ -1,4 +1,4 @@
-import { ensureUsername, renameVisitor } from '@/services/visitorService'
+import { ensureUsername, findUsername, renameVisitor } from '@/services/visitorService'
 import * as visitorsRepo from '@/repositories/visitorsRepository'
 import { VisitorId } from '@/domain/dailyResult'
 import { NAME_ADJECTIVES, NAME_NOUNS } from '@/domain/visitorName'
@@ -34,6 +34,15 @@ describe('ensureUsername', () => {
 
     await expect(ensureUsername(db, id)).rejects.toThrow('database down')
     expect(repo.ensure).toHaveBeenCalledTimes(5)
+  })
+})
+
+describe('findUsername', () => {
+  it('reads the name, and never creates a visitor', async () => {
+    repo.find.mockResolvedValue(null)
+
+    await expect(findUsername(db, id)).resolves.toBeNull()
+    expect(repo.ensure).not.toHaveBeenCalled()
   })
 })
 

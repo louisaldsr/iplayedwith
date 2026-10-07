@@ -48,18 +48,32 @@ describe('startDailyResult', () => {
     expect(repo.start).toHaveBeenCalledWith(db, 'rugby', '2026-07-16', visitorId)
   })
 
-  it('gives the visitor a generated name on the way', async () => {
-    await startDailyResult(db, 'rugby', ChallengeDay('2026-07-16'), visitorId, now)
+  it('registers the visitor once its result exists, and answers its generated name', async () => {
+    const order: string[] = []
+    repo.start.mockImplementationOnce(async () => void order.push('result'))
+    visitors.ensure.mockImplementation(async (_db, _id, username) => (order.push('visitor'), username))
+
+    const name = await startDailyResult(db, 'rugby', ChallengeDay('2026-07-16'), visitorId, now)
+
     const [, id, username] = visitors.ensure.mock.calls[0]
     expect(id).toBe(visitorId)
     expect(generatedNameOf(username)).not.toBeNull()
+    expect(name).toBe(username)
+    expect(order).toEqual(['result', 'visitor'])
+  })
+
+  it('registers no visitor when the result cannot be stored', async () => {
+    repo.start.mockRejectedValueOnce(new Error('database down'))
+
+    await expect(startDailyResult(db, 'rugby', ChallengeDay('2026-07-16'), visitorId, now)).rejects.toThrow()
+    expect(visitors.ensure).not.toHaveBeenCalled()
   })
 
   it('still starts when the name cannot be created — the result matters more', async () => {
     visitors.ensure.mockRejectedValue(new Error('function ensure_visitor does not exist'))
     jest.spyOn(console, 'error').mockImplementation(() => {})
 
-    await startDailyResult(db, 'rugby', ChallengeDay('2026-07-16'), visitorId, now)
+    await expect(startDailyResult(db, 'rugby', ChallengeDay('2026-07-16'), visitorId, now)).resolves.toBeNull()
 
     expect(repo.start).toHaveBeenCalled()
   })

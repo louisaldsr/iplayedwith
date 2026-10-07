@@ -8,7 +8,8 @@ import { test as base, expect, Page, Route } from '@playwright/test'
  * recently added route first). After the test, any call that reached the guard fails it — so a
  * page that starts calling a new endpoint is caught here, instead of silently hitting the server.
  *
- * Four endpoints are mocked by default: `/api/visitor`, the name the menu shows;
+ * Four endpoints are mocked by default: `/api/visitor`, the name the menu shows (asked only by a
+ * registered visitor — see `asRegisteredVisitor`);
  * `/api/:sport/daily/stats` and `/api/:sport/daily/ranking` (both empty), which the results and the
  * finished screen show; and `/api/:sport/daily/solution`, refused (403) as for a day the server
  * never saw finished. Any test can reach them, and none should have to care; a test about one mocks
@@ -65,20 +66,42 @@ export async function mockApi(page: Page, path: string, body: unknown): Promise<
 }
 
 /**
- * Answers `POST /api/visitor` as the server does: the name, and the visitor cookie for the id sent
- * (`src/lib/visitorCookie.ts`) — without it, the menu would ask for the name again on every page.
+ * Answers `POST /api/visitor` — or the first `POST /api/:sport/daily/start` — as the server does: the
+ * name, and for a registered visitor the visitor cookie for the id sent (`src/lib/visitorCookie.ts`) —
+ * without it, the menu would ask for the name again on every page.
  */
-export function fulfillVisitorName(route: Route, body: unknown): Promise<void> {
+export function fulfillVisitorName(route: Route, body: { username: string | null }): Promise<void> {
   const { visitorId } = (route.request().postDataJSON() ?? {}) as { visitorId?: string }
-  const headers: Record<string, string> = visitorId
-    ? { 'set-cookie': `ipw_vid=${visitorId}; Path=/; Max-Age=34560000` }
-    : {}
+  const headers: Record<string, string> =
+    visitorId && body.username ? { 'set-cookie': `ipw_vid=${visitorId}; Path=/; Max-Age=34560000` } : {}
   return route.fulfill({ json: body, headers })
 }
 
 /** Starts the page as a returning visitor, so the first-visit rules pop-up (modal) stays closed. */
 export async function asReturningVisitor(page: Page): Promise<void> {
   await page.addInitScript(() => window.localStorage.setItem('ipw.rulesSeen', '999'))
+}
+
+/** The id `asRegisteredVisitor` plays under. */
+export const registeredVisitorId = '3f2b8c1e-9a4d-4e7f-8b2c-1d5e6f7a8b9c'
+
+/**
+ * A returning visitor who has already started a daily — so the server registered it, named
+ * "Hasty Prop 042": its id, its cached name and the visitor cookie, as the first Start left them. The
+ * menu shows its badge at once, with no request. A visitor who never played has no name at all.
+ */
+export async function asRegisteredVisitor(page: Page): Promise<void> {
+  await page.addInitScript(
+    ({ id, username }) => {
+      window.localStorage.setItem('ipw.rulesSeen', '999')
+      // Once: a reload keeps what the page changed since (a rename).
+      if (window.localStorage.getItem('ipw.playerId')) return
+      window.localStorage.setItem('ipw.playerId', id)
+      window.localStorage.setItem('ipw.name', JSON.stringify({ playerId: id, username }))
+      document.cookie = `ipw_vid=${id}; path=/`
+    },
+    { id: registeredVisitorId, username: sampleVisitorName.username },
+  )
 }
 
 // ─── Sample data ──────────────────────────────────────────────────────────────

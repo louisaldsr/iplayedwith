@@ -3,18 +3,20 @@ import {
   expect,
   mockApi,
   asReturningVisitor,
+  asRegisteredVisitor,
   fulfillVisitorName,
   sampleDailyChallenge,
   sampleVisitorName,
 } from './fixtures'
 
 // The name itself is drawn by the server and kept unique by the database (020_visitor_username.sql); the menu
-// only shows what the server gave, and remembers it.
+// only shows what the server gave, and remembers it. A visitor is registered — and named — at its first Start,
+// never for a page view: a browser that never plays leaves nothing on the server.
 
 const badge = (page: import('@playwright/test').Page) => page.locator('.visitor-badge')
 
-test('the menu shows the visitor its name, asked of the server once and then remembered', async ({ page }) => {
-  await asReturningVisitor(page)
+/** Records every `POST /api/visitor`, answered with the sample name. */
+async function recordNameRequests(page: import('@playwright/test').Page) {
   const asked: unknown[] = []
   await page.route(
     (url) => url.pathname === '/api/visitor',
@@ -23,42 +25,74 @@ test('the menu shows the visitor its name, asked of the server once and then rem
       return fulfillVisitorName(route, sampleVisitorName)
     },
   )
+  return asked
+}
 
+/** A browser whose storage was purged (Safari, after a week away): the visitor cookie alone is left. */
+async function withCookieOnly(page: import('@playwright/test').Page, id: string) {
+  await page.addInitScript((visitorId) => {
+    window.localStorage.setItem('ipw.rulesSeen', '999')
+    document.cookie = `ipw_vid=${visitorId}; path=/`
+  }, id)
+}
+
+test('a visitor who never played has no name yet: nothing is asked of the server', async ({ page }) => {
+  await asReturningVisitor(page)
+  const asked = await recordNameRequests(page)
+
+  await page.goto('/')
+  await expect(page.getByRole('link', { name: /Rugby — Daily challenge/ })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('link', { name: /Rugby — Daily challenge/ })).toBeVisible()
+
+  await expect(badge(page)).toHaveCount(0)
+  expect(asked).toEqual([])
+})
+
+test('the first Start registers the visitor: its name in the game bar, then on the menu, remembered', async ({
+  page,
+}) => {
+  await asReturningVisitor(page)
+  const asked = await recordNameRequests(page)
+  await mockApi(page, '/api/rugby/daily', sampleDailyChallenge)
+  const started: unknown[] = []
+  await page.route(
+    (url) => url.pathname === '/api/rugby/daily/start',
+    (route) => {
+      started.push(route.request().postDataJSON())
+      return fulfillVisitorName(route, sampleVisitorName)
+    },
+  )
+
+  await page.goto('/rugby')
+  await page.getByRole('button', { name: 'Start' }).click()
+  await expect(page.locator('.game-topbar__visitor')).toHaveText(/Hasty Prop 042/)
+
+  const playerId = await page.evaluate(() => window.localStorage.getItem('ipw.playerId'))
+  expect(started).toEqual([{ day: sampleDailyChallenge.day, visitorId: playerId }])
+  expect((await page.context().cookies()).find((c) => c.name === 'ipw_vid')?.value).toBe(playerId)
+
+  // The menu has it at once: from the browser, no request.
   await page.goto('/')
   await expect(badge(page)).toHaveText(/Hasty Prop 042/)
   await expect(page.getByText('Your name in the rankings: Hasty Prop 042')).toBeAttached()
-
-  const playerId = await page.evaluate(() => window.localStorage.getItem('ipw.playerId'))
-  expect(asked).toEqual([{ visitorId: playerId }])
-
-  // Next visit: straight from the browser, no request.
-  await page.reload()
-  await expect(badge(page)).toHaveText(/Hasty Prop 042/)
-  expect(asked).toHaveLength(1)
+  expect(asked).toEqual([])
 })
 
 test('storage purged (Safari, after a week away): the cookie brings the same visitor back', async ({ page }) => {
-  await asReturningVisitor(page)
-  const asked: unknown[] = []
-  await page.route(
-    (url) => url.pathname === '/api/visitor',
-    (route) => {
-      asked.push(route.request().postDataJSON())
-      return fulfillVisitorName(route, sampleVisitorName)
-    },
-  )
+  const playerId = '6f1c2b1e-8a5d-4c1b-9d3e-2f7a1b0c9e11'
+  await withCookieOnly(page, playerId)
+  const asked = await recordNameRequests(page)
 
   await page.goto('/')
   await expect(badge(page)).toHaveText(/Hasty Prop 042/)
-  const playerId = await page.evaluate(() => window.localStorage.getItem('ipw.playerId'))
-
-  // What ITP does: every bit of localStorage gone, cookies left.
-  await page.evaluate(() => window.localStorage.clear())
-  await page.reload()
-
-  await expect(badge(page)).toHaveText(/Hasty Prop 042/)
   expect(await page.evaluate(() => window.localStorage.getItem('ipw.playerId'))).toBe(playerId)
-  expect(asked).toEqual([{ visitorId: playerId }, { visitorId: playerId }])
+  expect(asked).toEqual([{ visitorId: playerId }])
+
+  // Cached again: the next page asks nothing.
+  await page.reload()
+  await expect(badge(page)).toHaveText(/Hasty Prop 042/)
+  expect(asked).toHaveLength(1)
 })
 
 test('a visitor from before the cookie has its name asked once more, which sets it', async ({ page }) => {
@@ -88,7 +122,7 @@ test('a visitor from before the cookie has its name asked once more, which sets 
 })
 
 test('without an answer from the server, the menu simply has no badge', async ({ page }) => {
-  await asReturningVisitor(page)
+  await withCookieOnly(page, '6f1c2b1e-8a5d-4c1b-9d3e-2f7a1b0c9e11')
   await page.route(
     (url) => url.pathname === '/api/visitor',
     (route) => route.fulfill({ status: 500, json: { error: 'down' } }),
@@ -100,9 +134,9 @@ test('without an answer from the server, the menu simply has no badge', async ({
 })
 
 test('during a game the name stays in view, in the top bar — shown, not renamable', async ({ page }) => {
-  await asReturningVisitor(page)
+  await asRegisteredVisitor(page)
   await mockApi(page, '/api/rugby/daily', sampleDailyChallenge)
-  await mockApi(page, '/api/rugby/daily/start', {})
+  await mockApi(page, '/api/rugby/daily/start', sampleVisitorName)
 
   await page.goto('/rugby')
   await page.getByRole('button', { name: 'Start' }).click()
@@ -134,7 +168,7 @@ async function mockRename(page: import('@playwright/test').Page, ...responses: {
 }
 
 test('the visitor renames itself in place, from the menu badge, and keeps the new name', async ({ page }) => {
-  await asReturningVisitor(page)
+  await asRegisteredVisitor(page)
   const sent = await mockRename(page, { status: 200, json: { username: 'Le Grand Chelem' } })
 
   await page.goto('/')
@@ -159,7 +193,7 @@ test('the visitor renames itself in place, from the menu badge, and keeps the ne
 })
 
 test('a taken name is met kindly, with free names one tap away', async ({ page }) => {
-  await asReturningVisitor(page)
+  await asRegisteredVisitor(page)
   const sent = await mockRename(
     page,
     { status: 409, json: { error: 'taken', suggestions: ['Dupont7', 'Dupont42'] } },
@@ -182,7 +216,7 @@ test('a taken name is met kindly, with free names one tap away', async ({ page }
 })
 
 test('a click elsewhere saves, like Enter — and a refused name keeps the field open', async ({ page }) => {
-  await asReturningVisitor(page)
+  await asRegisteredVisitor(page)
   const sent = await mockRename(
     page,
     { status: 409, json: { error: 'taken', suggestions: [] } },
@@ -204,7 +238,7 @@ test('a click elsewhere saves, like Enter — and a refused name keeps the field
 })
 
 test('a name breaking the rules is caught before any request', async ({ page }) => {
-  await asReturningVisitor(page)
+  await asRegisteredVisitor(page)
   const sent = await mockRename(page)
 
   await page.goto('/')
@@ -217,7 +251,7 @@ test('a name breaking the rules is caught before any request', async ({ page }) 
 })
 
 test('Escape or ✕ leaves the name as it was', async ({ page }) => {
-  await asReturningVisitor(page)
+  await asRegisteredVisitor(page)
   const sent = await mockRename(page)
   await page.goto('/')
 

@@ -3,6 +3,7 @@ import {
   expect,
   mockApi,
   asReturningVisitor,
+  asRegisteredVisitor,
   sampleDailyChallenge,
   sampleDailyStats,
   sampleDailyLeaderboard,
@@ -83,11 +84,12 @@ test("the menu opens today's ranking: the podium and the visitor's place, a tab 
 })
 
 test("the menu opens the visitor's stats: its name first, then a tab per sport", async ({ page }) => {
+  await asRegisteredVisitor(page)
   await mockApi(page, '/api/rugby/daily/stats', sampleDailyStats)
   await page.goto('/')
   await page.getByRole('button', { name: 'My stats' }).click()
 
-  // Whose stats: the visitor's name (mocked by default as "Hasty Prop 042").
+  // Whose stats: the visitor's name ("Hasty Prop 042", given at its first Start).
   const dialog = page.getByRole('dialog', { name: 'Your stats Hasty Prop 042' })
   await expect(dialog).toBeVisible()
 

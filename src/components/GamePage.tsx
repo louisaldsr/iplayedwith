@@ -18,6 +18,7 @@ import { DailyFinished } from './daily/DailyFinished'
 import { DefeatDialog } from './daily/DefeatDialog'
 import { useDailySolution } from './daily/useDailySolution'
 import { SolutionOverlay } from './daily/SolutionOverlay'
+import { announceUsername } from './shared/useUsername'
 import { DailyBoard, DailyOutcome, readDailyRecord, saveDailyRecord } from '../lib/dailyProgress'
 import { readVisitor } from '../lib/visitor'
 import { recordDailyHint, startDailyChallenge } from '../lib/gameApi'
@@ -320,9 +321,14 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
 
     // The daily's result is kept by the server, under this browser's anonymous id: Start stamps
     // the time, each move is counted. Without storage there is no id — the game is played, not
-    // ranked.
+    // ranked. The first Start also registers the visitor, and answers its name.
     const dailyMoves = daily ? dailyOptions(daily.day) : undefined
-    if (daily && dailyMoves) startDailyChallenge(daily.sport, daily.day, dailyMoves.visitorId)
+    if (daily && dailyMoves) {
+      const { visitorId } = dailyMoves
+      startDailyChallenge(daily.sport, daily.day, visitorId).then((name) => {
+        if (name) announceUsername(visitorId, name)
+      })
+    }
     engineRef.current = createRemoteEngine(sport, playerA, playerB, difficulty, { daily: dailyMoves })
     dispatch({
       type: 'START_GAME',

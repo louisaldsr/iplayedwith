@@ -34,7 +34,7 @@ test('winning the daily shows the score, the ranking and the stats, today lit', 
   const results = page.getByRole('dialog', { name: 'Congratulations!' })
   // One player needed, one added.
   await expect(results.locator('.victory-score__value')).toHaveText('Perfect!')
-  await expect(results.getByText('Shortest chain found')).toBeVisible()
+  await expect(results.getByText('Best solution found')).toBeVisible()
   // The score says it all: only the time and the lives stay next to it.
   await expect(results.getByText('Moves')).toHaveCount(0)
   await expect(results.getByText('Time')).toBeVisible()
@@ -62,7 +62,10 @@ test('a lost day shows the ranking and the stats on its finished screen', async 
   await page.goto('/rugby')
 
   await expect(page.getByRole('heading', { name: 'Out of lives' })).toBeVisible()
-  await expect(page.getByText('Out of lives today · 12 players finished')).toBeVisible()
+  // A loser's rank — the one every loser shares — never a place on the podium.
+  const ranking = page.getByRole('region', { name: "Today's ranking" })
+  await expect(ranking.locator('.daily-ranking__place')).toHaveText(/Your rank\s*4th \/ 12/)
+  await expect(ranking.locator('.daily-ranking__entry--you')).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Your stats' }).locator('.daily-stats__bar--today')).toContainText(
     'Lost',
   )

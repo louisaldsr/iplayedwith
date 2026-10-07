@@ -59,12 +59,12 @@ test('a won day is shared from its results: the pair, squares, score, a link to 
   expect(lines[1]).toBe('Alpha Testeur → Bravo Éssai')
   expect(lines[2]).toBe('🟩')
   expect(lines[3]).toMatch(/^Perfect! · ❤️❤️❤️ · \d+:\d\d$/)
-  expect(lines[4]).toBe('Shortest chain found')
+  expect(lines[4]).toBe('Best solution found')
   expect(lines[5]).toBe('iplayedwith.com/rugby/7')
 
-  // Closed, the results leave the end bar — Share is there too.
+  // Closed, the results leave the end bar: one button, back to them — Share lives in the results.
   await results.getByRole('button', { name: 'See the board' }).click()
-  await expect(page.locator('.won-bar').getByRole('button', { name: 'Share' })).toBeVisible()
+  await expect(page.locator('.won-bar').getByRole('button')).toHaveText(['Results'])
 })
 
 test('a lost day is shared too, with a dare', async ({ page }) => {

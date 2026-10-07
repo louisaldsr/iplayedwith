@@ -23,7 +23,8 @@ const MEDALS: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' }
 
 /**
  * A day's ranking in one sport — today's, or a past day's from the archive — kept short: the podium — the first three winners, by score then
- * time — and the visitor's own place among everyone who finished.
+ * time — and the visitor's own place among everyone who finished. A loser never stands on the
+ * podium, but gets a place all the same: the one every loser shares.
  *
  * Read from the server (`POST /api/:sport/daily/ranking`), which never sends another visitor's id
  * or a winning chain. Decorative: if the request fails, the panel is simply absent.
@@ -79,14 +80,13 @@ export function DailyRanking({ sport, day, heading }: Props) {
       )}
 
       <p className={`daily-ranking__place${you ? ` daily-ranking__place--${you.outcome}` : ''}`}>
-        {you?.outcome === 'won' ? (
+        {/* Won or lost, the same line: a loser's rank is the one every loser shares, after the winners. */}
+        {you ? (
           <>
             <span className="daily-ranking__place-label">{r.yourRank}</span>
             <strong className="daily-ranking__place-value">{r.place(you.rank, total)}</strong>
-            {you.late && <span className="daily-ranking__late">{t.archive.late}</span>}
+            {you.late && you.outcome === 'won' && <span className="daily-ranking__late">{t.archive.late}</span>}
           </>
-        ) : you ? (
-          r.failed(total)
         ) : (
           r.unfinished(total)
         )}

@@ -437,7 +437,7 @@ titre en haut, **les sports au centre** (grandes cartes, une par sport, qui ouvr
 jour ; **vertes avec ✓** quand le défi du jour est déjà gagné, pour pousser vers les autres
 sports), et tout le reste en bas :
 
-- **partie libre** par sport en lien secondaire ;
+- ~~**partie libre** par sport en lien secondaire~~ : depuis le Bloc 25, sous le défi de chaque sport ;
 - **Comment jouer** (ouvre la pop-up des règles), **Classement** (Bloc 22), **Mes stats** (Bloc 19)
   et **À propos**. Pas de connexion : le visiteur anonyme suffit (Bloc 22).
 - Pendant une partie le menu est **caché** : un bouton « ☰ Menu » fixe en haut à gauche
@@ -513,8 +513,7 @@ on peut réessayer tel quel). `RULES_VERSION` passe à 2 : tout le monde revoit 
 Gagner ne remplace plus le plateau par un écran de résultats : le plateau **reste**, et les résultats
 s'ouvrent en pop-up par-dessus (`VictoryDialog`, sur `Modal`). Elle se ferme **à la main** (« Voir le
 plateau », Échap, fond) — pas de fermeture automatique : on y lit ses stats. Une barre remplace
-alors la saisie (`won-bar` : « Chaîne complète — N liens », Résultats pour la rouvrir, Partie libre
-ou Rejouer). Le chrono s'arrête au coup gagnant (`finishedAt`), le temps affiché ne dérive plus.
+alors la saisie (`won-bar` : depuis le Bloc 25, un seul bouton **Résultats** pour la rouvrir). Le chrono s'arrête au coup gagnant (`finishedAt`), le temps affiché ne dérive plus.
 
 **Chaîne gagnante** (`.game-board--won`, CSS seul) : ses cartes prennent une bordure holographique
 **dorée** avec un reflet qui balaie la carte — le shimmer des *unsung*, en or — et s'allument l'une
@@ -945,8 +944,8 @@ Le classement n'était lisible que par `npm run daily:ranking`. Les joueurs en v
 - **Podium = gagnants seulement** (score puis temps), 🥇🥈🥉 ; moins de trois gagnants, podium plus
   court. Égalité : rang partagé, même médaille ; une égalité sur la 3ᵉ marche est coupée par l'heure de
   fin (le premier arrivé reste). Le visiteur y est marqué « Vous ».
-- **Son rang** : « Votre rang **12ᵉ / 87** » (gagné) · « Plus de vies aujourd'hui · 87 joueurs ont
-  fini » (perdu : pas de rang, les perdants le partagent) · « Finissez le défi pour avoir votre rang »
+- **Son rang** : « Votre rang **12ᵉ / 87** », gagné ou perdu (perdu : le rang que tous les perdants
+  partagent, en rouge — jamais sur le podium, Bloc 25) · « Finissez le défi pour avoir votre rang »
   (en cours). Le total compte **tous les résultats finis**, perdants compris.
 - **Le récap de fin en sections** (pop-ups de victoire et de défaite) : la partie (titre, score,
   chaîne, temps, vies) → **Classement du jour** → **Vos stats** → les boutons. Les titres de section
@@ -976,8 +975,8 @@ Chaque sport a sa page **`/[sport]/archive`** : tous les défis depuis le lancem
 plus ancien — numéro, date, paire, et le résultat du visiteur **tel que le serveur l'a enregistré**
 (Parfait / +N aux couleurs des stats, Perdu, En cours, À jouer ; « en retard » le cas échéant).
 Aujourd'hui renvoie vers `/[sport]` ; un jour passé se joue sur **`/[sport]/archive/[day]`**, comme le
-défi du jour (3 vies, mode facile, solution une fois fini). Liens : menu (« Défis passés : Rugby ·
-Football »), pop-ups et barres de fin, `DailyFinished`.
+défi du jour (3 vies, mode facile, solution une fois fini). Liens : sous « Commencer » de chaque
+sport (Bloc 25 — plus dans le menu), pop-ups de fin, `DailyFinished`.
 
 ### Ce qui compte, en retard
 
@@ -1034,7 +1033,7 @@ e2e : `/api/:sport/daily/archive` n'est **pas** mocké par défaut — `archive.
 ## ✅ Bloc 24 terminé — Partager son défi
 
 Une journée finie, gagnée ou perdue, se partage en un clic : bouton **Partager** dans les pop-ups de
-victoire et de défaite (sous le score et la solution) et dans la barre de fin. **Rien n'est stocké** :
+victoire et de défaite (sous le score et la solution). **Rien n'est stocké** :
 le message est bâti dans le navigateur depuis le plateau gardé (`dailyShareText`, `src/lib/dailyShare.ts`).
 
 ```
@@ -1048,7 +1047,7 @@ iplayedwith.com/rugby/412
 
 - **Jamais de spoiler** : A et B sont publics dès l'intro ; les joueurs ajoutés sont des **carrés**,
   dans l'ordre d'ajout — 🟩 sur la chaîne gagnante, ⬜ cul-de-sac. Perdu : tout est ⬜ (pas de chaîne),
-  puis « 💔 Plus de vies · 🤍🤍🤍 » et « Ferez-vous mieux ? ». Les ratés ne sont que les cœurs : le
+  puis « 💔 Plus de vies · 🤍🤍🤍 » et « Tu fais mieux que moi ? » (le message part chez des amis : tutoiement). Les ratés ne sont que les cœurs : le
   plateau ne garde pas leur ordre.
 - **Langue du partageur** (`t.daily.share`).
 - **Téléphone** (pointeur grossier) : feuille de partage native (`navigator.share`) ; fermée = rien.
@@ -1110,6 +1109,25 @@ ses stats et son classement (toujours en base, devenus injoignables).
 e2e : `fulfillVisitorName` (`fixtures.ts`) répond au nom **avec** le `Set-Cookie`, comme le serveur.
 
 ---
+
+## ✅ Bloc 25 terminé — Retouches : des joueurs, pas des liens
+
+- **Plus de « lien » ni de « chaîne » dans le jeu** : des mots abstraits. On compte des **joueurs** —
+  l'intro dit « Meilleure solution : **N** joueurs entre les deux » (`optimalLinks − 1`, toujours ≥ 1),
+  le score « 2 joueurs de plus que la meilleure solution », la défaite « Il suffisait de N joueurs entre
+  les deux ». Les verbes passent à « relier » / *connect* (règles, carte de partage, descriptions SEO).
+  Le code garde `optimalLinks`, `path` : seuls les libellés changent.
+- **Menu** : la partie libre et les défis passés le quittent. Ils sont proposés **sous « Commencer »**
+  de chaque sport, en deux cartes côte à côte (`daily-intro__more`) — sur un jour passé, la seconde
+  devient « Retour aux défis passés ».
+- **Barre de fin** : un seul bouton **Résultats**, centré, même style gagné ou perdu. Partager, la
+  solution et la suite (défis passés, partie libre, rejouer) vivent dans la pop-up.
+- **Classement d'un perdant** : « Votre rang **4ᵉ / 12** », comme un gagnant — le rang partagé par tous
+  les perdants (`daily_ranking` le donnait déjà), en rouge. Toujours hors du podium.
+- **Partager** : l'icône universelle (trois points reliés, SVG en `currentColor`) remplace « ↗ ».
+- **Archives** : un jour fini prend la couleur de son score (celles des stats : Parfait or, +1 vert,
+  +2 citron, +3 ambre, +4 orange, +5+ et Perdu rouge) — fond teinté, bordure, pastille pleine. À jouer :
+  pastille contour « À jouer › » ; en cours : bordure pointillée.
 
 ## Tests e2e — jamais la vraie base
 

@@ -50,23 +50,27 @@ export function DailyIntro({ challenge, archived = false, onStart }: Props) {
         <PlayerButton player={challenge.playerB} onOpen={setCareerOf} />
       </div>
 
+      {/* Players in between, never "links": the score counts players too. Always 1 or more (a pair is ≥ 2 links). */}
       <p className="daily-intro__best">
-        {t.daily.bestPossible} <strong>{challenge.optimalLinks}</strong> {t.daily.links}
+        {t.daily.bestSolution} <strong>{challenge.optimalLinks - 1}</strong>{' '}
+        {t.daily.playersBetween(challenge.optimalLinks - 1)}
       </p>
 
       <button type="button" className="btn btn--primary btn--lg" onClick={onStart}>
         {t.daily.start}
       </button>
 
-      {archived ? (
-        <Link href={`/${challenge.sport}/archive`} className="daily-intro__free-play">
-          {t.archive.back}
+      {/* The sport's other ways to play, offered here rather than in the menu. */}
+      <nav className="daily-intro__more" aria-label={t.daily.more.label}>
+        <Link href={`/${challenge.sport}/free`} className="daily-intro__more-link">
+          <span className="daily-intro__more-title">{t.daily.freePlay}</span>
+          <span className="daily-intro__more-hint">{t.daily.more.freePlayHint}</span>
         </Link>
-      ) : (
-        <Link href={`/${challenge.sport}/free`} className="daily-intro__free-play">
-          {t.daily.freePlayLink}
+        <Link href={`/${challenge.sport}/archive`} className="daily-intro__more-link">
+          <span className="daily-intro__more-title">{archived ? t.archive.back : t.archive.link}</span>
+          <span className="daily-intro__more-hint">{t.daily.more.archiveHint}</span>
         </Link>
-      )}
+      </nav>
 
       <PlayerCareerDialog player={careerOf} onClose={() => setCareerOf(null)} />
     </div>

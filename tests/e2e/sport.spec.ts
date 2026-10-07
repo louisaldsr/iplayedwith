@@ -55,15 +55,17 @@ test.describe('free-play setup screen', () => {
 })
 
 test.describe('daily challenge', () => {
-  test("the sport page opens on the day's pair and links to free play", async ({ page }) => {
+  test("the sport page opens on the day's pair, then offers free play and the past challenges", async ({ page }) => {
     await mockApi(page, '/api/rugby/daily', sampleDailyChallenge)
     await page.goto('/rugby')
 
     await expect(page.getByRole('heading', { level: 1 })).toContainText('#7')
     await expect(page.getByRole('button', { name: /Alpha Testeur/ })).toBeVisible()
     await expect(page.getByRole('button', { name: /Bravo Éssai/ })).toBeVisible()
-    await expect(page.getByText('Best possible 2 links')).toBeVisible()
-    await expect(page.locator('a[href="/rugby/free"]')).toBeVisible()
+    await expect(page.getByText('Best solution: 1 player in between')).toBeVisible()
+    const more = page.getByRole('navigation', { name: 'Other ways to play' })
+    await expect(more.getByRole('link', { name: /Free play/ })).toHaveAttribute('href', '/rugby/free')
+    await expect(more.getByRole('link', { name: /Past challenges/ })).toHaveAttribute('href', '/rugby/archive')
   })
 
   test('a player of the pair opens their career, club by club', async ({ page }) => {

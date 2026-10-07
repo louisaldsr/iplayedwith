@@ -2,10 +2,12 @@ import type { Translations } from './en'
 
 const finished = (total: number) => `${total} ${total === 1 ? 'joueur a fini' : 'joueurs ont fini'}`
 
+const players = (n: number) => `${n} ${n === 1 ? 'joueur' : 'joueurs'}`
+
 const fr: Translations = {
   home: {
     title: 'I Played With',
-    tagline: 'Trouvez les liens entre coéquipiers',
+    tagline: 'Reliez deux joueurs par leurs coéquipiers',
     sports: {
       rugby: 'Rugby',
       football: 'Football',
@@ -19,8 +21,6 @@ const fr: Translations = {
     label: 'Menu principal',
     button: 'Menu',
     daily: 'Défi du jour',
-    freePlay: 'Ou en partie libre :',
-    archive: 'Défis passés :',
     about: 'À propos',
     ranking: 'Classement',
     stats: 'Mes stats',
@@ -66,7 +66,7 @@ const fr: Translations = {
         goal: 'Deux joueurs sont tirés au sort. Reliez-les par leurs coéquipiers.',
         move: 'Citez un joueur qui a partagé un club et une saison avec quelqu’un du plateau.',
         miss: 'Aucun club ni saison en commun ? Vous perdez une vie. Vous en avez 3.',
-        win: 'Atteignez l’autre joueur : la chaîne est complète, c’est gagné !',
+        win: 'Atteignez l’autre joueur : c’est gagné !',
       },
       linked: (teammate: string, club: string, season: string) => `Avec ${teammate} — ${club}, ${season}`,
       step: (n: number, total: number) => `Étape ${n} sur ${total}`,
@@ -89,8 +89,8 @@ const fr: Translations = {
     livesLeft: (left: number, total: number) => `${left} vie${left > 1 ? 's' : ''} sur ${total}`,
     wonTitle: 'Réussi !',
     lostTitle: 'Plus de vies',
-    wonText: (livesLeft: number) => `Chaîne complète avec ${livesLeft} vie${livesLeft > 1 ? 's' : ''} en réserve.`,
-    lostText: (links: number) => `Une chaîne de ${links} liens existait. Revanche demain !`,
+    wonText: (livesLeft: number) => `Réussi avec ${livesLeft} vie${livesLeft > 1 ? 's' : ''} en réserve.`,
+    lostText: (between: number) => `Il suffisait de ${players(between)} entre les deux. Revanche demain !`,
     boardNotKept: 'Votre plateau de cette partie n’a pas été gardé (ancienne version du jeu) — désormais, il l’est.',
     comeBackTomorrow: 'Une nouvelle paire arrive à minuit (heure de Paris).',
     title: 'Défi du jour',
@@ -100,23 +100,25 @@ const fr: Translations = {
     careerEmpty: 'Aucune carrière enregistrée pour ce joueur.',
     careerError: 'Impossible de charger la carrière — réessayez.',
     versus: 'contre',
-    bestPossible: 'Meilleur possible',
-    links: 'liens',
+    bestSolution: 'Meilleure solution :',
+    playersBetween: (n: number) => (n === 1 ? 'joueur entre les deux' : 'joueurs entre les deux'),
     start: 'Commencer',
-    freePlayLink: 'Ou choisissez vos joueurs en partie libre',
+    more: {
+      label: 'Autres façons de jouer',
+      freePlayHint: 'Choisissez vos joueurs',
+      archiveHint: 'Un jour manqué ? Jouez-le',
+    },
     freePlay: 'Partie libre',
     perfect: 'Parfait !',
     perfectBucket: 'Parfait',
     scoreHint: (extra: number) =>
-      extra === 0
-        ? 'Chaîne la plus courte trouvée'
-        : `${extra} ${extra === 1 ? 'joueur' : 'joueurs'} de plus que la chaîne la plus courte`,
+      extra === 0 ? 'Meilleure solution trouvée' : `${players(extra)} de plus que la meilleure solution`,
     share: {
       button: 'Partager',
       copied: 'Copié — collez-le à vos amis !',
       failed: 'Copie impossible — réessayez.',
       title: (sport: string, number: number) => `I Played With · ${sport} #${number}`,
-      dare: 'Ferez-vous mieux ?',
+      dare: 'Tu fais mieux que moi ?',
     },
     solution: {
       show: 'Voir la solution proposée',
@@ -143,7 +145,6 @@ const fr: Translations = {
         total === 0 ? 'Personne n’a encore fini aujourd’hui.' : 'Personne n’a encore gagné aujourd’hui.',
       yourRank: 'Votre rang',
       place: (rank: number, total: number) => `${rank === 1 ? '1ᵉʳ' : `${rank}ᵉ`} / ${total}`,
-      failed: (total: number) => `Plus de vies aujourd’hui · ${finished(total)}`,
       unfinished: (total: number) =>
         total === 0
           ? 'Finissez le défi pour avoir votre rang.'
@@ -166,7 +167,6 @@ const fr: Translations = {
       title: 'Classement de ce jour',
       noWinner: (total: number) =>
         total === 0 ? 'Personne n’a encore fini ce défi.' : 'Personne n’a encore gagné ce défi.',
-      failed: (total: number) => `Plus de vies · ${finished(total)}`,
       unfinished: (total: number) =>
         total === 0
           ? 'Finissez le défi pour avoir votre rang.'
@@ -189,7 +189,7 @@ const fr: Translations = {
     hardDesc: 'Joueur + Club + Saison',
     launch: 'Lancer la partie',
     directlyConnectedWarning:
-      'Ces deux joueurs ont déjà joué ensemble. En mode Facile, ce lien est auto-résolu — choisissez une autre paire.',
+      'Ces deux joueurs ont déjà joué ensemble : en mode Facile, il n’y aurait rien à trouver — choisissez une autre paire.',
   },
   game: {
     chrono: 'Temps',
@@ -227,7 +227,6 @@ const fr: Translations = {
     playAgain: 'Rejouer',
     viewBoard: 'Voir le plateau',
     results: 'Résultats',
-    chainComplete: (links: number) => `Chaîne complète — ${links} ${links === 1 ? 'lien' : 'liens'}`,
   },
   visitorNames: {
     adjectives: {

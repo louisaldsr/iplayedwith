@@ -37,7 +37,7 @@ describe('dailyShareText', () => {
         'Antoine Dupont → Siya Kolisi',
         '🟩⬜🟩⬜',
         '+2 · ❤️❤️🤍 · 4:37',
-        '2 players more than the shortest chain',
+        '2 players more than the best solution',
         'iplayedwith.com/rugby/412',
       ].join('\n'),
     )
@@ -56,7 +56,7 @@ describe('dailyShareText', () => {
     const lines = dailyShareText(perfect, en).split('\n')
     expect(lines[2]).toBe('🟩')
     expect(lines[3]).toBe('Perfect! · ❤️❤️❤️ · 0:42')
-    expect(lines[4]).toBe('Shortest chain found')
+    expect(lines[4]).toBe('Best solution found')
   })
 
   it('shares a lost day with a dare, every heart empty', () => {

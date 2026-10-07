@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useReducer, useRef, useCallback, useEffect, useMemo, useState } from 'react'
 import { Game, DifficultyLevel } from '../game/game'
 import { Player } from '../domain/player'
@@ -24,7 +23,6 @@ import { readVisitor } from '../lib/visitor'
 import { recordDailyHint, startDailyChallenge } from '../lib/gameApi'
 import { dailyShareText } from '../lib/dailyShare'
 import { dailyScore } from '../domain/dailyScore'
-import { ShareButton } from './daily/ShareButton'
 
 /**
  * `victory`: the won board stays on screen, results in a pop-up over it.
@@ -402,33 +400,17 @@ export function GamePage({ sport, mode = FREE_PLAY }: Props) {
       : null
 
   // A finished game keeps its board on screen: the results open over it, and this bar replaces the
-  // move input to reopen them, lay the proposed solution over the board (daily), or move on.
+  // move input to reopen them. One button only — everything else (share, solution, what to play
+  // next) is in the results.
   const endBar = ended && state.game && (
     <div className={`won-bar${state.phase === 'lost' ? ' won-bar--lost' : ''}`}>
-      <span className="won-bar__title">
-        <span aria-hidden="true">{state.phase === 'lost' ? '💔 ' : '🏆 '}</span>
-        {state.phase === 'lost' ? t.daily.lostTitle : t.victory.chainComplete(state.game.path.length - 1)}
-      </span>
-      <div className="won-bar__actions">
-        <button type="button" className="btn btn--ghost" onClick={() => dispatch({ type: 'SHOW_RESULTS', open: true })}>
-          {t.victory.results}
-        </button>
-        {shareText && <ShareButton text={shareText} />}
-        {daily ? (
-          <>
-            <Link href={archiveHref!} className="btn btn--ghost">
-              {t.archive.link}
-            </Link>
-            <Link href={freePlayHref!} className="btn btn--primary">
-              {t.daily.freePlay}
-            </Link>
-          </>
-        ) : (
-          <button type="button" className="btn btn--primary" onClick={handlePlayAgain}>
-            {t.victory.playAgain}
-          </button>
-        )}
-      </div>
+      <button
+        type="button"
+        className="btn btn--primary btn--lg won-bar__results"
+        onClick={() => dispatch({ type: 'SHOW_RESULTS', open: true })}
+      >
+        {t.victory.results}
+      </button>
     </div>
   )
 

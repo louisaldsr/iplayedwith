@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const name = en.home.sports[sport]
   return {
     title: `${name} daily challenge`,
-    description: `Today's ${name.toLowerCase()} challenge: link two players through the teammates they shared. One pair a day, the same for everyone.`,
+    description: `Today's ${name.toLowerCase()} challenge: connect two players through the teammates they shared. One pair a day, the same for everyone.`,
     alternates: { canonical: `/${sport}` },
   }
 }

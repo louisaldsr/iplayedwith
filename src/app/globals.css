@@ -1165,29 +1165,6 @@ body {
   align-self: end;
 }
 
-/* Free play and the past challenges: two lines of the same kind, kept together. */
-.home-menu__other-plays {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  text-align: center;
-}
-
-.home-menu__free-play {
-  font-size: 0.95rem;
-  color: var(--text-muted);
-}
-
-.home-menu__free-play a {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.home-menu__free-play a:hover {
-  color: var(--accent-hover);
-}
-
 .home-menu__links {
   display: flex;
   gap: 12px;
@@ -1404,13 +1381,44 @@ body {
   color: var(--accent);
 }
 
-.daily-intro__free-play {
-  font-size: 0.85rem;
-  color: var(--text-muted);
+/* Under Start: free play and the past challenges, side by side — the sport's other ways to play. */
+.daily-intro__more {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: 520px;
 }
 
-.daily-intro__free-play:hover {
-  color: var(--accent-hover);
+.daily-intro__more-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  text-align: center;
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.daily-intro__more-link:hover {
+  border-color: var(--accent);
+  background: var(--bg-elevated);
+}
+
+.daily-intro__more-title {
+  font-weight: 700;
+}
+
+.daily-intro__more-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 /* A past day, played from the archive: says how it counts, before Start. */
@@ -1545,17 +1553,56 @@ body {
 }
 
 .archive-day__status {
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
   font-weight: 700;
-  color: var(--tone);
+  font-size: 0.85rem;
   white-space: nowrap;
 }
 
-.archive-day--b0 .archive-day__status {
-  color: var(--win-gold-text);
+/* Finished: the whole row takes its score's colour — tinted, bordered, a solid badge. */
+.archive-day--done {
+  border-color: color-mix(in srgb, var(--tone) 55%, transparent);
+  background: color-mix(in srgb, var(--tone) 13%, var(--bg-surface));
 }
 
+.archive-day--done:hover {
+  border-color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 20%, var(--bg-surface));
+}
+
+.archive-day--done .archive-day__number {
+  color: var(--tone);
+}
+
+.archive-day--done .archive-day__status {
+  background: var(--tone);
+  color: var(--bg-base);
+}
+
+.archive-day--b0 .archive-day__status {
+  background: linear-gradient(90deg, var(--win-gold-text), var(--win-gold));
+  box-shadow: 0 0 12px var(--win-glow);
+}
+
+.archive-day--lost .archive-day__status {
+  color: #fff;
+}
+
+/* Still to play: plain, its badge an invitation. */
 .archive-day--to-play .archive-day__status {
-  color: var(--text-muted);
+  border: 1px solid var(--accent);
+  color: var(--accent-hover);
+}
+
+.archive-day--in-progress {
+  border-style: dashed;
+  border-left-style: solid;
+}
+
+.archive-day--in-progress .archive-day__status {
+  background: var(--accent-dim);
+  color: var(--accent-hover);
 }
 
 .archive-day__late {
@@ -2877,23 +2924,15 @@ body {
   }
 }
 
-/* ─── Won bar: replaces the move input under a won board ─── */
+/* ─── End bar: replaces the move input under a finished board — one way back to the results ─── */
 .won-bar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   justify-content: center;
-  gap: 12px 20px;
   width: 100%;
 }
 
-.won-bar__title {
-  font-weight: 700;
-  color: var(--win-gold-text);
-}
-
-.won-bar--lost .won-bar__title {
-  color: var(--error);
+.won-bar__results {
+  min-width: 200px;
 }
 
 .defeat-dialog__heading {
@@ -2904,13 +2943,6 @@ body {
 
 .defeat-dialog__text {
   color: var(--text-muted);
-}
-
-.won-bar__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
 }
 
 .victory-dialog__heading {
@@ -3045,12 +3077,6 @@ body {
 
 .share-button__feedback--failed {
   color: var(--error);
-}
-
-/* The end bar sits at the bottom of the screen: the feedback goes above. */
-.won-bar .share-button__feedback {
-  top: auto;
-  bottom: calc(100% + 6px);
 }
 
 .victory-score__share {
@@ -3369,7 +3395,8 @@ body {
   text-align: center;
   color: var(--text-muted);
 }
-.daily-ranking__place--won {
+.daily-ranking__place--won,
+.daily-ranking__place--lost {
   display: flex;
   align-items: baseline;
   justify-content: center;
@@ -3381,6 +3408,10 @@ body {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
+}
+
+.daily-ranking__place--lost .daily-ranking__place-value {
+  color: var(--error);
 }
 
 /* ─── Menu: "My stats" — the visitor's name, then a tab per sport ─── */

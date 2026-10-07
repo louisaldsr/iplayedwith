@@ -48,7 +48,7 @@ test('a guess linked to nobody costs a life and flashes the screen; the third en
 
   // The day is over: coming back shows the lost board, not a fresh game — no input, no Start.
   await page.reload()
-  await expect(page.locator('.won-bar--lost')).toContainText('Out of lives')
+  await expect(page.locator('.won-bar--lost').getByRole('button', { name: 'Results' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Submit' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Start' })).toHaveCount(0)
 

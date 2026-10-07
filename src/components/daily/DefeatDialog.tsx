@@ -35,7 +35,7 @@ export function DefeatDialog({ open, onClose, challenge, onShowSolution, shareTe
         {t.daily.lostTitle}
       </h2>
       <div className="victory-score">
-        <p className="defeat-dialog__text">{t.daily.lostText(challenge.optimalLinks)}</p>
+        <p className="defeat-dialog__text">{t.daily.lostText(challenge.optimalLinks - 1)}</p>
         {/* Right under "a chain existed": that chain. */}
         <button type="button" className="btn btn--solution btn--sm victory-score__solution" onClick={onShowSolution}>
           {t.daily.solution.show}

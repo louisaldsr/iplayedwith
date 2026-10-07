@@ -99,7 +99,7 @@ test('a win keeps the board on screen: the results pop up over it, close, and re
   await results.getByRole('button', { name: 'See the board' }).click()
   await expect(results).toBeHidden()
   await expect(page.locator('.game-board--won .node-card--highlighted')).toHaveCount(3)
-  await expect(page.getByText('Chain complete — 2 links')).toBeVisible()
+  await expect(page.locator('.won-bar').getByRole('button')).toHaveText(['Results'])
   await expect(page.getByPlaceholder('Player…')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Results' }).click()

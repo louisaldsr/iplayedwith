@@ -59,7 +59,7 @@ export function DailyFinished({ challenge, outcome, livesLeft }: Props) {
         {t.daily.title} #{challenge.number} — {challenge.playerA.name} {t.daily.versus} {challenge.playerB.name}
       </p>
       <p className="daily-finished__text">
-        {won ? t.daily.wonText(livesLeft) : t.daily.lostText(challenge.optimalLinks)}
+        {won ? t.daily.wonText(livesLeft) : t.daily.lostText(challenge.optimalLinks - 1)}
       </p>
       <div className="daily-finished__board">
         <GameBoard

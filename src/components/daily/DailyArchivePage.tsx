@@ -85,8 +85,10 @@ function ArchiveDay({ entry, isToday }: { entry: DailyArchiveEntry; isToday: boo
 
   // Today's challenge is played where it always is: its own page, on time.
   const href = isToday ? `/${entry.sport}` : `/${entry.sport}/archive/${entry.day}`
+  // A finished day is filled with its score's colour; one still to play stays plain, and invites.
+  const done = result?.outcome === 'won' || result?.outcome === 'lost'
   return (
-    <Link href={href} className={`archive-day archive-day--${tone}`}>
+    <Link href={href} className={`archive-day archive-day--${tone}${done ? ' archive-day--done' : ''}`}>
       <span className="archive-day__number">#{entry.number}</span>
       <span className="archive-day__main">
         <span className="archive-day__date">
@@ -98,7 +100,11 @@ function ArchiveDay({ entry, isToday }: { entry: DailyArchiveEntry; isToday: boo
         </span>
       </span>
       <span className="archive-day__result">
-        <span className="archive-day__status">{status}</span>
+        <span className="archive-day__status">
+          {tone === 'b0' && <span aria-hidden="true">★ </span>}
+          {status}
+          {!result && <span aria-hidden="true"> ›</span>}
+        </span>
         {result?.late && result.outcome && <span className="archive-day__late">{t.archive.late}</span>}
       </span>
     </Link>

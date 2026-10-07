@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const name = en.home.sports[sport]
   return {
     title: `Free play — ${name}`,
-    description: `Pick any two ${name.toLowerCase()} players and link them through the teammates they shared.`,
+    description: `Pick any two ${name.toLowerCase()} players and connect them through the teammates they shared.`,
     alternates: { canonical: `/${sport}/free` },
   }
 }

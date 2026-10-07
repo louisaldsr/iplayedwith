@@ -1,4 +1,4 @@
-import { test as base, expect, Page } from '@playwright/test'
+import { test as base, expect, Page, Route } from '@playwright/test'
 
 /**
  * The e2e `test`, with every API call the browser makes mocked.
@@ -28,7 +28,7 @@ export const test = base.extend<{ unmockedApiCalls: string[] }>({
       })
       await page.route(
         (url) => url.pathname === '/api/visitor',
-        (route) => route.fulfill({ json: sampleVisitorName }),
+        (route) => fulfillVisitorName(route, sampleVisitorName),
       )
       await page.route(
         (url) => /^\/api\/[^/]+\/daily\/stats$/.test(url.pathname),
@@ -62,6 +62,18 @@ export async function mockApi(page: Page, path: string, body: unknown): Promise<
     },
   )
   return calls
+}
+
+/**
+ * Answers `POST /api/visitor` as the server does: the name, and the visitor cookie for the id sent
+ * (`src/lib/visitorCookie.ts`) — without it, the menu would ask for the name again on every page.
+ */
+export function fulfillVisitorName(route: Route, body: unknown): Promise<void> {
+  const { visitorId } = (route.request().postDataJSON() ?? {}) as { visitorId?: string }
+  const headers: Record<string, string> = visitorId
+    ? { 'set-cookie': `ipw_vid=${visitorId}; Path=/; Max-Age=34560000` }
+    : {}
+  return route.fulfill({ json: body, headers })
 }
 
 /** Starts the page as a returning visitor, so the first-visit rules pop-up (modal) stays closed. */

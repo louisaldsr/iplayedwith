@@ -1,4 +1,12 @@
-import { test, expect, mockApi, asReturningVisitor, sampleDailyChallenge, sampleVisitorName } from './fixtures'
+import {
+  test,
+  expect,
+  mockApi,
+  asReturningVisitor,
+  fulfillVisitorName,
+  sampleDailyChallenge,
+  sampleVisitorName,
+} from './fixtures'
 
 // The name itself is drawn by the server and kept unique by the database (020_visitor_username.sql); the menu
 // only shows what the server gave, and remembers it.
@@ -12,7 +20,7 @@ test('the menu shows the visitor its name, asked of the server once and then rem
     (url) => url.pathname === '/api/visitor',
     (route) => {
       asked.push(route.request().postDataJSON())
-      return route.fulfill({ json: sampleVisitorName })
+      return fulfillVisitorName(route, sampleVisitorName)
     },
   )
 
@@ -24,6 +32,56 @@ test('the menu shows the visitor its name, asked of the server once and then rem
   expect(asked).toEqual([{ visitorId: playerId }])
 
   // Next visit: straight from the browser, no request.
+  await page.reload()
+  await expect(badge(page)).toHaveText(/Hasty Prop 042/)
+  expect(asked).toHaveLength(1)
+})
+
+test('storage purged (Safari, after a week away): the cookie brings the same visitor back', async ({ page }) => {
+  await asReturningVisitor(page)
+  const asked: unknown[] = []
+  await page.route(
+    (url) => url.pathname === '/api/visitor',
+    (route) => {
+      asked.push(route.request().postDataJSON())
+      return fulfillVisitorName(route, sampleVisitorName)
+    },
+  )
+
+  await page.goto('/')
+  await expect(badge(page)).toHaveText(/Hasty Prop 042/)
+  const playerId = await page.evaluate(() => window.localStorage.getItem('ipw.playerId'))
+
+  // What ITP does: every bit of localStorage gone, cookies left.
+  await page.evaluate(() => window.localStorage.clear())
+  await page.reload()
+
+  await expect(badge(page)).toHaveText(/Hasty Prop 042/)
+  expect(await page.evaluate(() => window.localStorage.getItem('ipw.playerId'))).toBe(playerId)
+  expect(asked).toEqual([{ visitorId: playerId }, { visitorId: playerId }])
+})
+
+test('a visitor from before the cookie has its name asked once more, which sets it', async ({ page }) => {
+  const playerId = '3f2b8c1e-9a4d-4e7f-8b2c-1d5e6f7a8b9c'
+  await page.addInitScript((id) => {
+    window.localStorage.setItem('ipw.rulesSeen', '999')
+    window.localStorage.setItem('ipw.playerId', id)
+    window.localStorage.setItem('ipw.name', JSON.stringify({ playerId: id, username: 'hasty:prop:042' }))
+  }, playerId)
+  const asked: unknown[] = []
+  await page.route(
+    (url) => url.pathname === '/api/visitor',
+    (route) => {
+      asked.push(route.request().postDataJSON())
+      return fulfillVisitorName(route, sampleVisitorName)
+    },
+  )
+
+  await page.goto('/')
+  await expect(badge(page)).toHaveText(/Hasty Prop 042/)
+  await expect.poll(() => asked).toEqual([{ visitorId: playerId }])
+  expect((await page.context().cookies()).find((c) => c.name === 'ipw_vid')?.value).toBe(playerId)
+
   await page.reload()
   await expect(badge(page)).toHaveText(/Hasty Prop 042/)
   expect(asked).toHaveLength(1)

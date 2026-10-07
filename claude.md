@@ -410,7 +410,7 @@ c'est du pistage au sens du RGPD. Rien n'est envoyé au serveur.
 
 | Clé | Contenu |
 |---|---|
-| `ipw.playerId` | UUID anonyme, créé à la première visite. Envoyé avec « Commencer » et chaque coup du défi du jour : c'est sous cet id que le serveur tient le résultat (Bloc 11) |
+| `ipw.playerId` | UUID anonyme, créé à la première visite. Envoyé avec « Commencer » et chaque coup du défi du jour : c'est sous cet id que le serveur tient le résultat (Bloc 11) — doublé d'un cookie `ipw_vid` (Bloc 24) |
 | `ipw.rulesSeen` | version des règles lue et fermée |
 | `ipw.daily.<sport>` | `{ day, livesLeft, outcome?, board? }` du dernier défi joué dans ce sport (`src/lib/dailyProgress.ts`) — vies restantes, plateau en cours, et `won`/`lost` une fois fini ; le menu colore la carte tant que c'est aujourd'hui (Paris) |
 | `ipw.daily.<sport>.<day>` | même forme, pour tout **autre** jour : un défi passé joué depuis les archives, ou le dernier jour poussé par un plus récent (ses vies et son plateau restent — Bloc 23) |
@@ -1077,6 +1077,37 @@ iplayedwith.com/rugby/412
 e2e (`share.spec.ts`) : texte copié (presse-papiers simulé), gagné et perdu ; le lien ouvre son jour
 (passé, aujourd'hui, introuvable) ;
 balises de la page ; la carte en base injoignable (200, cache court) ; 404 sur un numéro invalide.
+
+---
+
+## ✅ Bloc 24 terminé — L'id du visiteur survit à Safari (cookie `ipw_vid`)
+
+Un déploiement ne touche pas au stockage du navigateur : le nom et les résultats restaient. Mais
+Safari — et tout navigateur iOS, tous WebKit — **efface le `localStorage` d'un site après 7 jours
+de navigation sans le visiter** (ITP) : un joueur absent une semaine perdait son id, donc son nom,
+ses stats et son classement (toujours en base, devenus injoignables).
+
+- **Un cookie posé par le serveur** (`src/lib/visitorCookie.ts`), pas par `document.cookie` : ITP
+  plafonne à 7 jours les cookies écrits par script, pas ceux d'un `Set-Cookie`, et les cookies ne
+  sont pas dans la purge. **Pas HttpOnly** exprès : `readVisitor` le lit de façon synchrone, sans
+  requête. Même modèle de confiance que le `localStorage`.
+- **Posé** par `POST /api/visitor` (réponse avec le nom) ; **prolongé** de 400 jours (le maximum
+  d'un navigateur) par le middleware sur `/api/:sport/daily/*` — routes dynamiques, jamais en cache,
+  que tout joueur appelle. Un joueur qui revient une fois par an le garde.
+- `Domain=iplayedwith.com` sur le site (partagé avec `www.`), sans domaine ailleurs (dev, préviews
+  `*.vercel.app` : un navigateur refuse un cookie pour un autre domaine). `Secure` en HTTPS seulement.
+- **Lecture** : `readVisitor` prend `localStorage`, à défaut le cookie (recopié dans le stockage,
+  **pas** une première visite), à défaut un nouvel id. Le `localStorage` prime toujours.
+- **Visiteurs d'avant le cookie** : `useUsername` redemande le nom tant que le cookie manque
+  (`hasVisitorCookie`) — c'est cette requête qui le pose. Une fois, puis plus rien.
+- **Ne protège pas** : données du site effacées (cookies compris), fenêtre privée, autre appareil
+  ou navigateur, préviews Vercel. Ce sera un code de récupération, ou les comptes.
+- Revenu par le cookie, un visiteur a perdu `ipw.rulesSeen` et ses plateaux locaux : la pop-up des
+  règles se rouvre une fois ; résultats, stats et archives viennent du serveur.
+- Cookie strictement nécessaire, first-party, sans pistage : pas de bandeau. La ligne « Vie privée »
+  de `/about` le dit.
+
+e2e : `fulfillVisitorName` (`fixtures.ts`) répond au nom **avec** le `Set-Cookie`, comme le serveur.
 
 ---
 

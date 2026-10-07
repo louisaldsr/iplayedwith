@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { readCachedUsername, readVisitor, saveCachedUsername } from '../../lib/visitor'
+import { hasVisitorCookie, readCachedUsername, readVisitor, saveCachedUsername } from '../../lib/visitor'
 import { getUsername } from '../../lib/gameApi'
 
 /**
@@ -9,7 +9,8 @@ import { getUsername } from '../../lib/gameApi'
  * Raw: display it with `formatUsername`.
  *
  * Cached in the browser: after the first visit it is there at once, with no request. On a first
- * visit it asks the server, which creates the name. Null until there is a name, and for good
+ * visit it asks the server, which creates the name — and sets the visitor cookie (`visitorCookie.ts`);
+ * a cached name without that cookie is shown at once and asked again, to get it. Null until there is a name, and for good
  * without storage (no id, so no name) or when the server does not answer — the next visit asks
  * again.
  *
@@ -23,10 +24,9 @@ export function useUsername(): { username: string | null; update: (username: str
     if (!playerId) return
 
     const cached = readCachedUsername(playerId)
-    if (cached) {
-      setUsername(cached)
-      return
-    }
+    if (cached) setUsername(cached)
+    // The request also sets the cookie that keeps the id through Safari's purge: asked until it is there.
+    if (cached && hasVisitorCookie(playerId)) return
 
     const controller = new AbortController()
     getUsername(playerId, controller.signal)

@@ -1599,8 +1599,29 @@ seed:formula1:fetch → :build → (031) → :clubs → :players → :membership
 1. Appliquer `031` (ligne `sports` `('formula1','calendar')`, compétitions, calibration).
 2. `:clubs` → `:players`, puis **dans la même heure, juste après un :05** : `:memberships` → `:fame` →
    `:prestige` → `fame:exposure -- --sport=formula1` (le cron tire le #1 dès qu'il y a des memberships).
-   *Statement timeout* (Bloc 32) : attendre une minute, puis `fame:compute -- --sport=formula1`.
+   *Statement timeout* : voir ci-dessous.
 3. `fame:report -- --sport=formula1`, puis merger **le jour même** — le #1 doit être jouable.
+
+**Import du 2026-10-08** : fait de 16 h 17 à 17 h 04. `:fame`, `:prestige` et `fame:exposure` ont tous
+écrit leurs entrées puis buté sur le *statement timeout* au recalcul — et **attendre ne suffisait
+pas**, contrairement au basketball (Bloc 32) : l'autoanalyze ne se déclenche qu'après ~10 % de lignes
+modifiées, et 3 019 memberships sur ~100 000 n'y arrivent pas. Le planificateur croyait `formula1`
+vide. Remède, dans l'éditeur SQL (l'API ne peut pas lancer `ANALYZE`) :
+
+```sql
+ANALYZE memberships; ANALYZE players; ANALYZE player_fame; ANALYZE club_season_prestige; ANALYZE club_titles;
+SELECT public.compute_fame_scores('formula1');   -- 714
+```
+
+⚠️ **Tout petit import** (un sport de moins de ~10 % des memberships) : prévoir ce `ANALYZE` juste après
+`:memberships`, avant `:fame`.
+
+Scores en base identiques à la mesure locale (Hamilton 100, 40 pilotes dans la bande). Défi #1 tiré à
+17 h 05 : Barrichello → Räikkönen (3 liens) ; #2 Barrichello → Alonso.
+
+⚠️ **Le tirage en production ne suit pas la bande 60–80** de `019` / `DRAW_FAME_BAND` : les paires
+F1 (82/87, 82/86) et celles des autres sports ces derniers jours (rugby 84, football 81, basketball
+80/82) en sortent. À vérifier : `SELECT pg_get_functiondef('public.generate_daily_challenge'::regproc);`.
 
 Logos d'écuries : pas encore (emplacement vide géré par `ClubLogo`) — Jolpica donne aussi l'article
 Wikipedia de chaque écurie.
@@ -1709,5 +1730,6 @@ Saisie user
     `npm run daily:ranking -- --day=…` sur un jour joué en retard (colonne `late`)
 41. Basketball (Bloc 32) : appliquer `027` puis `029`, `:clubs` → `:players`, puis dans la même heure
     `:memberships` → `:fame` → `:prestige` → `fame:exposure` ; lire `fame:report` ; `028` ; merger
-42. F1 (Blocs 34, 35, 39) : appliquer `031`, lancer l'import dans l'ordre du Bloc 39, merger le jour même ;
-    reste : logos d'écuries, bande du tirage à réévaluer (40 pilotes)
+42. ~~F1 (Blocs 34, 35, 39)~~ : `031` appliquée, import fait le 2026-10-08, #1 tiré ; reste : merger le jour
+    même, logos d'écuries, bande du tirage (40 pilotes) — et comprendre pourquoi le tirage de prod
+    sort de la bande 60–80 (tous les sports)

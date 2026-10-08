@@ -101,9 +101,17 @@ describe('shareMessage', () => {
     writeText.mockReset().mockResolvedValue(undefined)
     Object.assign(navigator, { clipboard: { writeText } })
   })
+  /** The browser's own copy command — what is left on a page without the clipboard API. */
+  const execCommand = jest.fn()
+
+  beforeEach(() => {
+    execCommand.mockReset().mockReturnValue(false)
+    Object.assign(document, { execCommand })
+  })
   afterEach(() => {
     delete (navigator as { share?: unknown }).share
     delete (window as { matchMedia?: unknown }).matchMedia
+    document.body.innerHTML = ''
   })
 
   const touchScreen = (coarse: boolean) => Object.assign(window, { matchMedia: () => ({ matches: coarse }) })
@@ -137,9 +145,37 @@ describe('shareMessage', () => {
     expect(await shareMessage('hi')).toBe('copied')
   })
 
-  it('says so when the clipboard is refused', async () => {
+  it('says so when the clipboard is refused, the copy command too', async () => {
     touchScreen(false)
     writeText.mockRejectedValue(new Error('denied'))
     expect(await shareMessage('hi')).toBe('failed')
+  })
+
+  it('falls back to the copy command when the clipboard is refused', async () => {
+    touchScreen(false)
+    writeText.mockRejectedValue(new Error('denied'))
+    execCommand.mockReturnValue(true)
+    expect(await shareMessage('hi')).toBe('copied')
+    expect(execCommand).toHaveBeenCalledWith('copy')
+  })
+
+  // Neither the clipboard API nor the share sheet exists on a page served without HTTPS — a phone
+  // trying the dev server over the local network: copying used to fail there.
+  it('copies without the clipboard API, from inside the open dialog', async () => {
+    touchScreen(true)
+    Object.assign(navigator, { clipboard: undefined })
+    const dialog = document.createElement('dialog')
+    dialog.setAttribute('open', '')
+    document.body.appendChild(dialog)
+    let selected: { text: string; inDialog: boolean } | null = null
+    execCommand.mockImplementation(() => {
+      const area = document.querySelector('textarea')!
+      selected = { text: area.value, inDialog: dialog.contains(area) }
+      return true
+    })
+
+    expect(await shareMessage('hi')).toBe('copied')
+    expect(selected).toEqual({ text: 'hi', inDialog: true })
+    expect(document.querySelector('textarea')).toBeNull()
   })
 })

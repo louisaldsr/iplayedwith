@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useId, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 
 /**
  * A suggestion row. `hint` is the secondary label shown next to the name — for a club
@@ -16,6 +17,13 @@ export type Suggestion = { id: string; name: string; hint?: string }
  * longer list, which previously meant mounting thousands of <li> on a single keystroke.
  */
 const MAX_RENDERED = 20
+
+/**
+ * Where typing opens a sheet over the screen: phones — the same 640px as the CSS — with a touch
+ * screen, where the keyboard covers half of it. A narrow window on a computer keeps its field.
+ */
+const SHEET_MEDIA = '(max-width: 640px) and (pointer: coarse)'
+const SHEET_CLOSE_DELAY_MS = 200
 
 type Props<S extends Suggestion> = {
   value: string
@@ -35,6 +43,12 @@ type Props<S extends Suggestion> = {
   /** Set when the search request itself failed, so "no match" is never shown for an outage. */
   failed?: boolean
   errorLabel?: string
+  /**
+   * On a phone, typing happens in a sheet over the whole screen: the field at its very top, the
+   * list filling the rest (`.autocomplete-wrapper--sheet`, phones only). Closing the keyboard closes
+   * it. Names its back button.
+   */
+  sheetCloseLabel?: string
 }
 
 export function AutocompleteInput<S extends Suggestion>({
@@ -50,7 +64,32 @@ export function AutocompleteInput<S extends Suggestion>({
   emptyLabel,
   failed = false,
   errorLabel,
+  sheetCloseLabel,
 }: Props<S>) {
+  const [sheet, setSheet] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const closing = useRef<number | undefined>(undefined)
+  const closeSheet = () => {
+    window.clearTimeout(closing.current)
+    setSheet(false)
+    inputRef.current?.blur()
+  }
+
+  // The keyboard closed: back to the board. iOS says so by leaving the field (`handleBlur`); Android
+  // often keeps the field focused, so the visible height growing back says it too.
+  useEffect(() => {
+    const viewport = window.visualViewport
+    if (!sheet || !viewport) return
+    let keyboardSeen = false
+    const onResize = () => {
+      if (viewport.height < window.innerHeight * 0.85) keyboardSeen = true
+      else if (keyboardSeen) closeSheet()
+    }
+    viewport.addEventListener('resize', onResize)
+    return () => viewport.removeEventListener('resize', onResize)
+  }, [sheet])
+
+  useEffect(() => () => window.clearTimeout(closing.current), [])
   const querying = value.trim().length >= minChars
   const visible = suggestions.slice(0, MAX_RENDERED)
   const showError = querying && !loading && failed && !!errorLabel
@@ -89,9 +128,46 @@ export function AutocompleteInput<S extends Suggestion>({
     }
   }
 
+  // Laid out as a sheet in the focus event itself — synchronously, before iOS looks for where the
+  // field is: at the top of the screen, the keyboard does not cover it, and the page stays put.
+  const handleFocus = () => {
+    window.clearTimeout(closing.current)
+    if (!sheetCloseLabel || sheet || !window.matchMedia?.(SHEET_MEDIA).matches) return
+    flushSync(() => setSheet(true))
+  }
+
+  // Leaving the field — the keyboard dismissed — closes the sheet, a moment later: a name tapped in
+  // the list is picked first (its press comes before the field is left), and the sheet goes with it.
+  const handleBlur = () => {
+    if (!sheet) return
+    window.clearTimeout(closing.current)
+    closing.current = window.setTimeout(() => setSheet(false), SHEET_CLOSE_DELAY_MS)
+  }
+
+  const handleSheetKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (sheet && e.key === 'Escape' && activeIndex < 0) {
+      e.preventDefault()
+      closeSheet()
+      return
+    }
+    handleKeyDown(e)
+  }
+
   return (
-    <div className="autocomplete-wrapper">
+    <div className={`autocomplete-wrapper${sheet ? ' autocomplete-wrapper--sheet' : ''}`}>
+      {sheet && (
+        <button
+          type="button"
+          className="autocomplete-sheet__close"
+          aria-label={sheetCloseLabel}
+          title={sheetCloseLabel}
+          onClick={closeSheet}
+        >
+          <span aria-hidden="true">←</span>
+        </button>
+      )}
       <input
+        ref={inputRef}
         className="autocomplete-input"
         type="text"
         role="combobox"
@@ -104,7 +180,9 @@ export function AutocompleteInput<S extends Suggestion>({
           setActiveId(null)
           onChange(e.target.value)
         }}
-        onKeyDown={handleKeyDown}
+        onKeyDown={handleSheetKeys}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         placeholder={placeholder}
         autoComplete="off"
         autoFocus={autoFocus}

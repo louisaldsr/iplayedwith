@@ -411,10 +411,21 @@ body {
   text-align: left;
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
+  /* The visible height: on a phone, 100vh runs under the browser's toolbar and hid the dialog's end. */
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  /* A scroll reaching the dialog's end stops there, instead of carrying on to the page behind. */
+  overscroll-behavior: contain;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   background: var(--bg-surface);
   color: var(--text-primary);
+}
+
+/* While a dialog is open the page behind stays put: iOS scrolls it — and the board with it — on a
+   swipe that starts on the backdrop. */
+html:has(dialog.modal[open]) {
+  overflow: hidden;
 }
 
 .modal::backdrop {
@@ -440,6 +451,18 @@ body {
 
 .rules-dialog .modal__body {
   gap: 16px;
+}
+
+/* Always in reach: on a phone the rules run past the screen, and "Let's play" sat at their end. The
+   footer spans the dialog and fades the text scrolling under it. */
+.rules-dialog__footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  margin: 0 -24px -28px;
+  padding: 24px 24px 20px;
+  background: linear-gradient(to bottom, transparent, var(--bg-surface) 40%);
 }
 
 .rules-dialog__notes {
@@ -507,6 +530,9 @@ body {
   padding: 4px 6px;
   gap: 2px;
   cursor: default;
+  /* The board's cards hold the touch for dragging; these are not dragged, and a swipe over them
+     must scroll the dialog. */
+  touch-action: auto;
 }
 
 .rules-demo__stage .node-card__avatar {
@@ -2314,121 +2340,69 @@ body {
 .game-screen {
   display: flex;
   flex-direction: column;
-  width: 100vw;
+  /* Pinned to the screen: it never scrolls, and the keyboard never resizes it — typing happens in
+     a sheet over it (`.autocomplete-wrapper--sheet`). The visible height: on a phone, 100vh runs
+     under the browser's toolbar, and the move field with it. */
+  position: fixed;
+  inset: 0;
   height: 100vh;
-  /* The visible height: on a phone, 100vh runs under the browser's toolbar, and the move bar with it. */
   height: 100dvh;
+}
+
+/* The game screen never scrolls, bounces or zooms as a page: a swipe on the board slid it all. */
+html:has(.game-screen),
+html:has(.game-screen) body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.game-topbar,
+.game-screen-board {
+  touch-action: none;
+}
+
+.game-screen-controls {
+  touch-action: manipulation;
 }
 
 .game-topbar {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   /* Side padding leaves room for the fixed menu (left) and rules (right) buttons. */
-  padding: 12px 72px 12px 140px;
+  padding: 0 72px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
   height: 68px;
 }
 
-/* The menu button is icon-only there (see .menu-button), so it needs less room. */
-@media (max-width: 640px) {
-  .game-topbar {
-    padding-left: 72px;
-  }
-}
-
-.game-topbar__players {
+/* The clock, the visitor's name under it — the name the rankings show. */
+.game-topbar__centre {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  overflow: hidden;
-}
-
-.game-topbar__player {
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.game-topbar__arrow {
-  color: var(--text-muted);
-  flex-shrink: 0;
+  gap: 2px;
+  min-width: 0;
 }
 
 .game-topbar__chrono {
-  font-size: 1rem;
+  font-size: 1.15rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--accent);
   letter-spacing: 0.04em;
+  line-height: 1.2;
 }
 
-.game-topbar__end {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-/* The visitor's name, always in view while playing — the name the rankings show. */
 .game-topbar__visitor {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 220px;
-}
-
-/* Phones: the first row keeps the players, the clock and the badge, level with the fixed menu and
-   rules buttons (44px, 12px from the top); the name gets a slim row of its own below. */
-@media (max-width: 640px) {
-  .game-topbar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    grid-template-rows: 44px auto;
-    column-gap: 8px;
-    height: auto;
-    padding-bottom: 6px;
-  }
-
-  .game-topbar__end {
-    display: contents;
-  }
-
-  .game-topbar__visitor {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    justify-self: center;
-    max-width: 100%;
-    font-size: 0.75rem;
-  }
-
-  .game-topbar__players,
-  .game-topbar__chrono,
-  .game-topbar__badge {
-    grid-row: 1;
-    align-self: center;
-  }
-}
-
-.game-topbar__badge {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  background: var(--accent-dim);
-  color: var(--accent);
-  border: 1px solid var(--border-active);
+  max-width: 100%;
 }
 
 .game-screen-board {
@@ -2439,32 +2413,26 @@ body {
 }
 
 /* ─── Lives (daily) ──────────────────────────────────────── */
-/* Hearts floating at the bottom of the board, centred. Auto margins rather than a translate, so
-   the shake animation owns `transform`. Clicks pass through to the cards underneath. */
+/* Hearts stacked in the board's top-left corner, as if drawn on it: no background, and they stay put
+   while the board is dragged and zoomed under them. Clicks pass through to the cards underneath. */
 .lives-bar {
   position: absolute;
-  bottom: 16px;
-  left: 0;
-  right: 0;
+  top: 12px;
+  left: 12px;
   z-index: 5;
-  width: fit-content;
-  margin: 0 auto;
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
-  background: rgba(17, 19, 24, 0.72);
-  backdrop-filter: blur(4px);
   pointer-events: none;
 }
 
 .lives-bar__hearts {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .heart {
   display: block;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
 }
 
 .heart__svg {
@@ -2622,12 +2590,122 @@ body {
   border-top: 1px solid var(--border-subtle);
 }
 
+/* Phones: no bar under the board — the field floats over its bottom edge, the board running under
+   it to the screen's foot, and the hearts sit just above it. `boardLayout.ts` keeps cards clear of
+   both (`inputFloats`, at the same 640px). */
+@media (max-width: 640px) {
+  .game-screen-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 6;
+    padding: 0 12px calc(12px + env(safe-area-inset-bottom));
+    background: none;
+    border-top: 0;
+    pointer-events: none;
+  }
+
+  .game-screen-controls > * {
+    pointer-events: auto;
+  }
+
+  .game-screen-controls .move-input {
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding: 6px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+  }
+
+  .game-screen-controls .move-input--hard {
+    flex-wrap: wrap;
+  }
+
+  .game-screen-controls .autocomplete-wrapper {
+    min-width: 0;
+  }
+
+  /* iOS zooms the whole page into a field whose text is under 16px, the moment it is focused. */
+  .game-screen-controls .autocomplete-input {
+    font-size: 16px;
+  }
+
+  /* Typing: a sheet over exactly what is visible — the field at its top, beside a back button, the
+     list down to the keyboard. iOS slides the visible part down the page as the keyboard opens:
+     the sheet follows it (`--visible-top`, `--visible-height`, `useVisibleViewport`), or its field
+     would sit above the screen. */
+  .game-screen-controls .autocomplete-wrapper--sheet {
+    position: fixed;
+    z-index: 60;
+    top: var(--visible-top, 0px);
+    left: 0;
+    right: 0;
+    height: var(--visible-height, 100dvh);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 8px;
+    padding: calc(10px + env(safe-area-inset-top)) 12px 12px 8px;
+    background: var(--bg-base);
+  }
+
+  /* The game screen is its own stacking layer: the fixed menu and rules buttons would sit on the
+     sheet. Typing does not need them. */
+  html:has(.autocomplete-wrapper--sheet) .menu-button,
+  html:has(.autocomplete-wrapper--sheet) .rules-button {
+    visibility: hidden;
+  }
+
+  .autocomplete-sheet__close {
+    width: 40px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 1.4rem;
+    cursor: pointer;
+  }
+
+  .autocomplete-wrapper--sheet .autocomplete-dropdown {
+    position: static;
+    grid-column: 1 / -1;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+}
+
 /* ─── Game board ────────────────────────────────────────── */
 .game-board {
   width: 100%;
   height: 100%;
   position: relative;
   background: var(--bg-base);
+}
+
+/* The playing board is a whiteboard: one finger (or the mouse) drags it, two fingers pinch it, the
+   wheel scrolls and zooms it — the page under it never moves. */
+.game-board--canvas {
+  touch-action: none;
+  cursor: grab;
+}
+
+.game-board--canvas:active {
+  cursor: grabbing;
+}
+
+.game-board__stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
 }
 
 .game-board-svg {
@@ -3978,11 +4056,21 @@ body {
   border-radius: 999px;
   background: var(--bg-input);
   border: 1px solid var(--border-subtle);
+  /* More sports than the row holds: it scrolls sideways rather than squeezing every tab. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sport-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .sport-tabs__tab {
-  flex: 1;
+  position: relative;
+  flex: 1 0 auto;
   min-height: 40px;
+  padding: 0 14px;
+  white-space: nowrap;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -4000,7 +4088,24 @@ body {
 }
 .sport-tabs__tab:focus-visible {
   outline: 2px solid var(--accent-hover);
-  outline-offset: 2px;
+  outline-offset: -2px;
+}
+
+/* Phones: a full name on every tab wrapped them onto two lines. Only the selected one keeps it. */
+@media (max-width: 520px) {
+  .sport-tabs__tab[aria-selected='false'] {
+    flex-grow: 0;
+    font-size: 1.15rem;
+  }
+
+  .sport-tabs__tab[aria-selected='false'] .sport-tabs__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
 }
 
 .stats-dialog .sport-tabs__panel {

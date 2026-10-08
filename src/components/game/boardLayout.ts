@@ -1,9 +1,10 @@
 /**
  * Where a card goes on the board — geometry only, no React.
  *
- * A point is a card's top-left corner, in pixels of the board as it is now. The board keeps its
- * cards as fractions of its free space (`toFraction`), so a resize — a phone turned, a keyboard
- * opening, a window narrowed — carries every card along instead of leaving it outside.
+ * Cards live in a **world**: a plane sized once, from the board as first measured, a little larger
+ * than it on a phone (`PHONE_ZOOM`). A point is a card's top-left corner, in world pixels. The board
+ * draws the world through a **camera** — one uniform scale that fits it in view — so a keyboard
+ * opening, a toolbar showing, only zooms: no card ever moves against another.
  */
 
 export type Size = { w: number; h: number }
@@ -34,15 +35,27 @@ function linkLengthFor(card: Size): number {
 
 /**
  * What floats over the board, kept clear of cards: the refused-guess toast and the solution switch
- * at the top, the hearts at the bottom (see `.error-banner--toast`, `.solution-overlay`, `.lives-bar`).
+ * at the top, the hearts in the top-left corner (see `.error-banner--toast`, `.solution-overlay`,
+ * `.lives-bar`).
+ * On screen, at the camera's usual zoom — in world pixels, they are that much larger.
  */
 const TOP_ZONE: Size = { w: 280, h: 56 }
-const BOTTOM_ZONE: Size = { w: 200, h: 80 }
+/** The hearts, stacked in the top-left corner. */
+const HEARTS: Size = { w: 60, h: 140 }
+/** The floating move field on a phone, from the screen's foot (`.game-screen-controls`). */
+const FIELD_HEIGHT = 72
 
-export function floatingZones(board: Size): Rect[] {
+/** On a phone the move field floats over the board's foot — the same 640px as the CSS. */
+export function fieldFloats(screen: Size): boolean {
+  return screen.w <= 640
+}
+
+export function floatingZones(board: Size, zoom = 1): Rect[] {
+  const top = { w: TOP_ZONE.w / zoom, h: TOP_ZONE.h / zoom }
+  const hearts = { w: HEARTS.w / zoom, h: HEARTS.h / zoom }
   return [
-    { x: (board.w - TOP_ZONE.w) / 2, y: 0, ...TOP_ZONE },
-    { x: (board.w - BOTTOM_ZONE.w) / 2, y: board.h - BOTTOM_ZONE.h, ...BOTTOM_ZONE },
+    { x: (board.w - top.w) / 2, y: 0, ...top },
+    { x: 0, y: 0, ...hearts },
   ]
 }
 
@@ -50,7 +63,7 @@ export function floatingZones(board: Size): Rect[] {
  * A and B, the two ends of the chain, along the board's long side: left and right on a wide board,
  * top and bottom on a phone — side by side, a phone has no room between them.
  */
-export function targetSpots(board: Size, card: Size): { a: Point; b: Point } {
+export function targetSpots(board: Size, card: Size, zoom = 1): { a: Point; b: Point } {
   const gap = gapFor(card)
   if (board.w >= board.h) {
     const y = (board.h - card.h) / 2
@@ -58,28 +71,113 @@ export function targetSpots(board: Size, card: Size): { a: Point; b: Point } {
     return { a: { x: inset, y }, b: { x: board.w - card.w - inset, y } }
   }
   const x = (board.w - card.w) / 2
-  return {
-    a: { x, y: TOP_ZONE.h + gap },
-    b: { x, y: Math.max(TOP_ZONE.h + gap, board.h - BOTTOM_ZONE.h - gap - card.h) },
-  }
+  const top = TOP_ZONE.h / zoom + gap
+  return { a: { x, y: top }, b: { x, y: Math.max(top, board.h - gap - card.h) } }
 }
 
 export const centreOf = (p: Point, card: Size): Point => ({ x: p.x + card.w / 2, y: p.y + card.h / 2 })
 
-// ── Fractions ────────────────────────────────────────────────────────────────
+// ── World and camera ─────────────────────────────────────────────────────────
 
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
+/** A phone sees its board a little zoomed out: more of it in view. */
+export const PHONE_ZOOM = 0.85
 
-/** A card's place as a share of the board's free space: 0 at the left/top edge, 1 at the right/bottom. */
-export function toFraction(p: Point, board: Size, card: Size): Point {
+export type World = {
+  size: Size
+  card: Size
+  compact: boolean
+  /** The camera's scale when the board has all its room — what the floating controls are sized for. */
+  zoom: number
+  /** The move field floats over the board's foot: the world stops above it. */
+  field: boolean
+  /** The board's width the world was made for. */
+  width: number
+}
+
+/** The part of the board cards may use: above the floating field, on a phone. */
+export function usable(screen: Size): Size {
+  return { w: screen.w, h: Math.max(1, screen.h - (fieldFloats(screen) ? FIELD_HEIGHT : 0)) }
+}
+
+export function worldFor(screen: Size): World {
+  const room = usable(screen)
+  const compact = isCompact(room)
+  const zoom = compact ? PHONE_ZOOM : 1
   return {
-    x: clamp01(p.x / Math.max(1, board.w - card.w)),
-    y: clamp01(p.y / Math.max(1, board.h - card.h)),
+    size: { w: room.w / zoom, h: room.h / zoom },
+    card: cardSizeFor(room),
+    compact,
+    zoom,
+    field: fieldFloats(screen),
+    width: screen.w,
   }
 }
 
-export function fromFraction(f: Point, board: Size, card: Size): Point {
-  return { x: f.x * Math.max(0, board.w - card.w), y: f.y * Math.max(0, board.h - card.h) }
+/**
+ * Whether the world still fits the board. Only a new width — a phone turned, a window resized —
+ * makes a new one, every card placed again; a new height (the keyboard, a toolbar) only zooms.
+ */
+export function fitsWorld(world: World, screen: Size): boolean {
+  return Math.abs(screen.w - world.width) <= world.width * 0.15
+}
+
+/**
+ * How the world is drawn on the board: its scale, and where its top-left corner sits on screen.
+ * Like a whiteboard's: the player pinches, scrolls and drags it; `fitView` is where it starts, and
+ * where the "fit" button takes it back.
+ */
+export type View = { scale: number; x: number; y: number }
+
+/** How far the player may zoom, out then in. */
+export const ZOOM_LIMITS = { min: 0.3, max: 2.5 }
+
+/**
+ * The smallest the fitted view draws the world: names stay readable. With the keyboard open, a
+ * phone has too little height left to fit the whole board above this — it shows the top (A's side),
+ * the rest a drag away.
+ */
+export const MIN_SCALE = 0.7
+
+/** The whole world in view above the field, centred — never below `MIN_SCALE`, top first when taller. */
+export function fitView(world: World, screen: Size): View {
+  const room = usable(screen)
+  const fit = Math.min(room.w / world.size.w, room.h / world.size.h)
+  const scale = Math.max(fit, Math.min(world.zoom, MIN_SCALE))
+  const along = (roomLength: number, worldLength: number) => Math.max(0, (roomLength - worldLength * scale) / 2)
+  return { scale, x: along(room.w, world.size.w), y: along(room.h, world.size.h) }
+}
+
+/** Zoomed by `factor` around `at` (a point on the board): what is under it stays under it. */
+export function zoomAround(view: View, factor: number, at: Point): View {
+  const scale = Math.min(ZOOM_LIMITS.max, Math.max(ZOOM_LIMITS.min, view.scale * factor))
+  const k = scale / view.scale
+  return { scale, x: at.x - (at.x - view.x) * k, y: at.y - (at.y - view.y) * k }
+}
+
+/** How much of the world always stays on the board: it can be dragged aside, never lost. */
+const KEEP_IN_VIEW = 96
+
+export function clampView(view: View, world: World, screen: Size): View {
+  const room = usable(screen)
+  const along = (offset: number, roomLength: number, worldLength: number) => {
+    const keep = Math.min(KEEP_IN_VIEW, roomLength / 2, worldLength * view.scale)
+    return Math.min(roomLength - keep, Math.max(keep - worldLength * view.scale, offset))
+  }
+  return { scale: view.scale, x: along(view.x, room.w, world.size.w), y: along(view.y, room.h, world.size.h) }
+}
+
+/** The view moved just enough for a card (at `p`, in the world) to be wholly on the board above the field. */
+export function revealCard(view: View, p: Point, card: Size, screen: Size): View {
+  const room = usable(screen)
+  const margin = 12
+  const along = (offset: number, at: number, length: number, roomLength: number) => {
+    const start = offset + at * view.scale
+    const end = start + length * view.scale
+    if (start < margin) return offset + (margin - start)
+    if (end > roomLength - margin) return offset - Math.min(end - (roomLength - margin), start - margin)
+    return offset
+  }
+  return { scale: view.scale, x: along(view.x, p.x, card.w, room.w), y: along(view.y, p.y, card.h, room.h) }
 }
 
 // ── Placing a card ───────────────────────────────────────────────────────────
@@ -93,6 +191,8 @@ export type BoardState = {
   links: [string, string][]
   aKey: string
   bKey: string
+  /** The world's usual zoom (`World.zoom`), which sizes the floating controls in world pixels. */
+  zoom?: number
 }
 
 /**
@@ -150,7 +250,7 @@ export function placeCard(key: string, state: BoardState, ideal: Point = idealCe
   const rectOf = (p: Point): Rect => ({ ...p, ...card })
 
   const others = [...placed].filter(([k]) => k !== key).map(([k, p]) => ({ key: k, rect: rectOf(p) }))
-  const obstacles = [...others.map((o) => o.rect), ...floatingZones(board)]
+  const obstacles = [...others.map((o) => o.rect), ...floatingZones(board, state.zoom)]
   const centre = (k: string) => centreOf(placed.get(k)!, card)
   const segments = links
     .filter(([p, q]) => p !== key && q !== key && placed.has(p) && placed.has(q))

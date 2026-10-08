@@ -68,9 +68,11 @@ export function RulesDialog({ open, onClose }: Props) {
         </li>
       </ul>
 
-      <button type="button" className="btn btn--primary btn--lg" onClick={onClose}>
-        {t.rules.cta}
-      </button>
+      <div className="rules-dialog__footer">
+        <button type="button" className="btn btn--primary btn--lg" onClick={onClose}>
+          {t.rules.cta}
+        </button>
+      </div>
     </Modal>
   )
 }

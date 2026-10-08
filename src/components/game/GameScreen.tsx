@@ -12,6 +12,7 @@ import { GameBoard } from './GameBoard'
 import { MoveInput } from './MoveInput'
 import { ErrorBanner } from './ErrorBanner'
 import { LivesBar } from './LivesBar'
+import { useVisibleViewport } from './useVisibleViewport'
 import { PlayerCareerDialog } from '../shared/PlayerCareerDialog'
 import { useUsername } from '../shared/useUsername'
 import { formatUsername } from '../../domain/visitorName'
@@ -62,6 +63,7 @@ export function GameScreen({
   onCareerOpened,
 }: Props) {
   const t = useTranslations()
+  useVisibleViewport()
   const [careerOf, setCareerOf] = useState<Player | null>(null)
   const { username } = useUsername()
   const openCareer = (player: Player) => {
@@ -90,19 +92,12 @@ export function GameScreen({
     return ids
   }, [game])
 
-  const difficultyLabel = game.difficulty === 'easy' ? t.setup.easy : t.setup.hard
-
   return (
     <div className="game-screen">
+      {/* Menu and rules buttons are fixed on either side (layout); A and B are on the board. */}
       <div className="game-topbar">
-        <div className="game-topbar__players">
-          <span className="game-topbar__player">{game.playerA.name}</span>
-          <span className="game-topbar__arrow"></span>
-          <span className="game-topbar__player">{game.playerB.name}</span>
-        </div>
-        <span className="game-topbar__chrono">{formatTime(over?.elapsedMs ?? elapsed)}</span>
-        {/* One group on wide screens; on phones the name drops to a row of its own (see CSS). */}
-        <div className="game-topbar__end">
+        <div className="game-topbar__centre">
+          <span className="game-topbar__chrono">{formatTime(over?.elapsedMs ?? elapsed)}</span>
           {username && (
             <span className="game-topbar__visitor" title={t.menu.yourName}>
               <span aria-hidden="true">👤 </span>
@@ -110,7 +105,6 @@ export function GameScreen({
               {formatUsername(username, t.visitorNames)}
             </span>
           )}
-          <span className="game-topbar__badge">{difficultyLabel}</span>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { KeyboardEvent, ReactNode, useRef, useState } from 'react'
+import { KeyboardEvent, ReactNode, useEffect, useRef, useState } from 'react'
 import { SPORTS, SportId } from '../../domain/sport'
 import { useTranslations } from '../../i18n'
 
@@ -19,11 +19,19 @@ type Props = {
  *
  * Every panel is rendered at once and only hidden: whatever a panel fetches is fetched on open and
  * kept, so switching tabs is instant.
+ *
+ * On a phone, only the selected tab spells its sport out — the others show their icon (the name
+ * stays for screen readers) — and the row scrolls sideways once the sports outgrow it.
  */
 export function SportTabs({ idPrefix, label, icons, children }: Props) {
   const t = useTranslations()
   const [active, setActive] = useState<SportId>(SPORTS[0])
   const tabs = useRef(new Map<SportId, HTMLButtonElement>())
+
+  useEffect(() => {
+    // Absent from jsdom.
+    tabs.current.get(active)?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+  }, [active])
 
   const onKeyDown = (e: KeyboardEvent) => {
     const i = SPORTS.indexOf(active)
@@ -61,7 +69,8 @@ export function SportTabs({ idPrefix, label, icons, children }: Props) {
             className="sport-tabs__tab"
             onClick={() => setActive(sport)}
           >
-            <span aria-hidden="true">{icons[sport]}</span> {t.home.sports[sport]}
+            <span aria-hidden="true">{icons[sport]}</span>{' '}
+            <span className="sport-tabs__label">{t.home.sports[sport]}</span>
           </button>
         ))}
       </div>

@@ -27,6 +27,7 @@ const result = (
 ): JolpicaResult => ({
   position: String(position),
   positionText: status === 'Withdrew' ? 'W' : String(position),
+  laps: status === 'Withdrew' ? '0' : '70',
   status,
   Driver: d,
   Constructor: { constructorId, name: constructorId[0].toUpperCase() + constructorId.slice(1) },
@@ -101,6 +102,17 @@ describe('buildDataset', () => {
   it('keeps a driver who withdrew on the team, without counting it as a start', () => {
     const rindtLotus = dataset.memberships.find((m) => m.playerSourceId === 'rindt')
     expect(rindtLotus).toMatchObject({ clubSourceId: 'lotus', starts: 1, games: 1 })
+  })
+
+  it('counts a 1950s handover as a start: a "Withdrew" row with laps done', () => {
+    const handedOver = {
+      ...result(driver('fagioli', 'Luigi', 'Fagioli', 'Italian'), 'alfa', 9, 'Withdrew'),
+      laps: '20',
+    }
+    const { dataset: d } = buildDataset([
+      { year: 1951, results: [page([race(1951, 1, [handedOver])])], standings: null },
+    ])
+    expect(d.memberships[0]).toMatchObject({ starts: 1, games: 1 })
   })
 
   it('merges a race spread over two pages before counting', () => {

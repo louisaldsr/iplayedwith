@@ -39,10 +39,15 @@ export const RESULTS_ENTRY = 'World Championship'
 export const REFERENCE_RACES_PER_SEASON = 20
 
 /**
- * Results that are not a start: the car was entered but never took the start. They still make the
- * driver part of the constructor's season — he was on the team — but they are not games.
+ * Results that may not be a start: the car was entered but never took it. They still make the
+ * driver part of the constructor's season — he was on the team — but they are not games. Only with
+ * no lap done: 23 "Withdrew" rows of the 1950s have laps (a car handed over mid-race), and those
+ * drivers did start.
  */
-const NOT_STARTED = /^(withdrew|did not (pre)?qualify|did not start|not qualified|excluded|not restarted)$/i
+const NOT_STARTED = /^(withdrew|did not (pre)?qualify|did not start|not qualified|excluded)$/i
+
+const isStart = (result: JolpicaResult): boolean =>
+  !(NOT_STARTED.test(result.status.trim()) && !(Number(result.laps) > 0))
 
 // ─── The source, as cached (the Ergast JSON shape Jolpica serves) ──────────────
 
@@ -59,6 +64,7 @@ export type JolpicaConstructor = { constructorId: string; url?: string; name: st
 export type JolpicaResult = {
   position?: string
   positionText?: string
+  laps?: string
   status: string
   Driver: JolpicaDriver
   Constructor: JolpicaConstructor
@@ -186,7 +192,7 @@ export function buildDataset(seasons: SeasonPages[]): { dataset: Formula1Dataset
           starts: 0,
           minutes: null,
         }
-        if (!NOT_STARTED.test(result.status.trim())) {
+        if (isStart(result)) {
           membership.starts++
           membership.games = membership.starts
         }

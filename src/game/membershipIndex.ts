@@ -1,6 +1,6 @@
 import { ClubId, PlayerId } from '../domain/ids'
 import { Membership } from '../domain/membership'
-import { Season } from '../domain/season'
+import { Season, startYear } from '../domain/season'
 
 /**
  * Read-only lookup service over a flat Membership array.
@@ -49,7 +49,7 @@ export class MembershipIndex {
     const keysA = new Set(mA.map((m) => `${m.clubId}:${m.season}`))
     return mB
       .filter((m) => keysA.has(`${m.clubId}:${m.season}`))
-      .sort((a, b) => Number(b.season.slice(0, 4)) - Number(a.season.slice(0, 4)))
+      .sort((a, b) => startYear(b.season) - startYear(a.season))
   }
 
   /** Returns true iff the exact (player, club, season) triple exists. Used in hard mode. */

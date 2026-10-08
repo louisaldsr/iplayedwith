@@ -1,5 +1,5 @@
 import { Club } from './club'
-import { Season } from './season'
+import { Season, startYear } from './season'
 
 /**
  * An unbroken run of seasons at one club — how a career reads: "2015 – 2020, Stade Toulousain".
@@ -19,13 +19,11 @@ export type CareerStint = {
 
 type CareerRow = { club: Club; season: Season; games?: number | null }
 
-const startYear = (season: Season): number => Number(season.slice(0, 4))
-
 /**
  * Groups a player's club-seasons into stints, oldest first.
  *
  * Seasons at the same club merge only when consecutive: 2015-2016 and 2016-2017 are one stint,
- * 2015-2016 and 2018-2019 are two.
+ * 2015-2016 and 2018-2019 are two — and the same for calendar seasons, 2015 and 2016.
  */
 export function toCareerStints(rows: CareerRow[]): CareerStint[] {
   const sorted = [...rows].sort(

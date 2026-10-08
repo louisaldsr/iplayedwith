@@ -225,7 +225,7 @@ const fr: Translations = {
     playerPlaceholder: 'Joueur…',
     clubPlaceholder: 'Club…',
     seasonPlaceholder: '2022-2023',
-    seasonFormatError: 'Format attendu : AAAA-AAAA (ex : 2022-2023)',
+    seasonFormatError: 'Format attendu : AAAA-AAAA ou AAAA (ex : 2022-2023, 2022)',
     closeError: 'Fermer',
     clubSearchPlaceholder: 'Rechercher un club…',
     noSuggestions: 'Aucun résultat',

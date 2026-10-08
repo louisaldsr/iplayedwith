@@ -232,7 +232,7 @@ const en = {
     playerPlaceholder: 'Player…',
     clubPlaceholder: 'Club…',
     seasonPlaceholder: '2022-2023',
-    seasonFormatError: 'Expected format: YYYY-YYYY (e.g. 2022-2023)',
+    seasonFormatError: 'Expected format: YYYY-YYYY or YYYY (e.g. 2022-2023, 2022)',
     closeError: 'Close',
     clubSearchPlaceholder: 'Search a club…',
     noSuggestions: 'No results',

@@ -39,6 +39,7 @@ export function linksOfChain(
     const next = new Set(stintsOf(chain[i + 1]).map((m) => `${m.clubId}|${m.season}`))
     const shared = stintsOf(chain[i])
       .filter((m) => next.has(`${m.clubId}|${m.season}`))
+      // Text order is year order: a sport never mixes the two season shapes (migration 030).
       .sort((a, b) => b.season.localeCompare(a.season) || a.clubId.localeCompare(b.clubId))
     if (shared.length === 0) return null
     links.push({ clubId: shared[0].clubId, season: shared[0].season })

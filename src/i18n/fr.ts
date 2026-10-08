@@ -13,6 +13,9 @@ const fr: Translations = {
       football: 'Football',
       basketball: 'Basketball',
     },
+    upcoming: {
+      formula1: 'Formule 1',
+    },
   },
   common: {
     loading: 'Chargement…',
@@ -25,6 +28,7 @@ const fr: Translations = {
     about: 'À propos',
     ranking: 'Classement',
     stats: 'Mes stats',
+    comingSoon: 'Bientôt',
     yourName: 'Votre nom dans les classements',
     rename: {
       open: 'Changer de nom',

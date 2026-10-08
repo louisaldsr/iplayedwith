@@ -1361,6 +1361,20 @@ e2e : `sport.spec.ts` joue un coup au clavier seul.
 
 ---
 
+## ✅ Bloc 34 terminé — Formule 1 annoncée sur le menu
+
+Une carte **« Bientôt »** (« Coming soon ») après les sports jouables : 🏎️ Formule 1, bordure
+pointillée, damier qui s'estompe depuis le coin, pastille violette là où un sport joué porte son ✓.
+Elle **n'ouvre rien** : pas de lien, pas de soulèvement au survol — la voiture seule « fait ronfler
+le moteur » (figée sous `prefers-reduced-motion`).
+
+- `UPCOMING_SPORTS` (`src/domain/sport.ts`) est **à part** de `SPORTS` : un sport annoncé n'est
+  jamais un `SportId` — ni route, ni API, ni défi du jour, ni sitemap. Le lancer = le **déplacer**
+  dans `SPORTS` (et `027` : une ligne dans `sports`), puis retirer sa carte annoncée.
+- Libellés : `home.upcoming` (typé sur `UpcomingSportId`) et `menu.comingSoon`.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -1463,5 +1477,5 @@ Saisie user
     `npm run daily:ranking -- --day=…` sur un jour joué en retard (colonne `late`)
 41. Basketball (Bloc 32) : appliquer `027` puis `029`, `:clubs` → `:players`, puis dans la même heure
     `:memberships` → `:fame` → `:prestige` → `fame:exposure` ; lire `fame:report` ; `028` ; merger
-42. F1 : source Jolpica-F1 (successeur d'Ergast) ; `Season` en `YYYY-YYYY` ne colle pas à une
+42. F1 (annoncée sur le menu, Bloc 34) : source Jolpica-F1 (successeur d'Ergast) ; `Season` en `YYYY-YYYY` ne colle pas à une
     saison sur une seule année — décision domaine à prendre d'abord

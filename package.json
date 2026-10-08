@@ -42,6 +42,7 @@
     "seed:formula1:memberships": "tsx --env-file=.env.local scripts/formula1/seedMemberships.ts",
     "seed:formula1:fame": "tsx --env-file=.env.local scripts/formula1/seedFame.ts",
     "seed:formula1:prestige": "tsx --env-file=.env.local scripts/formula1/seedPrestige.ts",
+    "seed:formula1:logos": "tsx --env-file=.env.local scripts/formula1/seedLogos.ts",
     "fame:compute": "tsx --env-file=.env.local scripts/common/computeFame.ts",
     "fame:report": "tsx --env-file=.env.local scripts/common/fameReport.ts",
     "fame:exposure": "tsx --env-file=.env.local scripts/common/fameExposure.ts",

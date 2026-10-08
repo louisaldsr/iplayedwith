@@ -30,7 +30,11 @@ const result = (
   laps: status === 'Withdrew' ? '0' : '70',
   status,
   Driver: d,
-  Constructor: { constructorId, name: constructorId[0].toUpperCase() + constructorId.slice(1) },
+  Constructor: {
+    constructorId,
+    name: constructorId[0].toUpperCase() + constructorId.slice(1),
+    url: `http://en.wikipedia.org/wiki/Team_${constructorId}`,
+  },
 })
 
 const race = (season: number, round: number, results: JolpicaResult[], circuitId = 'silverstone'): JolpicaRace => ({
@@ -137,6 +141,14 @@ describe('buildDataset', () => {
     expect(dataset.constructorSeasons).toHaveLength(2)
     // One win in a two-race season weighs like ten in twenty.
     expect(scaledWins(dataset.constructorSeasons[0])).toBe(10)
+  })
+
+  it("keeps each constructor's Wikipedia article — where its logo is looked up", () => {
+    expect(dataset.clubs.find((c) => c.sourceId === 'lotus')).toEqual({
+      sourceId: 'lotus',
+      name: 'Lotus',
+      enwikiTitle: 'Team lotus',
+    })
   })
 
   it('maps the demonyms to flags, and keeps the Wikipedia title', () => {

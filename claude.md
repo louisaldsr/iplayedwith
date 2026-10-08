@@ -1646,6 +1646,10 @@ Surtees, Toyota, Porsche, dont l'article n'a pas de logo — gardent l'emplaceme
    piste, badge sur un capot, plaque de châssis. Clé = le fichier : un article qui reçoit un vrai logo
    est repris.
 
+4. **`TEAM_MARK_FIRST`** : un logo qui accole le sponsor titre à l'écurie ne garde que la première marque
+   (`firstMark`, coupe à la première bande transparente d'au moins 8 px) — Ferrari sans le rond HP : on
+   cherche Ferrari. Le blason seul n'existe plus sur Wikipedia (fichier déposé retiré). Clé = le fichier.
+
 Les écuries d'un même article partagent son logo (les « Lotus-Climax » et « Lotus-BRM » sont Team Lotus) ;
 fichier nommé d'après l'article (`team-lotus.png`).
 

@@ -38,6 +38,15 @@ const PHOTOGRAPHS = new Set([
 /** False for a file reviewed as a photograph rather than a logo. */
 export const isLogo = (file: string): boolean => !PHOTOGRAPHS.has(file)
 
+/**
+ * Logos that pair the team's mark with a title sponsor's, keeping the team's alone — the first
+ * mark from the left (`firstMark`). Players look for Ferrari, not HP. Keyed by file, as above.
+ */
+const TEAM_MARK_FIRST = new Set(['Scuderia Ferrari HP logo 24.svg'])
+
+/** True for a file whose first mark alone is the team's logo. */
+export const keepsFirstMarkOnly = (file: string): boolean => TEAM_MARK_FIRST.has(file)
+
 /** The file named by the first `| logo = …` line of an infobox, without "File:"; null if none. */
 export function logoFileOf(wikitext: string): string | null {
   const line = wikitext.match(/^\s*\|\s*logo\s*=\s*(.+)$/im)

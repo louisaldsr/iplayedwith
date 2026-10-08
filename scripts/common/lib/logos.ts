@@ -224,3 +224,39 @@ export async function lightenDarkInk(image: Buffer): Promise<Buffer> {
     .png({ compressionLevel: 9 })
     .toBuffer()
 }
+
+/** The narrowest transparent gap that separates two marks, in pixels. */
+const MIN_MARK_GAP = 8
+
+/**
+ * The first mark of a logo, from the left: a team logo paired with its title sponsor's (Ferrari's
+ * shield, then HP's roundel) keeps only the team's, so it fills the slot alone. The marks are told
+ * apart by the transparent columns between them, at least `MIN_MARK_GAP` wide. Applied only to the
+ * files a sport lists — a wordmark has gaps between its letters.
+ */
+export async function firstMark(image: Buffer): Promise<Buffer> {
+  const { data, info } = await sharp(image).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+  const { width, height } = info
+  const inked = (x: number) => {
+    for (let y = 0; y < height; y++) if (data[(y * width + x) * 4 + 3] > 16) return true
+    return false
+  }
+
+  let start = 0
+  while (start < width && !inked(start)) start++
+  let end = start
+  let gap = 0
+  for (let x = start; x < width; x++) {
+    if (inked(x)) {
+      end = x
+      gap = 0
+    } else if (++gap >= MIN_MARK_GAP) {
+      break
+    }
+  }
+  if (start >= width || end === width - 1) return image
+  return sharp(image)
+    .extract({ left: start, top: 0, width: end - start + 1, height })
+    .png()
+    .toBuffer()
+}

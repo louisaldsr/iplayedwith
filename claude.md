@@ -1305,6 +1305,12 @@ suite tient **dans la même heure**, lancée juste après un :05 :
 
 Les vues Wikipedia du mois sont déjà en cache (`scripts/input/wikipedia/`), l'exposition va vite.
 
+⚠️ **Import du 2026-10-08** : `compute_fame_scores` appelé par `:fame` puis `:prestige`, juste après
+l'écriture en masse (23 047 memberships, `starts`/`minutes`), a dépassé le *statement timeout* de
+Supabase — statistiques du planificateur pas encore à jour. Les entrées étaient bien écrites ; une
+minute plus tard (autoanalyze passé) le même appel prenait 0,6 s, et `fame:exposure` a tout recalculé.
+Si ça se reproduit : attendre une minute, puis `npm run fame:compute -- --sport=basketball`.
+
 ### Fame basketball (v3, sans changer la formule)
 
 - **Caps** : la source n'en a pas. FIBA.basketball les liste (tableau « National Team: Senior »),

@@ -11,6 +11,7 @@ const fr: Translations = {
     sports: {
       rugby: 'Rugby',
       football: 'Football',
+      basketball: 'Basketball',
     },
   },
   common: {

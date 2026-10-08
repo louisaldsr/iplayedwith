@@ -10,6 +10,7 @@ import { articleTitles, itemsByExternalId, itemsWithoutIdByName, pageviews } fro
 import { sourceOf, type SeededMap } from '../rugby/lib/playerMap'
 import { SOURCES } from '../rugby/lib/sources'
 import { PLAYERS_SEEDED_PATH, loadSeededIds } from '../football/lib/seed'
+import { seededIdPaths } from './seedDataset'
 
 /**
  * The exposure pillar of the fame score (supabase/migrations/025_fame_v3.sql): matches each
@@ -55,6 +56,22 @@ const CONFIG: Record<SportId, SportConfig> = {
     minGamesForName: null,
     externalIds: footballExternalIds,
   },
+  basketball: {
+    property: 'P2685', // Basketball Reference NBA player ID
+    // Every NBA player has a Basketball-Reference page, and Wikidata links most of them.
+    occupation: null,
+    minGamesForName: null,
+    externalIds: basketballExternalIds,
+  },
+}
+
+/**
+ * The Basketball-Reference ID each basketball player was seeded from, in Wikidata's form: the
+ * site files players under the first letter of the slug, and P2685 keeps it — "j/jordami01".
+ */
+function basketballExternalIds(): Map<string, string> {
+  const seeded = loadSeededIds(seededIdPaths('basketball').players)
+  return new Map(Object.entries(seeded).map(([slug, playerId]) => [playerId, `${slug[0]}/${slug}`]))
 }
 
 /** The All.Rugby ID on each cached profile — the key Wikidata stores, homonyms told apart. */

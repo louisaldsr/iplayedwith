@@ -19,6 +19,7 @@ const en = {
     sports: {
       rugby: 'Rugby',
       football: 'Football',
+      basketball: 'Basketball',
     },
   },
   common: {

@@ -32,6 +32,7 @@ test("the menu leads to each sport's daily challenge — free play and the past 
   await page.goto('/')
   await expect(page.getByRole('link', { name: 'Rugby — Daily challenge' })).toHaveAttribute('href', '/rugby')
   await expect(page.getByRole('link', { name: 'Football — Daily challenge' })).toHaveAttribute('href', '/football')
+  await expect(page.getByRole('link', { name: 'Basketball — Daily challenge' })).toHaveAttribute('href', '/basketball')
   await expect(page.locator('a[href$="/free"], a[href$="/archive"]')).toHaveCount(0)
 })
 
@@ -135,6 +136,6 @@ test('clicking a sport navigates to its route', async ({ page }) => {
 })
 
 test('an unknown sport in the URL 404s', async ({ page }) => {
-  const response = await page.goto('/basketball')
+  const response = await page.goto('/curling')
   expect(response?.status()).toBe(404)
 })

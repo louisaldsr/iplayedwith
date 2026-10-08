@@ -91,8 +91,12 @@ export type MembershipStatsInput = {
   minutes?: number | null
 }
 
-/** Starts in one club-season above this are a parsing bug — the longest seasons run ~40 games. */
-const MAX_PLAUSIBLE_STARTS = 100
+/**
+ * Starts in one club-season above this are a parsing bug. A start is a game, so the ceiling is the
+ * one `memberships.games` uses (membershipsService): an NBA season runs to 82 games plus four
+ * playoff rounds, and 98 basketball club-seasons hold more than 100 starts (Jordan 1991-92: 104).
+ */
+const MAX_PLAUSIBLE_STARTS = 250
 /** Minutes in one club-season above this are a parsing bug (100 games of 120 minutes). */
 const MAX_PLAUSIBLE_MINUTES = 12_000
 

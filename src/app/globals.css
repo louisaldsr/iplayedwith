@@ -1115,6 +1115,73 @@ body {
   background: var(--error);
 }
 
+/* A sport on its way: teased, not playable. Dashed, a chequered flag fading in from the corner, and
+   no lift on hover — it opens nothing. The car only revs. */
+.home-screen__sport-card--upcoming {
+  border-style: dashed;
+  border-color: var(--border-active);
+  background:
+    linear-gradient(160deg, transparent 35%, var(--bg-surface) 75%),
+    repeating-conic-gradient(rgba(232, 234, 240, 0.07) 0 25%, transparent 0 50%) 0 0 / 22px 22px,
+    linear-gradient(160deg, var(--bg-elevated), var(--bg-surface));
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.home-screen__sport-card--upcoming:hover {
+  border-color: var(--border-active);
+  transform: none;
+  box-shadow: none;
+}
+
+.home-screen__sport-card--upcoming .home-screen__sport-icon {
+  filter: grayscale(0.6);
+  opacity: 0.75;
+  transition:
+    filter 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.home-screen__sport-card--upcoming:hover .home-screen__sport-icon {
+  filter: none;
+  opacity: 1;
+  animation: sport-rev 0.5s ease-in-out;
+}
+
+@keyframes sport-rev {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px) rotate(-2deg);
+  }
+  60% {
+    transform: translateX(10px);
+  }
+}
+
+.home-screen__sport-soon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  color: var(--accent-hover);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-screen__sport-card--upcoming:hover .home-screen__sport-icon {
+    animation: none;
+  }
+}
+
 .home-screen__sport-icon {
   font-size: 3.4rem;
   line-height: 1;

@@ -36,6 +36,14 @@ test("the menu leads to each sport's daily challenge — free play and the past 
   await expect(page.locator('a[href$="/free"], a[href$="/archive"]')).toHaveCount(0)
 })
 
+test('Formula 1 is teased as coming soon — a card that leads nowhere', async ({ page }) => {
+  await page.goto('/')
+  const card = page.locator('.home-screen__sport-card--upcoming')
+  await expect(card).toHaveText(/Formula 1\s*Coming soon/)
+  await expect(card.locator('a')).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /Formula 1/ })).toHaveCount(0)
+})
+
 test("today's finished challenges are marked won or lost; yesterday's are not", async ({ page }) => {
   await page.addInitScript((day) => {
     window.localStorage.setItem('ipw.daily.rugby', JSON.stringify({ day, livesLeft: 2, outcome: 'won' }))
@@ -61,7 +69,7 @@ test("the menu opens today's ranking: the podium and the visitor's place, a tab 
   await page.goto('/')
   // No accounts: nothing announced as coming.
   await expect(page.getByText('Log in')).toHaveCount(0)
-  await expect(page.getByText('Soon')).toHaveCount(0)
+  await expect(page.getByText('Soon', { exact: true })).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Ranking', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: "Today's ranking" })

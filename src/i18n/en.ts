@@ -1,6 +1,7 @@
 import type { NameAdjective, NameNoun } from '../domain/visitorName'
 import type { UsernameProblem } from '../domain/username'
 import type { ContactProblem } from '../domain/contactMessage'
+import type { UpcomingSportId } from '../domain/sport'
 
 /** 1st, 2nd, 3rd, 4th… 11th, 12th, 13th… 21st. */
 function ordinal(n: number): string {
@@ -21,6 +22,9 @@ const en = {
       football: 'Football',
       basketball: 'Basketball',
     },
+    upcoming: {
+      formula1: 'Formula 1',
+    } satisfies Record<UpcomingSportId, string>,
   },
   common: {
     loading: 'Loading…',
@@ -33,6 +37,7 @@ const en = {
     about: 'About',
     ranking: 'Ranking',
     stats: 'My stats',
+    comingSoon: 'Coming soon',
     yourName: 'Your name in the rankings',
     rename: {
       open: 'Change your name',

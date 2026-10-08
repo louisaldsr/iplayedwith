@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import logo from '../../../brand/logo.svg'
-import { SPORTS, SportId } from '../../domain/sport'
+import { SPORTS, SportId, UPCOMING_SPORTS, UpcomingSportId } from '../../domain/sport'
 import { useTranslations } from '../../i18n'
 import { useRules } from '../rules/RulesProvider'
 import { dailyOutcomesToday, DailyOutcome } from '../../lib/dailyProgress'
@@ -14,12 +14,15 @@ import { RankingDialog } from './RankingDialog'
 
 const SPORT_ICONS: Record<SportId, string> = { rugby: '🏉', football: '⚽', basketball: '🏀' }
 
+const UPCOMING_ICONS: Record<UpcomingSportId, string> = { formula1: '🏎️' }
+
 /**
  * The home screen, as the game's main menu.
  *
  * The sports own the middle of the screen — each card opens that sport's daily challenge, which is
  * the game. A sport whose challenge is already over today turns green (won) or red (lost), nudging
- * towards the ones still to play.
+ * towards the ones still to play. A sport on its way (UPCOMING_SPORTS) is teased after them: a card
+ * that opens nothing, marked "coming soon".
  * Everything else sits at the bottom: the rules, today's ranking, the visitor's stats and About.
  * Free play and the past challenges are a sport's own: they are offered under its daily challenge.
  * No accounts: the anonymous visitor (src/lib/visitor.ts) is enough.
@@ -66,6 +69,16 @@ export function HomeMenu() {
             </Link>
           )
         })}
+        {UPCOMING_SPORTS.map((sport) => (
+          <div key={sport} className="home-screen__sport-card home-screen__sport-card--upcoming">
+            <span className="home-screen__sport-icon" aria-hidden="true">
+              {UPCOMING_ICONS[sport]}
+            </span>
+            <span className="home-screen__sport-name">{t.home.upcoming[sport]}</span>
+            {/* After the name in reading order; drawn in the corner, where a played sport's ✓ sits. */}
+            <span className="home-screen__sport-soon">{t.menu.comingSoon}</span>
+          </div>
+        ))}
       </div>
 
       <footer className="home-menu__footer">

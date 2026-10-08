@@ -39,7 +39,7 @@ Game/Graph (règles côté serveur, graphe côté client)
 src/
   domain/
     ids.ts          — PlayerId, ClubId (branded strings)
-    season.ts       — Season validée (regex YYYY-YYYY + contrôle plage)
+    season.ts       — Season validée (YYYY-YYYY + contrôle plage, ou YYYY — Bloc 35)
     player.ts       — Player { id: PlayerId, name }
     club.ts         — Club { id: ClubId, name }
     membership.ts   — Membership { playerId, clubId, season }
@@ -1375,6 +1375,49 @@ le moteur » (figée sous `prefers-reduced-motion`).
 
 ---
 
+## ✅ Bloc 35 terminé — Saisons sur une année civile (préalable à la F1)
+
+La F1 court **une saison par année civile** : sa saison 2025 est « 2025 ». La stocker en « 2025-2026 »
+montrerait aux joueurs une saison qui n'a jamais existé. `Season` (`src/domain/season.ts`) accepte
+désormais **deux formes** :
+
+| forme | exemple | sports |
+|---|---|---|
+| `split` | `2025-2026` (fin = début + 1) | rugby, football, basketball |
+| `calendar` | `2025` | formule 1 |
+
+- **Toujours une chaîne brandée**, aucune donnée réécrite. Les années se lisent par `startYear` /
+  `endYear` — **jamais** par `slice` : `to.slice(5)` affichait « 2019 – » pour une saison civile.
+  `formatSeasonSpan` : « 2015 – 2020 », une seule année civile « 2021 », une saison `split` seule reste
+  « 2015 – 2016 ».
+- **Le jeu ne branche jamais sur la forme** : carrière (« consécutif » = année de début + 1), tri,
+  chips du mode difficile, liens du plateau marchent tels quels.
+- **`LATEST_SEASON` reste `2025-2026`**, comparée par année de début : un sport civil garde « 2025 » et
+  saute « 2026 », la saison en cours pendant que les autres jouent 2025-2026. Même règle qu'avant.
+
+### Un sport ne mélange jamais les deux — `030_calendar_seasons.sql`
+
+Mélangées, une même année aurait deux graphies, deux pilotes de la même saison ne seraient jamais
+coéquipiers, et l'ordre du texte cesserait d'être celui des années (`linksOfChain` trie en texte). Donc :
+
+- `sports.season_format` (`split` par défaut | `calendar`) ;
+- sur `memberships`, `club_titles`, `club_season_prestige` : colonne **générée** `season_format` (lue
+  de la forme de la saison) + FK composite `(sport, season_format) → sports (id, season_format)` —
+  même motif que 006. Une saison de la mauvaise forme pour son sport ne s'écrit pas ; changer la forme
+  d'un sport qui a des lignes échoue.
+- Les trois `CHECK` acceptent `YYYY` et gagnent la règle de plage (`2022-2024` refusé en SQL aussi).
+- Testée sur un Postgres jetable : application, ré-application, gardes, rollback (refusé tant qu'il
+  reste des saisons civiles).
+
+Un sport civil = **une ligne** : `INSERT INTO sports (id, season_format) VALUES ('formula1', 'calendar')`
+— l'id de `UPCOMING_SPORTS`.
+
+**`030` appliquée le 2026-10-08** : les trois sports en `split`, toutes leurs lignes aussi (memberships,
+titres, prestige). Pour la ré-appliquer ailleurs : contrôles en haut et en bas du fichier ; la colonne
+générée réécrit `memberships` (~100 k lignes), quelques secondes sous verrou, les coups attendent.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -1477,5 +1520,5 @@ Saisie user
     `npm run daily:ranking -- --day=…` sur un jour joué en retard (colonne `late`)
 41. Basketball (Bloc 32) : appliquer `027` puis `029`, `:clubs` → `:players`, puis dans la même heure
     `:memberships` → `:fame` → `:prestige` → `fame:exposure` ; lire `fame:report` ; `028` ; merger
-42. F1 (annoncée sur le menu, Bloc 34) : source Jolpica-F1 (successeur d'Ergast) ; `Season` en `YYYY-YYYY` ne colle pas à une
-    saison sur une seule année — décision domaine à prendre d'abord
+42. F1 (annoncée sur le menu, Bloc 34) : source Jolpica-F1 (successeur d'Ergast) ; saisons civiles tranchées
+    (Bloc 35, `030` appliquée) — reste : l'import (écurie = club, pilotes d'une même écurie la même année)

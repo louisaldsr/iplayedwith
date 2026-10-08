@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Player } from '../../domain/player'
 import { CareerStint } from '../../domain/career'
+import { formatSeasonSpan } from '../../domain/season'
 import { getPlayerCareer } from '../../lib/gameApi'
 import { useTranslations } from '../../i18n'
 import { Modal } from '../shared/Modal'
@@ -16,8 +17,7 @@ type Props = {
 
 type Load = { status: 'loading' } | { status: 'error' } | { status: 'ready'; stints: CareerStint[] }
 
-/** "2015-2016" … "2019-2020" → "2015 – 2020"; a single season stays "2015 – 2016". */
-const formatSpan = (stint: CareerStint) => `${stint.from.slice(0, 4)} – ${stint.to.slice(5)}`
+const formatSpan = (stint: CareerStint) => formatSeasonSpan(stint.from, stint.to)
 
 /**
  * A player's career, club by club, oldest first — so a user who has never heard of a player can

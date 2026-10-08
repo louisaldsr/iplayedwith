@@ -29,6 +29,15 @@ describe('toCareerStints', () => {
     ])
   })
 
+  it('merges consecutive calendar seasons the same way, and splits after a gap', () => {
+    const stints = toCareerStints([row(toulouse, '2019'), row(toulouse, '2020'), row(toulouse, '2022')])
+
+    expect(stints.map((s) => [s.from, s.to])).toEqual([
+      ['2019', '2020'],
+      ['2022', '2022'],
+    ])
+  })
+
   it('keeps two clubs of the same season (a loan) as two stints', () => {
     const stints = toCareerStints([row(toulouse, '2015-2016'), row(racing, '2015-2016')])
     expect(stints).toHaveLength(2)

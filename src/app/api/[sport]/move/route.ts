@@ -145,6 +145,6 @@ function requireString(value: unknown, field: string): string {
 
 function requireSeason(value: unknown, field: string): Season {
   const raw = requireString(value, field)
-  if (!isSeason(raw)) throw new ValidationError(`${field} must be a valid season (YYYY-YYYY)`)
+  if (!isSeason(raw)) throw new ValidationError(`${field} must be a valid season (YYYY-YYYY or YYYY)`)
   return raw
 }

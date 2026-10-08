@@ -1,7 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { ClubId, PlayerId } from '@/domain/ids'
 import { Membership } from '@/domain/membership'
-import { Season } from '@/domain/season'
+import { Season, startYear } from '@/domain/season'
 import { SportId } from '@/domain/sport'
 import { fetchAllRows } from '@/lib/supabasePagination'
 
@@ -179,7 +179,7 @@ export async function listSeasonsByClub(db: SupabaseClient, clubId: ClubId): Pro
   if (error) throw new Error(error.message)
 
   const seasons = new Set((data ?? []).map((r) => r.season as Season))
-  return [...seasons].sort((a, b) => Number(b.slice(0, 4)) - Number(a.slice(0, 4)))
+  return [...seasons].sort((a, b) => startYear(b) - startYear(a))
 }
 
 export async function listByPlayer(

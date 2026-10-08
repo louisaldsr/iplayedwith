@@ -246,6 +246,8 @@ const en = {
       'game-over': 'The game is already over.',
     },
     moveFailed: 'Something went wrong — try again.',
+    /** Closes the full-screen list a phone types in, back to the board. */
+    closeSearch: 'Back to the board',
   },
   fame: {
     floors: {

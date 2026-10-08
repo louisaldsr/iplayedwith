@@ -655,9 +655,8 @@ absolue est bâtie sur `iplayedwith.com` (`metadataBase`, Bloc 21).
   mis en cache dans `ipw.name` (avec l'id auquel il appartient) → affiché sans requête dès la
   deuxième visite. Pas de nom sans stockage ; échec serveur = pas de badge ; pas encore joué = pas
   de badge (Bloc 29).
-- **Toujours visible en partie** : dans la barre du haut du plateau, à côté du badge de difficulté ;
-  sur téléphone, sur une ligne à lui sous les joueurs et le chrono (la barre passe en grille,
-  1ʳᵉ ligne de 44 px alignée sur les boutons fixes). Même source que le badge : `useVisitorName`.
+- **Toujours visible en partie** : dans la barre du haut du plateau, à droite ; sur téléphone, sur
+  une ligne à lui sous le chrono (Bloc 37). Même source que le badge : `useVisitorName`.
 - e2e : `/api/visitor` est mocké **par défaut** dans `fixtures.ts` (toute page peut mener au menu) ;
   `asRegisteredVisitor` installe un visiteur déjà nommé (id, cache, cookie).
 
@@ -1439,9 +1438,8 @@ suivantes s'empilaient dans le coin en haut à gauche. Placement réécrit dans 
   place la moins encombrée, jamais un coin. ~15 ms par carte sur un plateau de 20.
 - **Lâchée sur une autre carte**, une carte glisse à la place libre la plus proche (`settleCard`) ; sur
   un terrain libre, elle reste où on l'a lâchée.
-- **Positions en fractions du plateau** (`toFraction`) : tourner le téléphone, ouvrir le clavier,
-  redimensionner la fenêtre emporte les cartes avec le plateau, aucune ne reste dehors. Le plateau se
-  mesure (`ResizeObserver`).
+- ~~Positions en fractions du plateau~~ : un redimensionnement déplaçait chaque carte d'autant —
+  remplacé par un monde et une caméra (Bloc 38).
 - **Cartes compactes** sous 640 px de large ou 420 px de haut : 116 × 60 au lieu de 160 × 90, sans
   l'avatar (le même pour tous), nom sur deux lignes. La taille vient du JS (`cardSizeFor`) et passe au
   CSS par `--node-width` / `--node-height` sur le plateau : une seule source.
@@ -1451,6 +1449,93 @@ suivantes s'empilaient dans le coin en haut à gauche. Placement réécrit dans 
 
 e2e (`board.spec.ts`) : huit coups, sur téléphone et sur ordinateur — aucune carte n'en recouvre une
 autre, toutes dans le plateau, A avant B sur le grand côté.
+
+---
+
+## ✅ Bloc 37 terminé — Retouches mobile
+
+Retours sur téléphone : pop-ups qui ne défilaient pas jusqu'au bout, onglets de sport sur deux lignes,
+barre du jeu chargée, barre de saisie encombrante, copie du partage en erreur.
+
+- **Pop-ups** (`Modal`, donc toutes) : hauteur max en `100dvh` (en `100vh`, la fin passait sous la barre
+  du navigateur — « Continuer », les boutons des résultats), défilement propre (`overflow-y: auto`), et
+  `overscroll-behavior: contain` + `html:has(dialog.modal[open]) { overflow: hidden }` : un défilement
+  arrivé au bout ne déplace plus la page, ni le plateau, derrière.
+- **Comment jouer** : les cartes de la démo héritaient du `touch-action: none` du plateau — un geste
+  commencé dessus ne défilait pas. « C'est parti » est dans un pied **collant**, toujours à portée.
+- **Onglets de sport** (`SportTabs`) : sur téléphone (≤ 520 px), seul l'onglet choisi garde son nom, les
+  autres leur emoji — le nom reste pour les lecteurs d'écran. La rangée défile de côté quand les sports
+  la dépassent, l'onglet choisi ramené en vue.
+- **Barre du jeu** (partout) : Menu · le chrono avec le pseudo dessous · « ? ». Plus de badge Facile /
+  Difficile, plus de A et B (ils sont sur le plateau). Revue au Bloc 38.
+- **Saisie flottante sur téléphone** (≤ 640 px) : plus de barre sous le plateau. Le plateau descend
+  jusqu'en bas de l'écran, le champ flotte par-dessus en pastille. `boardLayout.ts` arrête le monde
+  au-dessus (`fieldFloats`, même seuil de 640 px que le CSS — les changer ensemble).
+- **Partage** : sans l'API presse-papiers (page hors HTTPS — un téléphone sur le serveur de dev via le
+  réseau local), ou si elle refuse, la copie passe par une sélection + `execCommand('copy')`. Le texte
+  est posé **dans** la pop-up ouverte : une pop-up modale rend le reste de la page inerte.
+
+e2e (`mobile.spec.ts`, 390 × 664) : « C'est parti » visible sans défiler ; barre du jeu réduite au chrono
+et au pseudo, champ par-dessus le plateau ; onglets sur une ligne, nommés pour les lecteurs d'écran.
+
+---
+
+## ✅ Bloc 38 terminé — L'écran de jeu sur téléphone : rien ne bouge que le plateau
+
+Sur iPhone, l'écran « bougeait partout » : un glissé faisait défiler, rebondir ou zoomer **toute la
+page**, le clavier la poussait vers le haut, et toucher le champ zoomait la page (iOS zoome sur tout
+champ dont le texte fait moins de 16 px — le nôtre en faisait 14,4). La règle désormais :
+
+```
+barre du haut (fixe)     Menu · chrono + pseudo · « ? »
+plateau                  un doigt le fait glisser, deux le zooment, un doigt sur une carte la déplace
+  cœurs                  empilés en haut à gauche, sans fond, fixes
+champ (en bas)           posé sur le plateau ; le toucher ouvre la liste en plein écran
+```
+
+- **La page est figée** : `.game-screen` en `position: fixed` sur toute la hauteur visible (`100dvh`),
+  `overflow: hidden` + `overscroll-behavior: none` (`html:has(.game-screen)`), `touch-action: none` sur
+  la barre et le plateau, et le pincement **de la page** par Safari (`gesturestart`, que `touch-action`
+  n'arrête pas) bloqué tant que le jeu est affiché (`useVisibleViewport`).
+- **Un monde** (`worldFor`, `boardLayout.ts`) : un plan fixé à la première mesure du plateau, où les
+  cartes ont des positions en pixels du monde, jamais recalculées. Refait — cartes replacées — seulement
+  si la **largeur** change (téléphone tourné, fenêtre redimensionnée, `fitsWorld`).
+- **Une vue** (`View` : échelle + position), comme un tableau blanc. Cartes et liens dans
+  `.game-board__stage`, transformé ; cœurs, bandeau et bulle d'un lien restent à l'échelle de l'écran.
+  - Au départ : le monde ajusté au plateau (`fitView`), un peu **dézoomé sur téléphone** (`PHONE_ZOOM`
+    0,85), jamais sous 70 % (`MIN_SCALE`).
+  - **Un doigt** (ou la souris) sur le plateau même, hors d'une carte : le fait glisser, toujours. Ne
+    démarre qu'après quelques pixels : un tap sur un lien l'ouvre toujours.
+  - **Deux doigts**, n'importe où (même sur une carte — son déplacement s'arrête) : zoom autour du
+    milieu des doigts, qui emportent aussi le plateau.
+  - **Molette** (ordinateur) : fait défiler ; avec Ctrl / ⌘ — ce qu'envoie un pincement de trackpad —
+    zoome autour du curseur (écouteur natif non passif, sinon la page zoome).
+  - Zoom de 30 % à 250 % (`ZOOM_LIMITS`) ; au moins 96 px du monde restent à l'écran (`clampView`).
+  - Une carte ajoutée hors champ est ramenée dans la vue, du strict nécessaire (`revealCard`).
+- **Cœurs** en colonne en haut à gauche du plateau, sans fond (partout). `floatingZones` y garde le coin
+  libre au placement.
+- **Taper sur téléphone** (≤ 640 px **et** écran tactile) : toucher le champ ouvre une **feuille** sur tout
+  l'écran (`.autocomplete-wrapper--sheet`, prop `sheetCloseLabel` d'`AutocompleteInput`) : « ← » et le
+  champ **tout en haut**, la liste sur le reste — jusqu'au clavier. Basculée **dans** l'évènement
+  `focus`, de façon synchrone (`flushSync`). La feuille occupe **exactement la partie visible** :
+  clavier ouvert, iOS fait glisser la partie visible vers le bas de la page (`visualViewport.offsetTop`)
+  quoi qu'on fasse — épinglée en haut de la page, la feuille avait son champ au-dessus de l'écran. Elle
+  suit donc `--visible-top` / `--visible-height` (`useVisibleViewport`, sur `resize` et `scroll`). Les boutons fixes Menu / « ? » sont masqués dessous (l'écran de jeu, fixe,
+  forme sa propre pile : ils passeraient devant). Choisir un nom ferme la feuille (pastille + Valider en
+  bas) ; « ← » et Échap aussi.
+  - **Fermer le clavier ramène au plateau** : iOS quitte alors le champ (`blur`, fermeture 200 ms plus
+    tard — un nom touché dans la liste est choisi avant que le champ ne soit quitté) ; Android garde
+    souvent le champ, c'est la hauteur visible qui revient à la normale qui le dit.
+  - Pas d'autofocus sur écran tactile : il n'y ouvre pas de clavier, et la feuille recouvrirait le
+    plateau après chaque coup. Une fenêtre étroite sur ordinateur garde son champ (pas de feuille).
+  - Texte du champ à 16 px sur téléphone : iOS ne zoome plus la page.
+
+**Non vérifiable ici** : aucun émulateur n'ouvre de clavier, Playwright n'a pas deux doigts (les tests
+envoient deux pointeurs tactiles comme un navigateur), et le Simulateur iOS demande d'accepter la
+licence Xcode (`sudo xcodebuild -license`). À vérifier sur un vrai iPhone.
+
+e2e : `board.spec.ts` (« the board as a whiteboard » : glisser, pincer, molette) ; `mobile.spec.ts`
+(barre, cœurs, feuille de saisie).
 
 ---
 

@@ -97,10 +97,39 @@ export async function shareMessage(text: string): Promise<ShareOutcome> {
       if (err instanceof DOMException && err.name === 'AbortError') return 'cancelled'
     }
   }
+  if (typeof navigator.clipboard?.writeText === 'function') {
+    try {
+      await navigator.clipboard.writeText(text)
+      return 'copied'
+    } catch {
+      // Refused (no permission, the tap's gesture spent): the older way may still work.
+    }
+  }
+  return copyWithSelection(text) ? 'copied' : 'failed'
+}
+
+/**
+ * The clipboard before its API: select the text, then the browser's own copy command. The API only
+ * exists on HTTPS pages — a phone testing the dev server over the local network has neither it nor
+ * the share sheet. The text is put inside the open dialog, if any: a modal dialog makes the rest of
+ * the page inert, and nothing outside it can be selected.
+ */
+function copyWithSelection(text: string): boolean {
+  if (typeof document === 'undefined' || typeof document.execCommand !== 'function') return false
+  const host = document.querySelector('dialog[open]') ?? document.body
+  const area = document.createElement('textarea')
+  area.value = text
+  area.setAttribute('readonly', '')
+  // Off screen, and at 16px: iOS zooms into a smaller field it focuses.
+  area.style.cssText = 'position:fixed;top:0;left:-9999px;opacity:0;font-size:16px'
+  host.appendChild(area)
   try {
-    await navigator.clipboard.writeText(text)
-    return 'copied'
+    area.select()
+    area.setSelectionRange(0, text.length)
+    return document.execCommand('copy')
   } catch {
-    return 'failed'
+    return false
+  } finally {
+    area.remove()
   }
 }

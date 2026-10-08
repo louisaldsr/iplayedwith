@@ -5,11 +5,18 @@ import {
   cardSizeFor,
   centreOf,
   floatingZones,
-  fromFraction,
+  fitView,
+  zoomAround,
+  clampView,
+  revealCard,
+  ZOOM_LIMITS,
+  fitsWorld,
   placeCard,
   settleCard,
   targetSpots,
-  toFraction,
+  worldFor,
+  PHONE_ZOOM,
+  MIN_SCALE,
 } from '@/components/game/boardLayout'
 
 const DESKTOP: Size = { w: 1400, h: 760 }
@@ -191,23 +198,80 @@ describe('a dropped card', () => {
   })
 })
 
-describe('fractions', () => {
-  it('round-trip on the same board', () => {
-    const card = cardSizeFor(DESKTOP)
-    const p = { x: 320, y: 140 }
+describe('world and view', () => {
+  // A phone's board, below the top bar: 390 × 690, the move field floating over its last 72px.
+  const phone: Size = { w: 390, h: 690 }
 
-    expect(fromFraction(toFraction(p, DESKTOP, card), DESKTOP, card)).toEqual(p)
+  it('fits a phone a little zoomed out, the world stopping above the floating field', () => {
+    const world = worldFor(phone)
+    const view = fitView(world, phone)
+
+    expect(world.zoom).toBe(PHONE_ZOOM)
+    expect(world.size.w).toBeCloseTo(390 / PHONE_ZOOM)
+    expect(world.size.h).toBeCloseTo((690 - 72) / PHONE_ZOOM)
+    expect(view.scale).toBeCloseTo(PHONE_ZOOM)
   })
 
-  // A keyboard opening or a phone turned: the board shrinks, its cards stay on it.
-  it('keep a card on a board that shrank', () => {
+  it('fits a desktop at full size', () => {
+    const world = worldFor(DESKTOP)
+
+    expect(world.zoom).toBe(1)
+    expect(world.size).toEqual(DESKTOP)
+    expect(fitView(world, DESKTOP)).toEqual({ scale: 1, x: 0, y: 0 })
+  })
+
+  // The keyboard takes half the screen: fitting it all would shrink the names past reading. The fit
+  // stops at MIN_SCALE and shows the top — A's side.
+  it('keeps names readable with the keyboard open, from the top', () => {
+    const world = worldFor(phone)
+    const typing = { w: 390, h: 350 }
+
+    expect(fitsWorld(world, typing)).toBe(true)
+    const view = fitView(world, typing)
+    expect(view.scale).toBe(MIN_SCALE)
+    expect(view.y).toBe(0)
+    expect(view.x).toBeCloseTo((390 - world.size.w * MIN_SCALE) / 2)
+  })
+
+  it('is made again for a new width — a phone turned', () => {
+    expect(fitsWorld(worldFor(phone), { w: 844, h: 300 })).toBe(false)
+  })
+
+  it('zooms around a point, which stays where it is', () => {
+    const view = { scale: 1, x: 40, y: 20 }
+    const at = { x: 200, y: 300 }
+    const zoomed = zoomAround(view, 2, at)
+    const worldPoint = (v: typeof view) => ({ x: (at.x - v.x) / v.scale, y: (at.y - v.y) / v.scale })
+
+    expect(zoomed.scale).toBe(2)
+    expect(worldPoint(zoomed).x).toBeCloseTo(worldPoint(view).x)
+    expect(worldPoint(zoomed).y).toBeCloseTo(worldPoint(view).y)
+  })
+
+  it('zooms within its limits', () => {
+    expect(zoomAround({ scale: 1, x: 0, y: 0 }, 100, { x: 0, y: 0 }).scale).toBe(ZOOM_LIMITS.max)
+    expect(zoomAround({ scale: 1, x: 0, y: 0 }, 0.001, { x: 0, y: 0 }).scale).toBe(ZOOM_LIMITS.min)
+  })
+
+  // Dragged far away, the board is never lost: some of it always stays in sight.
+  it('keeps part of the world on the board, however far it is dragged', () => {
+    const world = worldFor(DESKTOP)
+    const gone = clampView({ scale: 1, x: 10_000, y: -10_000 }, world, DESKTOP)
+
+    expect(gone.x).toBeLessThan(DESKTOP.w)
+    expect(gone.x).toBeGreaterThan(DESKTOP.w - 200)
+    expect(gone.y + world.size.h).toBeGreaterThan(0)
+    expect(gone.y + world.size.h).toBeLessThan(200)
+  })
+
+  it('brings a card added out of sight into view, moving no more than needed', () => {
     const card = cardSizeFor(DESKTOP)
-    const right = toFraction({ x: DESKTOP.w - card.w, y: DESKTOP.h - card.h }, DESKTOP, card)
-    const smaller = { w: 1000, h: 400 }
+    const view = { scale: 1, x: 0, y: 0 }
 
-    const p = fromFraction(right, smaller, card)
+    const right = revealCard(view, { x: DESKTOP.w + 100, y: 300 }, card, DESKTOP)
+    expect(right.y).toBe(0)
+    expect(DESKTOP.w + 100 + card.w + right.x).toBeLessThanOrEqual(DESKTOP.w)
 
-    expect(p.x + card.w).toBe(smaller.w)
-    expect(p.y + card.h).toBe(smaller.h)
+    expect(revealCard(view, { x: 300, y: 300 }, card, DESKTOP)).toEqual(view)
   })
 })

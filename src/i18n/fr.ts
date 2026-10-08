@@ -239,6 +239,7 @@ const fr: Translations = {
       'game-over': 'La partie est déjà terminée.',
     },
     moveFailed: 'Une erreur est survenue — réessayez.',
+    closeSearch: 'Retour au plateau',
   },
   fame: {
     floors: {

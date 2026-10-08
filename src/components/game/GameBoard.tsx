@@ -12,14 +12,18 @@ import { NodeCard } from './NodeCard'
 import {
   Point,
   Size,
-  cardSizeFor,
+  View,
+  World,
   centreOf,
-  fromFraction,
-  isCompact,
+  clampView,
+  fitView,
+  fitsWorld,
   placeCard,
+  revealCard,
   settleCard,
   targetSpots,
-  toFraction,
+  worldFor,
+  zoomAround,
 } from './boardLayout'
 import { ClubLogo } from '../shared/ClubLogo'
 
@@ -27,6 +31,7 @@ import { ClubLogo } from '../shared/ClubLogo'
 const CLICK_TOLERANCE = 5
 /** Measured once mounted; jsdom measures nothing. */
 const FALLBACK_SIZE: Size = { w: 800, h: 500 }
+const EMPTY_POSITIONS = new Map<string, Point>()
 
 type DragState = {
   key: string
@@ -35,6 +40,12 @@ type DragState = {
   originX: number
   originY: number
 }
+
+/** What the fingers on the board are doing — `done`: a pinch whose last finger is not lifted yet. */
+type Gesture =
+  | { kind: 'pan'; pointerId: number; start: Point; from: View; started: boolean }
+  | { kind: 'pinch'; distance: number; middle: Point; from: View }
+  | { kind: 'done' }
 
 type PlayerPairEdge = {
   key: string
@@ -104,10 +115,19 @@ function computePlayerPairEdges(edges: { playerId: PlayerId; clubId: ClubId; sea
 
 export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Props) {
   const boardRef = useRef<HTMLDivElement>(null)
+  /** The board as measured, on screen. */
   const [size, setSize] = useState<Size | null>(null)
-  /** Each card's place as a share of the board (see `toFraction`): a resize carries the cards along. */
-  const [fractions, setFractions] = useState<Map<string, Point>>(new Map())
+  /** The cards, in world pixels (see `boardLayout.ts`) — placed again only when the world is remade. */
+  const [layout, setLayout] = useState<{ world: World; positions: Map<string, Point> } | null>(null)
   const [dragging, setDragging] = useState<DragState | null>(null)
+  /**
+   * How the world is drawn, once the player has pinched, scrolled or dragged it — like a whiteboard.
+   * Null until then, and after "fit": the world fitted to the board (`fitView`), following its size.
+   */
+  const [view, setView] = useState<View | null>(null)
+  /** The fingers (or the mouse) down on the board, where they are. */
+  const pointers = useRef(new Map<number, Point>())
+  const gesture = useRef<Gesture | null>(null)
   const [hoveredEdge, setHoveredEdge] = useState<string | null>(null)
   const [selectedEdge, setSelectedEdge] = useState<PlayerPairEdge | null>(null)
 
@@ -130,8 +150,21 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
     return () => observer.disconnect()
   }, [])
 
-  const board = size ?? FALLBACK_SIZE
-  const card = cardSizeFor(board)
+  useEffect(() => {
+    if (!size) return
+    setLayout((prev) => {
+      if (prev && fitsWorld(prev.world, size)) return prev
+      setView(null)
+      return { world: worldFor(size), positions: new Map() }
+    })
+  }, [size])
+
+  const screen = size ?? FALLBACK_SIZE
+  const world = layout?.world ?? worldFor(screen)
+  const board = world.size
+  const card = world.card
+  const camera = view ? clampView(view, world, screen) : fitView(world, screen)
+  const positions = layout?.positions ?? EMPTY_POSITIONS
 
   // The board's cards: the visitor's, then the proposed solution's players it does not have yet.
   const nodes = useMemo(() => {
@@ -158,20 +191,22 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
     [game.difficulty, game.edges.length, playerPairEdges, solutionPairEdges],
   )
 
+  const placedWorld = layout?.world
   useEffect(() => {
-    if (!size) return
+    if (!placedWorld) return
     const aKey = playerKey(game.playerA.id)
     const bKey = playerKey(game.playerB.id)
     const rank = (k: string) => (k === aKey ? 0 : k === bKey ? 1 : 2)
+    const { size: board, card, zoom } = placedWorld
 
-    setFractions((prev) => {
-      const newKeys = [...nodes.keys()].filter((k) => !prev.has(k))
+    setLayout((prev) => {
+      if (!prev || prev.world !== placedWorld) return prev
+      const newKeys = [...nodes.keys()].filter((k) => !prev.positions.has(k))
       if (newKeys.length === 0) return prev
 
-      const placed = new Map([...prev].map(([k, f]) => [k, fromFraction(f, size, card)]))
-      const state = { board: size, card, placed, links, aKey, bKey }
-      const ends = targetSpots(size, card)
-      const next = new Map(prev)
+      const placed = new Map(prev.positions)
+      const state = { board, card, placed, links, aKey, bKey, zoom }
+      const ends = targetSpots(board, card, zoom)
 
       // A and B first: every other card is placed relative to them.
       for (const key of [...newKeys].sort((a, b) => rank(a) - rank(b))) {
@@ -186,42 +221,126 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
           spot = placeCard(key, state, aim ?? undefined)
         }
         placed.set(key, spot)
-        next.set(key, toFraction(spot, size, card))
       }
 
-      return next
+      return { world: prev.world, positions: placed }
     })
-  }, [game, nodes, links, solution, size, card])
+  }, [game, nodes, links, solution, placedWorld])
 
-  const positions = useMemo(
-    () => new Map([...fractions].map(([k, f]) => [k, fromFraction(f, board, card)])),
-    [fractions, board, card],
-  )
+  const moveCard = (key: string, to: Point) =>
+    setLayout((prev) => prev && { world: prev.world, positions: new Map(prev.positions).set(key, to) })
+
+  // A card added out of sight — off the side of a dragged or zoomed board — is brought into view.
+  const shown = useRef(positions)
+  useEffect(() => {
+    const before = shown.current
+    shown.current = positions
+    if (positions === before || before.size === 0 || positions.size <= before.size) return
+    const added = [...positions.keys()].filter((k) => !before.has(k)).at(-1)
+    const at = added && positions.get(added)
+    if (!at) return
+    const next = revealCard(camera, at, card, screen)
+    if (next.x !== camera.x || next.y !== camera.y) setView(next)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [positions])
+
+  /** Where a pointer is on the board — the coordinates the view works in. */
+  const onBoard = (e: { clientX: number; clientY: number }): Point => {
+    const r = boardRef.current?.getBoundingClientRect()
+    return { x: e.clientX - (r?.left ?? 0), y: e.clientY - (r?.top ?? 0) }
+  }
+  /** Synthetic pointers (tests) have nothing to capture. */
+  const capture = (pointerId: number) => {
+    try {
+      boardRef.current?.setPointerCapture(pointerId)
+    } catch {}
+  }
+  const setClampedView = (next: View) => setView(clampView(next, world, screen))
 
   const handlePointerDown = (e: React.PointerEvent, key: string) => {
     e.preventDefault()
     const pos = positions.get(key)
     if (!pos) return
     setDragging({ key, startX: e.clientX, startY: e.clientY, originX: pos.x, originY: pos.y })
-    boardRef.current?.setPointerCapture(e.pointerId)
+    capture(e.pointerId)
   }
 
+  // Every press on the board, cards included (theirs bubble up here). Two fingers pinch the board,
+  // wherever they land — a card drag under way stops where it is. One finger on the board itself
+  // drags it, once it has moved: a tap on a link still opens it.
+  const handleBoardPointerDown = (e: React.PointerEvent) => {
+    pointers.current.set(e.pointerId, onBoard(e))
+    if (pointers.current.size === 2) {
+      const [p, q] = [...pointers.current.values()]
+      setDragging(null)
+      for (const id of pointers.current.keys()) capture(id)
+      gesture.current = {
+        kind: 'pinch',
+        distance: Math.max(1, Math.hypot(p.x - q.x, p.y - q.y)),
+        middle: { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 },
+        from: camera,
+      }
+      return
+    }
+    if (pointers.current.size > 1 || (e.target as Element).closest('.node-card, .edge-popup, .board-view')) return
+    gesture.current = { kind: 'pan', pointerId: e.pointerId, start: onBoard(e), from: camera, started: false }
+  }
+
+  // The pointer moves on screen, the card in the world: the view's scale between the two.
   const handlePointerMove = (e: React.PointerEvent) => {
+    if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, onBoard(e))
+    const g = gesture.current
+    if (g?.kind === 'pinch') {
+      const [p, q] = [...pointers.current.values()]
+      if (!p || !q) return
+      const middle = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 }
+      const zoomed = zoomAround(g.from, Math.hypot(p.x - q.x, p.y - q.y) / g.distance, g.middle)
+      // The fingers also carry the board along as they move together.
+      setClampedView({ ...zoomed, x: zoomed.x + middle.x - g.middle.x, y: zoomed.y + middle.y - g.middle.y })
+      return
+    }
+    if (g?.kind === 'pan' && g.pointerId === e.pointerId) {
+      const at = onBoard(e)
+      const dx = at.x - g.start.x
+      const dy = at.y - g.start.y
+      if (!g.started) {
+        if (Math.hypot(dx, dy) < CLICK_TOLERANCE) return
+        g.started = true
+        capture(e.pointerId)
+      }
+      setClampedView({ scale: g.from.scale, x: g.from.x + dx, y: g.from.y + dy })
+      return
+    }
     if (!dragging) return
-    const nx = Math.max(0, Math.min(dragging.originX + (e.clientX - dragging.startX), board.w - card.w))
-    const ny = Math.max(0, Math.min(dragging.originY + (e.clientY - dragging.startY), board.h - card.h))
-    setFractions((prev) => new Map(prev).set(dragging.key, toFraction({ x: nx, y: ny }, board, card)))
+    const nx = dragging.originX + (e.clientX - dragging.startX) / camera.scale
+    const ny = dragging.originY + (e.clientY - dragging.startY) / camera.scale
+    moveCard(dragging.key, {
+      x: Math.max(0, Math.min(nx, board.w - card.w)),
+      y: Math.max(0, Math.min(ny, board.h - card.h)),
+    })
+  }
+
+  /** A finger lifted: a pinch ends with either finger — the one left does not start dragging. */
+  const release = (e: React.PointerEvent) => {
+    pointers.current.delete(e.pointerId)
+    const g = gesture.current
+    if (g?.kind === 'pinch' ? pointers.current.size === 0 : g?.kind === 'pan' && g.pointerId === e.pointerId) {
+      gesture.current = null
+    } else if (g?.kind === 'pinch') {
+      gesture.current = { kind: 'done' }
+    }
   }
 
   // Dropped on another card, a card moves to the nearest free spot.
-  const handlePointerCancel = () => {
+  const handlePointerCancel = (e: React.PointerEvent) => {
+    release(e)
     if (!dragging) return
     const at = positions.get(dragging.key)
     if (at) {
       const aKey = playerKey(game.playerA.id)
       const bKey = playerKey(game.playerB.id)
-      const spot = settleCard(dragging.key, at, { board, card, placed: positions, links, aKey, bKey })
-      if (spot !== at) setFractions((prev) => new Map(prev).set(dragging.key, toFraction(spot, board, card)))
+      const spot = settleCard(dragging.key, at, { board, card, placed: positions, links, aKey, bKey, zoom: world.zoom })
+      if (spot !== at) moveCard(dragging.key, spot)
     }
     setDragging(null)
   }
@@ -229,11 +348,33 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
   // Cards are dragged with the pointer captured by the board, so no click event reaches them: a
   // press released where it started is the click.
   const handlePointerUp = (e: React.PointerEvent) => {
-    if (!dragging) return
-    const moved = Math.hypot(e.clientX - dragging.startX, e.clientY - dragging.startY)
-    if (moved < CLICK_TOLERANCE) openCareer(dragging.key)
-    handlePointerCancel()
+    if (dragging) {
+      const moved = Math.hypot(e.clientX - dragging.startX, e.clientY - dragging.startY)
+      if (moved < CLICK_TOLERANCE) openCareer(dragging.key)
+    }
+    handlePointerCancel(e)
   }
+
+  // The wheel, as on a whiteboard: it scrolls the board, and zooms it with Ctrl or ⌘ — which is
+  // also what a trackpad pinch sends. Not React's listener: it is passive, and the page would zoom.
+  const latest = useRef({ camera, world, screen })
+  latest.current = { camera, world, screen }
+  useEffect(() => {
+    const el = boardRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const { camera, world, screen } = latest.current
+      const r = el.getBoundingClientRect()
+      const next =
+        e.ctrlKey || e.metaKey
+          ? zoomAround(camera, Math.exp(-e.deltaY * 0.01), { x: e.clientX - r.left, y: e.clientY - r.top })
+          : { ...camera, x: camera.x - e.deltaX, y: camera.y - e.deltaY }
+      setView(clampView(next, world, screen))
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
 
   const openCareer = (key: string) => {
     const node = nodes.get(key)
@@ -256,6 +397,12 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
 
   /** The card size is the layout's: the CSS reads it rather than repeating it. */
   const boardStyle = { '--node-width': `${card.w}px`, '--node-height': `${card.h}px` } as React.CSSProperties
+  /** The world, drawn through the camera: cards and links, one uniform scale. */
+  const stageStyle: React.CSSProperties = {
+    width: board.w,
+    height: board.h,
+    transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`,
+  }
 
   // ── Easy mode ──────────────────────────────────────────────────────────────
 
@@ -275,7 +422,8 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
   // A path only exists once A and B are connected: the board is then a won board, its chain lit up.
   const boardClass = [
     'game-board',
-    isCompact(board) ? 'game-board--compact' : '',
+    'game-board--canvas',
+    world.compact ? 'game-board--compact' : '',
     game.path.length > 0 ? 'game-board--won' : '',
     solution ? 'game-board--solution' : '',
   ]
@@ -292,71 +440,74 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
         ref={boardRef}
         className={boardClass}
         style={boardStyle}
+        onPointerDown={handleBoardPointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
       >
-        <svg className="game-board-svg" aria-hidden="true">
-          {[...playerPairEdges, ...solutionOnly].map((edge) => {
-            const p1 = center(playerKey(edge.playerAId))
-            const p2 = center(playerKey(edge.playerBId))
-            if (!p1 || !p2) return null
-            const isHovered = hoveredEdge === edge.key
-            const isOnPath = pathPairKeys.has(edge.key)
-            const isOnSolution = solutionPairKeys.has(edge.key)
+        <div className="game-board__stage" style={stageStyle}>
+          <svg className="game-board-svg" aria-hidden="true">
+            {[...playerPairEdges, ...solutionOnly].map((edge) => {
+              const p1 = center(playerKey(edge.playerAId))
+              const p2 = center(playerKey(edge.playerBId))
+              if (!p1 || !p2) return null
+              const isHovered = hoveredEdge === edge.key
+              const isOnPath = pathPairKeys.has(edge.key)
+              const isOnSolution = solutionPairKeys.has(edge.key)
+              return (
+                <g
+                  key={edge.key}
+                  style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                  onPointerEnter={() => setHoveredEdge(edge.key)}
+                  onPointerLeave={() => setHoveredEdge(null)}
+                  onClick={() => setSelectedEdge((prev) => (prev?.key === edge.key ? null : edge))}
+                >
+                  <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="transparent" strokeWidth={14} />
+                  <line
+                    x1={p1.x}
+                    y1={p1.y}
+                    x2={p2.x}
+                    y2={p2.y}
+                    className={[
+                      'graph-edge',
+                      isOnPath ? 'graph-edge--path' : '',
+                      isOnSolution ? 'graph-edge--solution' : '',
+                      isHovered ? 'graph-edge--hovered' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  />
+                </g>
+              )
+            })}
+          </svg>
+
+          {[...nodes.entries()].map(([key, node]) => {
+            if (node.kind !== 'player') return null
+            const pos = positions.get(key)
+            if (!pos) return null
+            const p = playerById.get(node.id)
             return (
-              <g
-                key={edge.key}
-                style={{ pointerEvents: 'all', cursor: 'pointer' }}
-                onPointerEnter={() => setHoveredEdge(edge.key)}
-                onPointerLeave={() => setHoveredEdge(null)}
-                onClick={() => setSelectedEdge((prev) => (prev?.key === edge.key ? null : edge))}
-              >
-                <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="transparent" strokeWidth={14} />
-                <line
-                  x1={p1.x}
-                  y1={p1.y}
-                  x2={p2.x}
-                  y2={p2.y}
-                  className={[
-                    'graph-edge',
-                    isOnPath ? 'graph-edge--path' : '',
-                    isOnSolution ? 'graph-edge--solution' : '',
-                    isHovered ? 'graph-edge--hovered' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                />
-              </g>
+              <NodeCard
+                key={key}
+                nodeKey={key}
+                label={playerMap.get(node.id) ?? node.id}
+                kind="player"
+                nationality={p?.nationality ? nationalTeamFor(p.nationality, p.sport) : undefined}
+                position={pos}
+                onPointerDown={handlePointerDown}
+                onOpen={onOpenPlayer && p ? () => openCareer(key) : undefined}
+                isDragging={dragging?.key === key}
+                highlighted={game.path.includes(node.id)}
+                pathStep={pathStep(node.id)}
+                target={isTarget(node.id)}
+                fameFloor={isTarget(node.id) ? undefined : p?.fameFloor}
+                solution={onSolution(node.id)}
+                proposed={!game.nodes.has(key)}
+              />
             )
           })}
-        </svg>
-
-        {[...nodes.entries()].map(([key, node]) => {
-          if (node.kind !== 'player') return null
-          const pos = positions.get(key)
-          if (!pos) return null
-          const p = playerById.get(node.id)
-          return (
-            <NodeCard
-              key={key}
-              nodeKey={key}
-              label={playerMap.get(node.id) ?? node.id}
-              kind="player"
-              nationality={p?.nationality ? nationalTeamFor(p.nationality, p.sport) : undefined}
-              position={pos}
-              onPointerDown={handlePointerDown}
-              onOpen={onOpenPlayer && p ? () => openCareer(key) : undefined}
-              isDragging={dragging?.key === key}
-              highlighted={game.path.includes(node.id)}
-              pathStep={pathStep(node.id)}
-              target={isTarget(node.id)}
-              fameFloor={isTarget(node.id) ? undefined : p?.fameFloor}
-              solution={onSolution(node.id)}
-              proposed={!game.nodes.has(key)}
-            />
-          )
-        })}
+        </div>
 
         {selectedEdge && (
           <div className="edge-popup">
@@ -416,80 +567,83 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
       ref={boardRef}
       className={boardClass}
       style={boardStyle}
+      onPointerDown={handleBoardPointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
     >
-      <svg className="game-board-svg" aria-hidden="true">
-        {game.edges.map((edge, i) => {
-          const p1 = center(playerKey(edge.playerId))
-          const p2 = center(clubKey(edge.clubId, edge.season))
-          if (!p1 || !p2) return null
-          const onPath = pathEdgeSet.has(`${edge.playerId}:${edge.clubId}:${edge.season}`)
+      <div className="game-board__stage" style={stageStyle}>
+        <svg className="game-board-svg" aria-hidden="true">
+          {game.edges.map((edge, i) => {
+            const p1 = center(playerKey(edge.playerId))
+            const p2 = center(clubKey(edge.clubId, edge.season))
+            if (!p1 || !p2) return null
+            const onPath = pathEdgeSet.has(`${edge.playerId}:${edge.clubId}:${edge.season}`)
+            return (
+              <line
+                key={i}
+                x1={p1.x}
+                y1={p1.y}
+                x2={p2.x}
+                y2={p2.y}
+                className={onPath ? 'graph-edge graph-edge--path' : 'graph-edge'}
+              />
+            )
+          })}
+        </svg>
+
+        {[...game.nodes.entries()].map(([key, node]) => {
+          const pos = positions.get(key)
+          if (!pos) return null
+
+          let label: string
+          let sublabel: string | undefined
+          let kind: 'player' | 'club'
+          let highlighted: boolean
+          let imageUrl: string | undefined
+          let nationality: Player['nationality']
+          let fameFloor: Player['fameFloor']
+          let step: number | undefined
+
+          if (node.kind === 'player') {
+            label = playerMap.get(node.id) ?? node.id
+            kind = 'player'
+            highlighted = pathPlayerKeys.has(key)
+            const i = pathStep(node.id)
+            step = i === undefined ? undefined : 2 * i
+            const p = playerById.get(node.id)
+            nationality = p?.nationality ? nationalTeamFor(p.nationality, p.sport) : undefined
+            fameFloor = isTarget(node.id) ? undefined : p?.fameFloor
+          } else {
+            label = clubMap.get(node.id) ?? node.id
+            sublabel = node.season
+            kind = 'club'
+            highlighted = pathClubKeys.has(key)
+            step = clubSteps.get(key)
+            imageUrl = clubById.get(node.id)?.logoUrl
+          }
+
           return (
-            <line
-              key={i}
-              x1={p1.x}
-              y1={p1.y}
-              x2={p2.x}
-              y2={p2.y}
-              className={onPath ? 'graph-edge graph-edge--path' : 'graph-edge'}
+            <NodeCard
+              key={key}
+              nodeKey={key}
+              label={label}
+              sublabel={sublabel}
+              kind={kind}
+              imageUrl={imageUrl}
+              nationality={nationality}
+              position={pos}
+              onPointerDown={handlePointerDown}
+              onOpen={onOpenPlayer && node.kind === 'player' ? () => openCareer(key) : undefined}
+              isDragging={dragging?.key === key}
+              highlighted={highlighted}
+              pathStep={step}
+              target={node.kind === 'player' && isTarget(node.id)}
+              fameFloor={fameFloor}
             />
           )
         })}
-      </svg>
-
-      {[...game.nodes.entries()].map(([key, node]) => {
-        const pos = positions.get(key)
-        if (!pos) return null
-
-        let label: string
-        let sublabel: string | undefined
-        let kind: 'player' | 'club'
-        let highlighted: boolean
-        let imageUrl: string | undefined
-        let nationality: Player['nationality']
-        let fameFloor: Player['fameFloor']
-        let step: number | undefined
-
-        if (node.kind === 'player') {
-          label = playerMap.get(node.id) ?? node.id
-          kind = 'player'
-          highlighted = pathPlayerKeys.has(key)
-          const i = pathStep(node.id)
-          step = i === undefined ? undefined : 2 * i
-          const p = playerById.get(node.id)
-          nationality = p?.nationality ? nationalTeamFor(p.nationality, p.sport) : undefined
-          fameFloor = isTarget(node.id) ? undefined : p?.fameFloor
-        } else {
-          label = clubMap.get(node.id) ?? node.id
-          sublabel = node.season
-          kind = 'club'
-          highlighted = pathClubKeys.has(key)
-          step = clubSteps.get(key)
-          imageUrl = clubById.get(node.id)?.logoUrl
-        }
-
-        return (
-          <NodeCard
-            key={key}
-            nodeKey={key}
-            label={label}
-            sublabel={sublabel}
-            kind={kind}
-            imageUrl={imageUrl}
-            nationality={nationality}
-            position={pos}
-            onPointerDown={handlePointerDown}
-            onOpen={onOpenPlayer && node.kind === 'player' ? () => openCareer(key) : undefined}
-            isDragging={dragging?.key === key}
-            highlighted={highlighted}
-            pathStep={step}
-            target={node.kind === 'player' && isTarget(node.id)}
-            fameFloor={fameFloor}
-          />
-        )
-      })}
+      </div>
     </div>
   )
 }

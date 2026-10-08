@@ -59,6 +59,11 @@ function InputChip({ label, onClear, onConfirm }: Chip) {
 
 export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = false, onSubmit, onEdit }: Props) {
   const t = useTranslations()
+  // A touch screen opens no keyboard for a field focused on its own, and the field would open its
+  // typing sheet over the board after every move: there, the player taps it.
+  const [touchScreen] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches === true,
+  )
 
   // Easy mode state
   const [easyQuery, setEasyQuery] = useState('')
@@ -181,7 +186,8 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
             failed={playersFailed}
             errorLabel={t.game.searchUnavailable}
             placeholder={t.game.playerPlaceholder}
-            autoFocus
+            autoFocus={!touchScreen}
+            sheetCloseLabel={t.game.closeSearch}
           />
         )}
         <button type="submit" className="btn btn--primary" disabled={!easyCanSubmit}>
@@ -265,7 +271,8 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
             failed={playersFailed}
             errorLabel={t.game.searchUnavailable}
             placeholder={t.game.playerPlaceholder}
-            autoFocus
+            autoFocus={!touchScreen}
+            sheetCloseLabel={t.game.closeSearch}
           />
         ))}
 
@@ -296,7 +303,8 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
               failed={clubsFailed}
               errorLabel={t.game.searchUnavailable}
               placeholder={t.game.clubSearchPlaceholder}
-              autoFocus
+              autoFocus={!touchScreen}
+              sheetCloseLabel={t.game.closeSearch}
             />
           )}
           {hardClub && (

@@ -9,6 +9,7 @@ import { DailySolution } from '../../domain/dailySolution'
 import { GameNode } from '../../graph/node'
 import { playerKey, clubKey } from '../../game/graphBuilder'
 import { NodeCard } from './NodeCard'
+import { ClubLogo } from '../shared/ClubLogo'
 
 const NODE_WIDTH = 160
 const NODE_HEIGHT = 90
@@ -379,6 +380,7 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
             <ul className="edge-popup__connections">
               {selectedEdge.connections.map((c) => (
                 <li key={`${c.clubId}:${c.season}`}>
+                  <ClubLogo club={clubById.get(c.clubId) ?? {}} />
                   {clubMap.get(c.clubId) ?? c.clubId} · {c.season}
                 </li>
               ))}

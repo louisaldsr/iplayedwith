@@ -112,3 +112,33 @@ test('a hint without a proper visitor, day or player is refused before any datab
     expect((await request.post('/api/rugby/daily/hint', { data })).status()).toBe(400)
   }
 })
+
+test('each club of a career shows its crest; one that fails to load leaves an empty slot', async ({ page }) => {
+  // A 1×1 PNG for the crest that loads; the other answers 404.
+  const pixel = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+    'base64',
+  )
+  await page.route('https://crests.test/**', (route) =>
+    route.request().url().endsWith('/one.png')
+      ? route.fulfill({ contentType: 'image/png', body: pixel })
+      : route.fulfill({ status: 404 }),
+  )
+  const [one, two] = sampleCareer.stints
+  await mockApi(page, '/api/players/p-alpha/career', {
+    ...sampleCareer,
+    stints: [
+      { ...one, club: { ...one.club, logoUrl: 'https://crests.test/one.png' } },
+      { ...two, club: { ...two.club, logoUrl: 'https://crests.test/missing.png' } },
+    ],
+  })
+  await page.goto('/rugby')
+  await page.getByRole('button', { name: /Alpha Testeur/ }).click()
+
+  const clubs = career(page).locator('.career-dialog__club')
+  await expect(clubs.nth(0)).toHaveText('Club Un')
+  await expect(clubs.nth(0).locator('.club-logo img')).toHaveAttribute('src', 'https://crests.test/one.png')
+  await expect(clubs.nth(1)).toHaveText('Club Deux')
+  await expect(clubs.nth(1).locator('.club-logo--empty')).toBeAttached()
+  await expect(clubs.nth(1).locator('img')).toHaveCount(0)
+})

@@ -2031,6 +2031,24 @@ body {
   padding: 4px 0;
 }
 
+/* ─── Club crest, sized to its text ─────────────────────── */
+.club-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6em;
+  height: 1.6em;
+  flex-shrink: 0;
+}
+
+.club-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* A faint hairline that follows the crest's shape: dark crests (Saracens, Juventus) vanish on the dark theme. */
+  filter: drop-shadow(0 0 0.5px rgba(255, 255, 255, 0.55));
+}
+
 /* ─── Career pop-up ─────────────────────────────────────── */
 .career-dialog__title {
   display: flex;
@@ -2056,7 +2074,7 @@ body {
 .career-dialog__stint {
   display: grid;
   grid-template-columns: 7.5rem 1fr auto;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
   padding: 10px 0;
   border-bottom: 1px solid var(--border-subtle);
@@ -2073,6 +2091,9 @@ body {
 }
 
 .career-dialog__club {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 600;
 }
 
@@ -2621,6 +2642,9 @@ body {
 }
 
 .edge-popup__connections li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.75rem;
   color: var(--text-muted);
   background: var(--bg-elevated);

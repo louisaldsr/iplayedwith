@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { isSportId, SPORTS } from '@/domain/sport'
-import en from '@/i18n/en'
+import { translationsFor } from '@/i18n/translationsFor'
 import { DailyChallengePage } from '@/components/daily/DailyChallengePage'
 
 type Props = {
@@ -15,10 +15,11 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { sport } = await params
   if (!isSportId(sport)) return {}
-  const name = en.home.sports[sport]
+  const t = translationsFor('en', sport)
+  const name = t.home.sports[sport]
   return {
     title: `${name} daily challenge`,
-    description: `Today's ${name.toLowerCase()} challenge: connect two players through the teammates they shared. One pair a day, the same for everyone.`,
+    description: t.seo.dailyDescription(name),
     alternates: { canonical: `/${sport}` },
   }
 }

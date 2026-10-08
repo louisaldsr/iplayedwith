@@ -6,11 +6,12 @@ import { getDb } from './env'
 import { loadJson } from './json'
 import { inputPath, outputPath } from './paths'
 import { matchPlayers, viewWindow, viewsPerYear, type MatchCandidate } from './lib/wikidata'
-import { articleTitles, itemsByExternalId, itemsWithoutIdByName, pageviews } from './lib/wikimedia'
+import { articleTitles, itemsByEnwikiTitle, itemsByExternalId, itemsWithoutIdByName, pageviews } from './lib/wikimedia'
 import { sourceOf, type SeededMap } from '../rugby/lib/playerMap'
 import { SOURCES } from '../rugby/lib/sources'
 import { PLAYERS_SEEDED_PATH, loadSeededIds } from '../football/lib/seed'
 import { seededIdPaths } from './seedDataset'
+import { loadFormula1Dataset } from '../formula1/lib/seed'
 
 /**
  * The exposure pillar of the fame score (supabase/migrations/025_fame_v3.sql): matches each
@@ -21,7 +22,8 @@ import { seededIdPaths } from './seedDataset'
  *   npm run fame:exposure -- --sport=rugby [--dry-run]
  *
  * Matching is by an ID the source shares with Wikidata — exact, never a guess between homonyms —
- * with a unique-name fallback for experienced rugby players whose item lacks the ID (see
+ * or, for Formula 1, by the English Wikipedia article the source links for each driver; with a
+ * unique-name fallback for experienced rugby players whose item lacks the ID (see
  * lib/wikidata.ts). Coverage measured on the prototype: rugby 93-95% of players past 100 games,
  * football 98%.
  *
@@ -32,37 +34,58 @@ import { seededIdPaths } from './seedDataset'
  * Reads the players from the database (names and career games); --dry-run writes nothing.
  */
 type SportConfig = {
-  /** Wikidata property holding the external ID. */
-  property: string
-  /** Wikidata occupation of the sport's players, for the name fallback; null: no fallback. */
-  occupation: string | null
+  /** Wikidata items by external ID, for the IDs our players carry. */
+  itemsById(externalIds: string[]): Promise<Map<string, string[]>>
+  /** The name fallback's candidates — items of the sport without the ID, by label; null: no fallback. */
+  itemsWithoutIdByName: (() => Promise<Map<string, string[]>>) | null
   /** Career games from which a player may be matched by name. */
   minGamesForName: number | null
   /** Our player id → his external ID, from the source the imports already use. */
   externalIds(): Map<string, string>
 }
 
+/** Items carrying a Wikidata external-ID property — the whole property at once, by SPARQL. */
+const byProperty = (property: string) => () => itemsByExternalId(property)
+
 const CONFIG: Record<SportId, SportConfig> = {
   rugby: {
-    property: 'P9903', // All.Rugby player ID
-    occupation: 'Q14089670', // rugby union player
+    itemsById: byProperty('P9903'), // All.Rugby player ID
+    itemsWithoutIdByName: () => itemsWithoutIdByName('Q14089670', 'P9903'), // rugby union player
     minGamesForName: 100,
     externalIds: rugbyExternalIds,
   },
   football: {
-    property: 'P2446', // Transfermarkt player ID
+    itemsById: byProperty('P2446'), // Transfermarkt player ID
     // 99% of the players match by ID: a name fallback would add more risk than coverage.
-    occupation: null,
+    itemsWithoutIdByName: null,
     minGamesForName: null,
     externalIds: footballExternalIds,
   },
   basketball: {
-    property: 'P2685', // Basketball Reference NBA player ID
+    itemsById: byProperty('P2685'), // Basketball Reference NBA player ID
     // Every NBA player has a Basketball-Reference page, and Wikidata links most of them.
-    occupation: null,
+    itemsWithoutIdByName: null,
     minGamesForName: null,
     externalIds: basketballExternalIds,
   },
+  formula1: {
+    // No Wikidata property for Jolpica's driver IDs — but Jolpica links each driver's article.
+    itemsById: itemsByEnwikiTitle,
+    itemsWithoutIdByName: null,
+    minGamesForName: null,
+    externalIds: formula1ExternalIds,
+  },
+}
+
+/** The English Wikipedia title Jolpica links for each Formula 1 driver (lib/dataset.ts). */
+function formula1ExternalIds(): Map<string, string> {
+  const seeded = loadSeededIds(seededIdPaths('formula1').players)
+  const ids = new Map<string, string>()
+  for (const driver of loadFormula1Dataset().players) {
+    const playerId = seeded[driver.sourceId]
+    if (playerId && driver.enwikiTitle) ids.set(playerId, driver.enwikiTitle)
+  }
+  return ids
 }
 
 /**
@@ -110,9 +133,8 @@ async function main() {
   const externalIds = config.externalIds()
   console.log(`${players.length} ${sport} players; external ID known for ${externalIds.size}.`)
 
-  const itemsById = await itemsByExternalId(config.property)
-  const itemsByName =
-    config.occupation !== null ? await itemsWithoutIdByName(config.occupation, config.property) : new Map()
+  const itemsById = await config.itemsById([...new Set(externalIds.values())])
+  const itemsByName = config.itemsWithoutIdByName ? await config.itemsWithoutIdByName() : new Map()
   console.log(`Wikidata: ${itemsById.size} IDs, ${itemsByName.size} names without an ID.`)
 
   const candidates: MatchCandidate[] = players.map((p) => ({

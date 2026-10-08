@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { isSportId } from '@/domain/sport'
-import en from '@/i18n/en'
+import { translationsFor } from '@/i18n/translationsFor'
 import { SITE_NAME } from '@/lib/siteUrl'
 import { ArchivedChallengePage } from '@/components/daily/ArchivedChallengePage'
 import { parseChallengeNumber, sharedChallengeOrNull } from './sharedChallenge'
@@ -24,10 +24,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!isSportId(sport) || number === null) return {}
 
   const shared = await sharedChallengeOrNull(sport, number)
-  const title = `${en.home.sports[sport]} daily challenge #${number}`
-  const description = shared
-    ? `${shared.playerA.name} → ${shared.playerB.name}. Can you connect them through their teammates?`
-    : 'Link two players through the teammates they shared. One pair a day, the same for everyone.'
+  const t = translationsFor('en', sport)
+  const title = `${t.home.sports[sport]} daily challenge #${number}`
+  const description = shared ? t.seo.sharedDescription(shared.playerA.name, shared.playerB.name) : t.seo.sharedFallback
   return {
     title,
     description,

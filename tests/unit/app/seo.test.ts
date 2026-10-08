@@ -26,6 +26,8 @@ describe('sitemap.xml', () => {
       'https://iplayedwith.com/football/free',
       'https://iplayedwith.com/basketball',
       'https://iplayedwith.com/basketball/free',
+      'https://iplayedwith.com/formula1',
+      'https://iplayedwith.com/formula1/free',
       'https://iplayedwith.com/about',
     ])
   })

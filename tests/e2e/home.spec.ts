@@ -33,15 +33,10 @@ test("the menu leads to each sport's daily challenge — free play and the past 
   await expect(page.getByRole('link', { name: 'Rugby — Daily challenge' })).toHaveAttribute('href', '/rugby')
   await expect(page.getByRole('link', { name: 'Football — Daily challenge' })).toHaveAttribute('href', '/football')
   await expect(page.getByRole('link', { name: 'Basketball — Daily challenge' })).toHaveAttribute('href', '/basketball')
+  await expect(page.getByRole('link', { name: 'Formula 1 — Daily challenge' })).toHaveAttribute('href', '/formula1')
+  // Launched: no sport is teased as coming any more.
+  await expect(page.locator('.home-screen__sport-card--upcoming')).toHaveCount(0)
   await expect(page.locator('a[href$="/free"], a[href$="/archive"]')).toHaveCount(0)
-})
-
-test('Formula 1 is teased as coming soon — a card that leads nowhere', async ({ page }) => {
-  await page.goto('/')
-  const card = page.locator('.home-screen__sport-card--upcoming')
-  await expect(card).toHaveText(/Formula 1\s*Coming soon/)
-  await expect(card.locator('a')).toHaveCount(0)
-  await expect(page.getByRole('link', { name: /Formula 1/ })).toHaveCount(0)
 })
 
 test("today's finished challenges are marked won or lost; yesterday's are not", async ({ page }) => {

@@ -94,3 +94,15 @@ export async function insert(db: SupabaseClient, club: Club): Promise<Club> {
   if (error) throw new Error(error.message)
   return club
 }
+
+/** Points one club at a new crest. Scoped by sport, so an id from another sport changes nothing. Returns whether a row matched. */
+export async function updateLogoUrl(db: SupabaseClient, sport: SportId, id: ClubId, logoUrl: string): Promise<boolean> {
+  const { data, error } = await db
+    .from('clubs')
+    .update({ logo_url: logoUrl })
+    .eq('sport', sport)
+    .eq('id', id)
+    .select('id')
+  if (error) throw new Error(error.message)
+  return (data ?? []).length > 0
+}

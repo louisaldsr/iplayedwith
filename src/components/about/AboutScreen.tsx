@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { useTranslations } from '../../i18n'
+import { ContactSection } from './ContactSection'
 
 const GITHUB_URL = 'https://github.com/louisaldsr'
 
 const external = { target: '_blank', rel: 'noopener noreferrer' } as const
 
-/** Where the data comes from, what is counted of a visit, and who made the game. */
+/** Where the data comes from, what is counted of a visit, who made the game, and how to reach them. */
 export function AboutScreen() {
   const t = useTranslations()
 
@@ -49,10 +50,11 @@ export function AboutScreen() {
         <p>
           <a href={GITHUB_URL} {...external}>
             louisaldsr
-          </a>{' '}
-          — {t.about.contactSoon}
+          </a>
         </p>
       </section>
+
+      <ContactSection />
 
       <Link href="/" className="btn btn--primary">
         {t.about.back}

@@ -106,6 +106,41 @@ test.describe('daily challenge', () => {
     await expect(page.getByRole('link', { name: 'Football — Daily challenge', exact: true })).toBeVisible()
   })
 
+  test('a move can be played from the keyboard alone', async ({ page }) => {
+    await mockApi(page, '/api/rugby/daily', sampleDailyChallenge)
+    await mockApi(page, '/api/players', [linkingPlayer])
+    await mockApi(page, '/api/rugby/daily/start', {})
+    const moves = await mockApi(page, '/api/rugby/move', winningMove)
+    await page.goto('/rugby')
+
+    await page.getByRole('button', { name: 'Start' }).click()
+    const field = page.getByPlaceholder('Player…')
+    await field.fill('cha')
+    await expect(page.getByRole('option', { name: 'Charlie Lien' })).toBeVisible()
+
+    // Down + Enter picks the row; the chip takes the focus.
+    await field.press('ArrowDown')
+    await expect(page.getByRole('option', { name: 'Charlie Lien' })).toHaveAttribute('aria-selected', 'true')
+    await field.press('Enter')
+    const chip = page.locator('.input-chip', { hasText: 'Charlie Lien' })
+    await expect(chip).toBeFocused()
+
+    // Escape drops the pick and gives the field back.
+    await chip.press('Escape')
+    await expect(chip).toHaveCount(0)
+    await expect(field).toBeFocused()
+    expect(moves).toHaveLength(0)
+
+    // Enter on the chip plays it.
+    await field.fill('cha')
+    await expect(page.getByRole('option', { name: 'Charlie Lien' })).toBeVisible()
+    await field.press('ArrowDown')
+    await field.press('Enter')
+    await chip.press('Enter')
+    await expect(page.getByRole('heading', { name: 'Congratulations!' })).toBeVisible()
+    expect(moves).toHaveLength(1)
+  })
+
   test('a failed load shows an error instead of an empty board', async ({ page }) => {
     await page.route('**/api/rugby/daily', (route) => route.fulfill({ status: 500, json: { error: 'down' } }))
     await page.goto('/rugby')

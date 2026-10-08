@@ -2316,6 +2316,8 @@ body {
   flex-direction: column;
   width: 100vw;
   height: 100vh;
+  /* The visible height: on a phone, 100vh runs under the browser's toolbar, and the move bar with it. */
+  height: 100dvh;
 }
 
 .game-topbar {
@@ -3043,6 +3045,43 @@ body {
   font-size: 0.6rem;
   line-height: 1.2;
   color: var(--text-muted);
+}
+
+/* Small boards (phones): smaller cards, sized by the board itself (`boardLayout.ts`). The avatar
+   is the same placeholder on every card, so it goes; the name gets two lines instead. */
+.game-board--compact .node-card {
+  padding: 4px 6px;
+  gap: 2px;
+}
+
+.game-board--compact .node-card__avatar {
+  display: none;
+}
+
+.game-board--compact .node-card__logo {
+  max-width: 20px;
+  max-height: 20px;
+}
+
+.game-board--compact .node-card--player .node-card__label {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.game-board--compact .node-card__floor {
+  top: -7px;
+  right: 6px;
+  padding: 0 5px;
+  font-size: 0.5rem;
+}
+
+.game-board--compact .node-card__flag {
+  width: 16px;
+  height: 11px;
+  top: -5px;
+  left: -5px;
 }
 
 /* ─── Input forms ───────────────────────────────────────── */

@@ -1199,6 +1199,24 @@ hasard à `POST /api/visitor` remplissait la table et épuisait les noms. Désor
 - **Ne protège pas** d'un script qui appelle « start » avec des UUID au hasard : la porte est unique
   maintenant, mais il reste à la limiter (règle de pare-feu Vercel par IP, BotID).
 
+## ✅ Bloc 30 terminé — Logos des clubs dans la carrière et sur les liens
+
+`clubs.logo_url`, rempli à l'import pour **tous** les clubs (rugby : 82, Wikimedia ; football : 176,
+CDN Transfermarkt), ne servait qu'aux cartes club du mode difficile. Il arrivait déjà au navigateur
+partout où un club est lu (`findManyByIds` le sélectionne) : **aucun changement serveur**.
+
+- `ClubLogo` (`src/components/shared/`) : le blason **avant le nom**, à la taille du texte (1,6 em),
+  dans la carrière (`PlayerCareerDialog`) et dans la pop-up d'un lien du plateau (« club · saison »).
+- **Sans fond**, avec un **liseré clair** d'un demi-pixel, à 55 %, qui épouse la forme du blason
+  (`drop-shadow`) : sans lui, les blasons sombres (Saracens, Juventus, Leinster) disparaissaient sur
+  le thème sombre. Écartés : une tuile blanche (lourde), un liseré plus un halo (trop brillant), un halo
+  ou un disque translucide derrière le blason (flou, ou blasons sombres de nouveau ternes).
+- Décoratif (`aria-hidden`, le nom dit la même chose). Pas de logo, ou un logo qui ne charge pas : un
+  **emplacement vide** de la même taille, les noms restent alignés.
+- Liens directs vers les CDN (`<img>`, `loading="lazy"`, `referrerPolicy="no-referrer"`), comme les
+  cartes club : pas de `next/image`, qui demanderait de déclarer les domaines et ferait passer les
+  images par l'optimiseur de Vercel.
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :

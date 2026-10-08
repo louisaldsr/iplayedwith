@@ -6,6 +6,7 @@ import { CareerStint } from '../../domain/career'
 import { getPlayerCareer } from '../../lib/gameApi'
 import { useTranslations } from '../../i18n'
 import { Modal } from '../shared/Modal'
+import { ClubLogo } from './ClubLogo'
 
 type Props = {
   /** The player whose career is shown; null when the dialog is closed. */
@@ -57,7 +58,10 @@ export function PlayerCareerDialog({ player, onClose }: Props) {
           {load.stints.map((stint) => (
             <li key={`${stint.club.id}-${stint.from}`} className="career-dialog__stint">
               <span className="career-dialog__years">{formatSpan(stint)}</span>
-              <span className="career-dialog__club">{stint.club.name}</span>
+              <span className="career-dialog__club">
+                <ClubLogo club={stint.club} />
+                {stint.club.name}
+              </span>
               {stint.games !== null && (
                 <span className="career-dialog__games">
                   {stint.games} {t.daily.games}

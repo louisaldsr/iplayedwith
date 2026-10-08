@@ -1412,8 +1412,9 @@ coéquipiers, et l'ordre du texte cesserait d'être celui des années (`linksOfC
 Un sport civil = **une ligne** : `INSERT INTO sports (id, season_format) VALUES ('formula1', 'calendar')`
 — l'id de `UPCOMING_SPORTS`.
 
-⚠️ Appliquer `030` **avant** le premier import F1 (contrôles en haut et en bas du fichier). La colonne
-générée réécrit `memberships` (~100 k lignes) : quelques secondes sous verrou, les coups attendent.
+**`030` appliquée le 2026-10-08** : les trois sports en `split`, toutes leurs lignes aussi (memberships,
+titres, prestige). Pour la ré-appliquer ailleurs : contrôles en haut et en bas du fichier ; la colonne
+générée réécrit `memberships` (~100 k lignes), quelques secondes sous verrou, les coups attendent.
 
 ---
 
@@ -1520,4 +1521,4 @@ Saisie user
 41. Basketball (Bloc 32) : appliquer `027` puis `029`, `:clubs` → `:players`, puis dans la même heure
     `:memberships` → `:fame` → `:prestige` → `fame:exposure` ; lire `fame:report` ; `028` ; merger
 42. F1 (annoncée sur le menu, Bloc 34) : source Jolpica-F1 (successeur d'Ergast) ; saisons civiles tranchées
-    (Bloc 35) — reste : appliquer `030`, puis l'import (écurie = club, pilotes d'une même écurie la même année)
+    (Bloc 35, `030` appliquée) — reste : l'import (écurie = club, pilotes d'une même écurie la même année)

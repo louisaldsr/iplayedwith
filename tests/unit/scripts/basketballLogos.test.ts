@@ -4,7 +4,8 @@
  * sharp is a native module: it runs under node, not jsdom.
  */
 import sharp from 'sharp'
-import { logoFileName, publicLogoUrl, removeWhiteBackground } from '../../../scripts/basketball/lib/logos'
+import { removeWhiteBackground } from '../../../scripts/common/lib/logos'
+import { logoFileName, publicLogoUrl } from '../../../scripts/basketball/lib/logos'
 
 type Rgb = [number, number, number]
 const WHITE: Rgb = [255, 255, 255]

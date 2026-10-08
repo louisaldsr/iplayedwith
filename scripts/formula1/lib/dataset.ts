@@ -96,6 +96,9 @@ export type SeasonPages = { year: number; results: ResultsPage[]; standings: Con
 
 // ─── The dataset ────────────────────────────────────────────────────────────────
 
+/** A constructor, with the English Wikipedia article Jolpica links — where its logo is found (seedLogos.ts). */
+export type Formula1Club = SeedClub & { enwikiTitle: string | null }
+
 /** A membership with the club-performance input of fame v3: races started for that constructor. */
 export type Formula1Membership = SeedMembership & { starts: number; minutes: null }
 
@@ -119,7 +122,7 @@ export function scaledWins(run: ConstructorSeason): number {
 
 export type Formula1Dataset = {
   generatedAt: string
-  clubs: SeedClub[]
+  clubs: Formula1Club[]
   players: Formula1Player[]
   memberships: Formula1Membership[]
   /** Only constructor-seasons with a win or the title. */
@@ -149,7 +152,7 @@ export function isIndianapolis500(race: JolpicaRace): boolean {
  */
 export function buildDataset(seasons: SeasonPages[]): { dataset: Formula1Dataset; warnings: BuildWarning[] } {
   const warnings: BuildWarning[] = []
-  const clubs = new Map<string, SeedClub>()
+  const clubs = new Map<string, Formula1Club>()
   const players = new Map<string, Formula1Player>()
   const memberships = new Map<string, Formula1Membership>()
   const constructorSeasons: ConstructorSeason[] = []
@@ -166,7 +169,11 @@ export function buildDataset(seasons: SeasonPages[]): { dataset: Formula1Dataset
     for (const race of races) {
       for (const result of race.Results) {
         const { Driver: driver, Constructor: constructor } = result
-        clubs.set(constructor.constructorId, { sourceId: constructor.constructorId, name: constructor.name.trim() })
+        clubs.set(constructor.constructorId, {
+          sourceId: constructor.constructorId,
+          name: constructor.name.trim(),
+          enwikiTitle: enwikiTitleOf(constructor.url),
+        })
 
         if (!players.has(driver.driverId)) {
           const nationality = toNationality(driver.nationality)

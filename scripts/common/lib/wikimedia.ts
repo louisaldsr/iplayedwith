@@ -10,7 +10,8 @@ import path from 'node:path'
  * token. A first version without that format spent its time in 429s; with it, 26,731 calls went
  * through with 4 refusals. Paced here at ~165 a minute.
  */
-const USER_AGENT = 'IPlayedWithFame/1.0 (https://github.com/louisaldsr) node-fetch'
+// Wikimedia's format, which lifts the rate limit; also sent when downloading images from it.
+export const USER_AGENT = 'IPlayedWithFame/1.0 (https://github.com/louisaldsr) node-fetch'
 const PAUSE_MS = 100
 const MAX_TRIES = 8
 
@@ -194,4 +195,95 @@ export async function pageviews(
     fs.closeSync(out)
   }
   return done
+}
+
+/**
+ * The lead section's wikitext of each English Wikipedia article, keyed by the title as GIVEN
+ * (normalisation and redirects resolved as in `itemsByEnwikiTitle`). One article per call: the API
+ * returns revisions of one page at a time.
+ */
+export async function leadWikitexts(titles: string[]): Promise<Map<string, string>> {
+  type Revisions = TitleQuery & {
+    query?: { pages?: Record<string, { revisions?: { slots: { main: { '*': string } } }[] }> }
+  }
+  const texts = new Map<string, string>()
+  for (const title of titles) {
+    const data = await getJson<Revisions>(
+      `https://en.wikipedia.org/w/api.php?${new URLSearchParams({
+        action: 'query',
+        format: 'json',
+        redirects: '1',
+        prop: 'revisions',
+        rvprop: 'content',
+        rvslots: 'main',
+        rvsection: '0',
+        titles: title,
+      })}`,
+    )
+    if (!data) throw new Error(`Wikipedia did not answer for "${title}"`)
+    const page = Object.values(data.query?.pages ?? {})[0]
+    const text = page?.revisions?.[0]?.slots.main['*']
+    if (text) texts.set(title, text)
+  }
+  return texts
+}
+
+/** The "logo image" (P154) of each Wikidata item that has one: a file name, without "File:". */
+export async function logoClaims(qids: string[]): Promise<Map<string, string>> {
+  type Claims = {
+    entities?: Record<string, { claims?: { P154?: { mainsnak?: { datavalue?: { value?: string } } }[] } }>
+  }
+  const logos = new Map<string, string>()
+  for (let i = 0; i < qids.length; i += 50) {
+    const data = await getJson<Claims>(
+      `https://www.wikidata.org/w/api.php?${new URLSearchParams({
+        action: 'wbgetentities',
+        format: 'json',
+        props: 'claims',
+        ids: qids.slice(i, i + 50).join('|'),
+      })}`,
+    )
+    if (!data) throw new Error(`Wikidata did not answer for items ${i}..${i + 49}`)
+    for (const [qid, entity] of Object.entries(data.entities ?? {})) {
+      const file = entity.claims?.P154?.[0]?.mainsnak?.datavalue?.value
+      if (file) logos.set(qid, file)
+    }
+  }
+  return logos
+}
+
+/**
+ * A `width`-pixel rendering of each file (an SVG comes back as a PNG), keyed by the file name as
+ * given — through English Wikipedia, which also serves the files hosted on Commons.
+ */
+export async function thumbnailUrls(files: string[], width: number): Promise<Map<string, string>> {
+  type ImageInfo = {
+    query?: {
+      normalized?: { from: string; to: string }[]
+      pages?: Record<string, { title: string; imageinfo?: { url: string; thumburl?: string }[] }>
+    }
+  }
+  const urls = new Map<string, string>()
+  for (let i = 0; i < files.length; i += 50) {
+    const batch = files.slice(i, i + 50)
+    const data = await getJson<ImageInfo>(
+      `https://en.wikipedia.org/w/api.php?${new URLSearchParams({
+        action: 'query',
+        format: 'json',
+        prop: 'imageinfo',
+        iiprop: 'url',
+        iiurlwidth: String(width),
+        titles: batch.map((f) => `File:${f}`).join('|'),
+      })}`,
+    )
+    if (!data) throw new Error(`Wikipedia did not answer for files ${i}..${i + batch.length - 1}`)
+    const asked = new Map((data.query?.normalized ?? []).map((n) => [n.to, n.from]))
+    for (const page of Object.values(data.query?.pages ?? {})) {
+      const info = page.imageinfo?.[0]
+      if (!info) continue
+      const given = (asked.get(page.title) ?? page.title).replace(/^File:/, '')
+      urls.set(given, info.thumburl ?? info.url)
+    }
+  }
+  return urls
 }

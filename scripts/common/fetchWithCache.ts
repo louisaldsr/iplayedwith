@@ -24,3 +24,25 @@ export async function fetchWithCache(url: string, cachePath: string, delayMs = D
   await new Promise((resolve) => setTimeout(resolve, delayMs))
   return html
 }
+
+/**
+ * Binary counterpart of `fetchWithCache` — images, for the club logos. Same cache-then-pause
+ * contract; `userAgent` because Wikimedia refuses anonymous-looking clients (see lib/wikimedia.ts).
+ */
+export async function fetchBinaryWithCache(
+  url: string,
+  cachePath: string,
+  { delayMs = DEFAULT_DELAY_MS, userAgent = USER_AGENT }: { delayMs?: number; userAgent?: string } = {},
+): Promise<Buffer> {
+  if (fs.existsSync(cachePath)) return fs.readFileSync(cachePath)
+
+  const res = await fetch(url, { headers: { 'User-Agent': userAgent } })
+  if (!res.ok) throw new Error(`Fetch failed (${res.status}) for ${url}`)
+  const body = Buffer.from(await res.arrayBuffer())
+
+  fs.mkdirSync(path.dirname(cachePath), { recursive: true })
+  fs.writeFileSync(cachePath, body)
+
+  await new Promise((resolve) => setTimeout(resolve, delayMs))
+  return body
+}

@@ -1623,8 +1623,56 @@ Scores en base identiques à la mesure locale (Hamilton 100, 40 pilotes dans la 
 F1 (82/87, 82/86) et celles des autres sports ces derniers jours (rugby 84, football 81, basketball
 80/82) en sortent. À vérifier : `SELECT pg_get_functiondef('public.generate_daily_challenge'::regproc);`.
 
-Logos d'écuries : pas encore (emplacement vide géré par `ClubLogo`) — Jolpica donne aussi l'article
-Wikipedia de chaque écurie.
+Logos d'écuries : Bloc 40.
+
+---
+
+## ✅ Bloc 40 terminé — Logos des écuries, sans fond
+
+`npm run seed:formula1:logos` (`scripts/formula1/seedLogos.ts`) : le logo de chaque écurie, nettoyé,
+**committé** dans `public/logos/formula1/` (83 fichiers, ~670 Ko) et posé dans `clubs.logo_url`.
+**119 écuries sur 172** en ont un ; les autres — surtout des privés des années 50-80, mais aussi BRM,
+Surtees, Toyota, Porsche, dont l'article n'a pas de logo — gardent l'emplacement vide de `ClubLogo`.
+
+### D'où vient le logo — `scripts/formula1/lib/logos.ts`
+
+1. Le champ **`logo` de l'infobox** de l'article Wikipedia anglais que Jolpica lie à l'écurie (section 0
+   du wikitexte). C'est le seul endroit où vivent les logos déposés (Ferrari, Red Bull, Mercedes ne sont
+   pas sur Commons : Wikidata n'a que 42 logos sur 203). **Pas l'image de tête** : une photo de voiture
+   une fois sur deux (Maserati, Rebaque).
+2. À défaut, le **« logo image » de Wikidata (P154)**, seulement s'il est dessiné (SVG, PNG) : certains
+   items pointent une photo (celui d'Alta est son moteur).
+3. **`PHOTOGRAPHS`** : 15 fichiers d'infobox relus sur la planche de contact et écartés — voiture en
+   piste, badge sur un capot, plaque de châssis. Clé = le fichier : un article qui reçoit un vrai logo
+   est repris.
+
+Les écuries d'un même article partagent son logo (les « Lotus-Climax » et « Lotus-BRM » sont Team Lotus) ;
+fichier nommé d'après l'article (`team-lotus.png`).
+
+### Le nettoyage — `scripts/common/lib/logos.ts` (partagé avec le basketball)
+
+Rendu Wikimedia à 256 px (un SVG revient en PNG), puis, dans l'ordre :
+
+- **`withoutFrame`** : un logo tracé dans un fin cadre au bord de l'image (Stewart, Larrousse) — le cadre
+  enferme le blanc, le remplissage ne l'atteindrait jamais : on le rogne d'abord (≤ 4 px, seulement si
+  l'anneau intérieur est presque tout blanc).
+- **`removeWhiteBackground`** : celui du basketball (Bloc 32), déplacé ici sans changement.
+- **`lightenDarkInk`** : un logo à **≥ 90 % d'encre sombre et sans couleur** (luminance < 140,
+  saturation < 0,35 — noir et gris moyens) voit cette encre redessinée en `--text-primary` : sur le thème
+  sombre, le liseré de `ClubLogo` ne suffisait pas (Aston Martin, Honda, Maserati invisibles). Seule
+  l'encre sombre change : le « GP » de Brawn, le vert de « Stake » gardent leur couleur. Un logo noir et
+  couleur ou sur une tuile noire (McLaren 0,87, Penske 0,86) reste tel quel. Wikipedia fait pareil en mode
+  sombre (`skin-invert`). 11 logos concernés.
+- marges transparentes rognées, puis **tenu dans 128 × 128** (`ClubLogo` l'affiche à ~26 px) : les badges
+  photographiés pesaient 250 Ko, ~8 Ko en moyenne maintenant.
+
+Reste sombre : quelques logos **colorés** foncés (Penske, Vanwall, AlphaTauri, Caterham) — leur couleur
+est la marque. Les mots-symboles larges (Alfa Romeo, Aston Martin) sont petits dans le carré de
+`ClubLogo` : le carré garde les noms alignés, comme pour les autres sports.
+
+⚠️ **Ordre** : merger d'abord (les fichiers doivent être servis), puis `npm run seed:formula1:logos`
+(écrit `logo_url`). Avant, un `logo_url` pointerait un fichier absent — sans casse (`ClubLogo` montre son
+emplacement vide), mais inutile. `--dry-run` écrit les fichiers sans toucher la base.
 
 ---
 
@@ -1730,6 +1778,6 @@ Saisie user
     `npm run daily:ranking -- --day=…` sur un jour joué en retard (colonne `late`)
 41. Basketball (Bloc 32) : appliquer `027` puis `029`, `:clubs` → `:players`, puis dans la même heure
     `:memberships` → `:fame` → `:prestige` → `fame:exposure` ; lire `fame:report` ; `028` ; merger
-42. ~~F1 (Blocs 34, 35, 39)~~ : `031` appliquée, import fait le 2026-10-08, #1 tiré ; reste : merger le jour
-    même, logos d'écuries, bande du tirage (40 pilotes) — et comprendre pourquoi le tirage de prod
-    sort de la bande 60–80 (tous les sports)
+42. ~~F1 (Blocs 34, 35, 39, 40)~~ : `031` appliquée, import fait le 2026-10-08, #1 tiré, logos d'écuries
+    (lancer `seed:formula1:logos` après le merge) ; reste : bande du tirage (40 pilotes) — et comprendre
+    pourquoi le tirage de prod sort de la bande 60–80 (tous les sports)

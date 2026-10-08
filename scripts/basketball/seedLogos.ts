@@ -3,9 +3,11 @@ import path from 'node:path'
 import { updateClubLogos } from '@/services/clubsService'
 import { ServiceError } from '@/services/errors'
 import { getDb } from '../common/env'
+import { fetchBinaryWithCache } from '../common/fetchWithCache'
 import { inputPath } from '../common/paths'
 import { loadSeededIds, seededIdPaths } from '../common/seedDataset'
-import { logoFileName, publicLogoUrl, removeWhiteBackground } from './lib/logos'
+import { removeWhiteBackground } from '../common/lib/logos'
+import { logoFileName, publicLogoUrl } from './lib/logos'
 import { loadBasketballDataset } from './lib/seed'
 
 const PUBLIC_DIR = path.resolve(__dirname, '../../public/logos/basketball')
@@ -32,7 +34,9 @@ async function main() {
       continue
     }
     const fileName = logoFileName(club.logoUrl)
-    const original = await fetchOriginal(club.logoUrl, inputPath('basketball', 'logos', fileName))
+    const original = await fetchBinaryWithCache(club.logoUrl, inputPath('basketball', 'logos', fileName), {
+      delayMs: DELAY_MS,
+    })
     fs.writeFileSync(path.join(PUBLIC_DIR, fileName), await removeWhiteBackground(original))
     if (clubIds[club.sourceId]) rows.push({ clubId: clubIds[club.sourceId], logoUrl: publicLogoUrl(fileName) })
   }
@@ -48,18 +52,6 @@ async function main() {
   } catch (err) {
     throw new Error(`Failed to update logos: ${err instanceof ServiceError ? err.message : String(err)}`)
   }
-}
-
-/** Binary counterpart of `fetchWithCache`, which reads text. */
-async function fetchOriginal(url: string, cachePath: string): Promise<Buffer> {
-  if (fs.existsSync(cachePath)) return fs.readFileSync(cachePath)
-  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; iplayedwith-seed-script/1.0)' } })
-  if (!res.ok) throw new Error(`Fetch failed (${res.status}) for ${url}`)
-  const body = Buffer.from(await res.arrayBuffer())
-  fs.mkdirSync(path.dirname(cachePath), { recursive: true })
-  fs.writeFileSync(cachePath, body)
-  await new Promise((resolve) => setTimeout(resolve, DELAY_MS))
-  return body
 }
 
 main().catch((err) => {

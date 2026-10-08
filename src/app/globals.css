@@ -1232,6 +1232,147 @@ body {
   color: var(--accent-hover);
 }
 
+/* Contact: the address in plain sight, then the form. The address stays the way out if the form fails. */
+.contact {
+  width: 100%;
+}
+
+.contact__email {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-md);
+  background: var(--accent-dim);
+}
+
+.about-screen__section .contact__address {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.contact__copy {
+  margin-left: auto;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+}
+
+.contact__form-title {
+  margin-top: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.contact__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.contact__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 520px) {
+  .contact__row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.contact__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.contact__field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.contact__optional {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.contact__input {
+  width: 100%;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 0.95rem;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.contact__input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.contact__input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+.contact__textarea {
+  min-height: 140px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.contact__hint {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.contact__error {
+  font-size: 0.85rem;
+  color: var(--error);
+}
+
+.about-screen__section .contact__error a {
+  color: var(--error);
+  text-decoration: underline;
+}
+
+.contact__send {
+  align-self: flex-start;
+}
+
+.contact__sent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--success);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+}
+
+/* The honeypot: off-screen rather than display:none, which some bots know to skip. */
+.contact__trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
 /* ─── Setup screen ──────────────────────────────────────── */
 .setup-screen {
   display: flex;

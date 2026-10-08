@@ -462,7 +462,7 @@ ancien au plus récent, matchs additionnés (null si aucune saison n'en donne).
 
 `/about`, volontairement court : origine des données (rugby : allrugby.com + all.rugby ; football :
 Transfermarkt via `dcaribou/transfermarkt-datasets`, CC0), auteur (`louisaldsr` → GitHub),
-formulaire de contact « bientôt ». Pas de dons pour l'instant.
+contact (Bloc 30). Pas de dons pour l'instant.
 
 ---
 
@@ -1199,7 +1199,47 @@ hasard à `POST /api/visitor` remplissait la table et épuisait les noms. Désor
 - **Ne protège pas** d'un script qui appelle « start » avec des UUID au hasard : la porte est unique
   maintenant, mais il reste à la limiter (règle de pare-feu Vercel par IP, BotID).
 
-## ✅ Bloc 30 terminé — Logos des clubs dans la carrière et sur les liens
+## ✅ Bloc 30 terminé — Contact : l'adresse en clair + un formulaire
+
+`/about` a une section **Contact** : l'adresse **`contact@iplayedwith.com`** en grand (lien `mailto:`,
+bouton « Copier l'adresse »), puis un formulaire nom (facultatif) · e-mail (facultatif — sans lui, pas
+de réponse possible) · message (`ContactSection`).
+
+- **L'adresse** est un alias **ImprovMX** (gratuit) qui transfère vers la boîte de l'auteur : son nom
+  n'apparaît nulle part. DNS chez Vercel : `MX 10 mx1.improvmx.com`, `MX 20 mx2.improvmx.com`,
+  `TXT v=spf1 include:spf.improvmx.com ~all` (un seul SPF par nom : en ajouter un autre = fusionner).
+  Constante `CONTACT_EMAIL` (`src/lib/siteUrl.ts`).
+- **Le formulaire envoie un e-mail, rien n'est stocké** (choix explicite) : `POST /api/contact` →
+  **Resend** (API HTTP, un `fetch`, pas de SDK — `src/lib/mailer.ts`), de
+  `contact-form@iplayedwith.com` vers `CONTACT_EMAIL`, **Reply-To** = l'e-mail du visiteur : répondre
+  depuis sa boîte lui répond. L'id du visiteur est joint (retrouver ses résultats). Un envoi raté est
+  perdu — le formulaire le dit et renvoie vers l'adresse.
+- **Règles** (`parseContactMessage`, `src/domain/contactMessage.ts`, partagé formulaire + serveur) :
+  message 10 à 3 000 caractères, nom ≤ 60, e-mail plausible ≤ 254 ; nom et e-mail **sur une ligne**
+  (ils vont dans le sujet et le Reply-To).
+- **Anti-spam** : un champ piège `website` (hors écran, hors tabulation) ; rempli → 204 comme si
+  envoyé, rien ne part. Pas de limite de débit (sans base, rien pour compter) : à ajouter si le
+  spam arrive.
+
+| réponse | sens |
+|---|---|
+| 204 | envoyé (ou piège rempli) |
+| 400 `{ error: 'invalid', problem }` | `message-too-short` · `message-too-long` · `email` · `name-too-long` |
+| 502 | Resend a refusé (logué) |
+| 503 | pas de `RESEND_API_KEY` sur ce serveur |
+
+### Mise en route (une fois, hors code)
+
+1. Compte Resend → *Domains* → `iplayedwith.com` (région `eu-west-1`) : ajouter dans Vercel DNS les
+   enregistrements qu'il donne (DKIM `resend._domainkey`, MX + SPF sur `send.`) — **sur `send.`, pas
+   à la racine** : le SPF racine reste celui d'ImprovMX. *Verify*.
+2. *API Keys* → clé « Sending access » limitée au domaine → `RESEND_API_KEY` dans Vercel (Production)
+   et dans `.env.local`. Sans elle, le formulaire répond 503 et renvoie vers l'adresse.
+
+Tests : `tests/unit/app/contact.test.ts` mocke `fetch` — Resend n'est jamais appelé. e2e :
+`contact.spec.ts` mocke `/api/contact`.
+
+## ✅ Bloc 31 terminé — Logos des clubs dans la carrière et sur les liens
 
 `clubs.logo_url`, rempli à l'import pour **tous** les clubs (rugby : 82, Wikimedia ; football : 176,
 CDN Transfermarkt), ne servait qu'aux cartes club du mode difficile. Il arrivait déjà au navigateur
@@ -1216,6 +1256,8 @@ partout où un club est lu (`findManyByIds` le sélectionne) : **aucun changemen
 - Liens directs vers les CDN (`<img>`, `loading="lazy"`, `referrerPolicy="no-referrer"`), comme les
   cartes club : pas de `next/image`, qui demanderait de déclarer les domaines et ferait passer les
   images par l'optimiseur de Vercel.
+  
+---
 
 ## Tests e2e — jamais la vraie base
 
@@ -1280,7 +1322,7 @@ Saisie user
     et retirer le défi de demain (contrôles en bas du fichier)
 20. ~~Accueil : détection de première visite + pop-up des règles~~
 21. ~~Menu principal + page À propos~~
-22. Formulaire de contact ; dons (plateforme à choisir) ; plateau lisible sur mobile (A et B se
+22. ~~Formulaire de contact~~ (Bloc 30 — reste : compte Resend + clé, voir le bloc) ; dons (plateforme à choisir) ; plateau lisible sur mobile (A et B se
     chevauchent à 390 px)
 23. ~~Vies dans le défi du jour~~
 24. ~~Révéler la solution du jour~~ (une fois la journée finie côté serveur, Bloc 20) ;

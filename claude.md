@@ -1342,6 +1342,25 @@ Les blasons tout en encre sombre (Spurs, Bulls, Portland) comptent sur le liser�
 comme les blasons sombres du football. `updateClubLogos` (`clubsService`) : la seule écriture de
 `logo_url` après création.
 
+## ✅ Bloc 33 terminé — Jouer au clavier
+
+Sur ordinateur, un coup se joue sans souris :
+
+- **Dans la liste** (`AutocompleteInput`, donc aussi le choix de A/B en partie libre et la recherche
+  de club du mode difficile) : **↓** part de la meilleure correspondance, **↑** de la dernière ligne,
+  les deux bouclent ; **Entrée** choisit la ligne surlignée — rien de surligné, Entrée soumet toujours
+  un nom tapé en entier ; **Échap** retire le surlignage. Motif combobox WAI-ARIA
+  (`aria-activedescendant`). Le survol de la souris ne déplace **pas** le surlignage : une liste ouverte
+  sous un curseur immobile ferait choisir à Entrée un joueur jamais visé.
+- **Une fois choisi** (`InputChip`, `MoveInput`) : la pastille prend le focus — le champ disparaissait,
+  le clavier n'avait plus de cible. **Entrée / Espace** joue le coup (seulement s'il est jouable : pas en
+  cours d'envoi, pas sans saison en mode difficile) ; **Retour arrière / Suppr / Échap** retire le joueur
+  et rend le champ, focus compris.
+
+e2e : `sport.spec.ts` joue un coup au clavier seul.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :

@@ -3082,7 +3082,8 @@ body {
     color 0.1s;
 }
 
-.autocomplete-item:hover {
+.autocomplete-item:hover,
+.autocomplete-item--active {
   background: var(--bg-elevated);
   color: var(--text-primary);
 }
@@ -3131,6 +3132,12 @@ body {
 
 .input-chip__clear:hover {
   color: var(--text-primary);
+}
+
+/* Focused right after a pick: Enter or Space plays it, Backspace, Delete or Escape drops it. */
+.input-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* ─── Season chips ───────────────────────────────────────── */

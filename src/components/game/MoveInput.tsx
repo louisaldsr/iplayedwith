@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Player } from '../../domain/player'
 import { ClubSearchResult } from '../../domain/club'
 import { PlayerId } from '../../domain/ids'
@@ -24,11 +24,31 @@ type Props = {
   onEdit?: () => void
 }
 
-type Chip = { label: string; onClear: () => void }
+type Chip = { label: string; onClear: () => void; onConfirm: () => void }
 
-function InputChip({ label, onClear }: Chip) {
+/**
+ * A picked suggestion, waiting to be played. It takes the focus when it replaces the
+ * field, so the keyboard carries on where it was: Enter or Space plays the move,
+ * Backspace, Delete or Escape drops the pick and brings the field back.
+ */
+function InputChip({ label, onClear, onConfirm }: Chip) {
+  const ref = useRef<HTMLSpanElement>(null)
+  useEffect(() => ref.current?.focus(), [])
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLSpanElement>) {
+    // Keys on the × button are the button's own.
+    if (e.target !== e.currentTarget) return
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onConfirm()
+    } else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Escape') {
+      e.preventDefault()
+      onClear()
+    }
+  }
+
   return (
-    <span className="input-chip">
+    <span ref={ref} className="input-chip" tabIndex={0} onKeyDown={handleKeyDown}>
       {label}
       <button type="button" className="input-chip__clear" onClick={onClear} aria-label={`Remove ${label}`}>
         ×
@@ -52,6 +72,8 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
   const [hardClub, setHardClub] = useState<ClubSearchResult | null>(null)
   const [hardSeason, setHardSeason] = useState<Season | null>(null)
   const [availableSeasons, setAvailableSeasons] = useState<Season[]>([])
+
+  const formRef = useRef<HTMLFormElement>(null)
 
   const playerSearch = useCallback((q: string, signal: AbortSignal) => searchPlayers(sport, q, signal), [sport])
   const clubSearch = useCallback((q: string, signal: AbortSignal) => searchClubs(sport, q, signal), [sport])
@@ -134,10 +156,11 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
   if (difficulty === 'easy') {
     const easyCanSubmit = !submitting && (!!easyPlayer || available.some((p) => searchEquals(p.name, easyQuery)))
     return (
-      <form onSubmit={handleEasySubmit} className="move-input">
+      <form ref={formRef} onSubmit={handleEasySubmit} className="move-input">
         {easyPlayer ? (
           <InputChip
             label={easyPlayer.name}
+            onConfirm={() => easyCanSubmit && formRef.current?.requestSubmit()}
             onClear={() => {
               setEasyPlayer(null)
               setEasyQuery('')
@@ -203,7 +226,7 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
       : (!!hardClub || clubResults.some((c) => clubMatches(c, hardClubQuery))) && !!hardSeason)
 
   return (
-    <form onSubmit={handleHardSubmit} className="move-input move-input--hard">
+    <form ref={formRef} onSubmit={handleHardSubmit} className="move-input move-input--hard">
       <div className="move-input__toggle">
         <button
           type="button"
@@ -221,6 +244,7 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
         (hardPlayer ? (
           <InputChip
             label={hardPlayer.name}
+            onConfirm={() => hardCanSubmit && formRef.current?.requestSubmit()}
             onClear={() => {
               setHardPlayer(null)
               setHardPlayerQuery('')
@@ -250,6 +274,7 @@ export function MoveInput({ sport, difficulty, alreadyInGraph, submitting = fals
           {hardClub ? (
             <InputChip
               label={hardClub.name}
+              onConfirm={() => hardCanSubmit && formRef.current?.requestSubmit()}
               onClear={() => {
                 setHardClub(null)
                 setHardClubQuery('')

@@ -71,4 +71,71 @@ describe('AutocompleteInput', () => {
     expect(screen.getByText('No results')).toBeInTheDocument()
     expect(screen.queryByText('Search unavailable')).not.toBeInTheDocument()
   })
+
+  describe('keyboard', () => {
+    const input = () => screen.getByPlaceholderText('Search a club…')
+    const active = () => screen.queryByRole('option', { selected: true })
+
+    it('walks the list with the arrows, wrapping at both ends', () => {
+      renderInput()
+
+      fireEvent.keyDown(input(), { key: 'ArrowDown' })
+      expect(active()).toHaveTextContent('Stade Rochelais')
+      fireEvent.keyDown(input(), { key: 'ArrowDown' })
+      expect(active()).toHaveTextContent('Stade Toulousain')
+      fireEvent.keyDown(input(), { key: 'ArrowDown' })
+      expect(active()).toHaveTextContent('Stade Rochelais')
+      fireEvent.keyDown(input(), { key: 'ArrowUp' })
+      expect(active()).toHaveTextContent('Stade Toulousain')
+    })
+
+    it('starts on the last row when going up', () => {
+      renderInput()
+
+      fireEvent.keyDown(input(), { key: 'ArrowUp' })
+
+      expect(active()).toHaveTextContent('Stade Toulousain')
+      expect(input()).toHaveAttribute('aria-activedescendant', active()!.id)
+    })
+
+    it('picks the highlighted row on Enter', () => {
+      const { onSelect } = renderInput()
+
+      fireEvent.keyDown(input(), { key: 'ArrowDown' })
+      fireEvent.keyDown(input(), { key: 'ArrowDown' })
+      fireEvent.keyDown(input(), { key: 'Enter' })
+
+      expect(onSelect).toHaveBeenCalledWith(toulousain)
+    })
+
+    // With nothing highlighted, Enter is the form's: a name typed in full still submits.
+    it('leaves Enter alone when no row is highlighted', () => {
+      const { onSelect } = renderInput()
+
+      const enter = fireEvent.keyDown(input(), { key: 'Enter' })
+
+      expect(enter).toBe(true)
+      expect(onSelect).not.toHaveBeenCalled()
+    })
+
+    it('drops the highlight on Escape', () => {
+      renderInput()
+
+      fireEvent.keyDown(input(), { key: 'ArrowDown' })
+      fireEvent.keyDown(input(), { key: 'Escape' })
+
+      expect(active()).toBeNull()
+    })
+
+    it('drops the highlight when the query changes', () => {
+      const onChange = jest.fn()
+      renderInput({ onChange })
+
+      fireEvent.keyDown(input(), { key: 'ArrowDown' })
+      fireEvent.change(input(), { target: { value: 'la roche' } })
+
+      expect(onChange).toHaveBeenCalledWith('la roche')
+      expect(active()).toBeNull()
+    })
+  })
 })

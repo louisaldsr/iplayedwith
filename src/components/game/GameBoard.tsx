@@ -9,15 +9,25 @@ import { DailySolution } from '../../domain/dailySolution'
 import { GameNode } from '../../graph/node'
 import { playerKey, clubKey } from '../../game/graphBuilder'
 import { NodeCard } from './NodeCard'
+import {
+  Point,
+  Size,
+  cardSizeFor,
+  centreOf,
+  fromFraction,
+  isCompact,
+  placeCard,
+  settleCard,
+  targetSpots,
+  toFraction,
+} from './boardLayout'
 import { ClubLogo } from '../shared/ClubLogo'
 
-const NODE_WIDTH = 160
-const NODE_HEIGHT = 90
-const MIN_GAP = 180
 /** A press that moves less than this is a click (open the career), not a drag. */
 const CLICK_TOLERANCE = 5
+/** Measured once mounted; jsdom measures nothing. */
+const FALLBACK_SIZE: Size = { w: 800, h: 500 }
 
-type Position = { x: number; y: number }
 type DragState = {
   key: string
   startX: number
@@ -46,81 +56,25 @@ type Props = {
   solution?: DailySolution
 }
 
-/** The free spot nearest to `around` (a card's centre) — by default, the board's centre. */
-function findFreePosition(
-  existing: Map<string, Position>,
-  boardW: number,
-  boardH: number,
-  around: { x: number; y: number } = { x: boardW / 2, y: boardH / 2 },
-): Position {
-  const cx = around.x
-  const cy = around.y
-  for (let r = 0; r <= Math.max(boardW, boardH); r += MIN_GAP / 2) {
-    const steps = r === 0 ? 1 : Math.max(6, Math.ceil((2 * Math.PI * r) / (MIN_GAP / 2)))
-    for (let s = 0; s < steps; s++) {
-      const angle = (s / steps) * 2 * Math.PI
-      const x = cx + r * Math.cos(angle) - NODE_WIDTH / 2
-      const y = cy + r * Math.sin(angle) - NODE_HEIGHT / 2
-      if (x < 8 || y < 8 || x + NODE_WIDTH > boardW - 8 || y + NODE_HEIGHT > boardH - 8) continue
-      const ncx = x + NODE_WIDTH / 2
-      const ncy = y + NODE_HEIGHT / 2
-      let ok = true
-      for (const p of existing.values()) {
-        const dx = p.x + NODE_WIDTH / 2 - ncx
-        const dy = p.y + NODE_HEIGHT / 2 - ncy
-        if (dx * dx + dy * dy < MIN_GAP * MIN_GAP) {
-          ok = false
-          break
-        }
-      }
-      if (ok) return { x, y }
-    }
-  }
-  return { x: 8, y: 8 }
-}
-
 /**
  * Where a proposed solution player belongs: on the chain, between the nearest of its neighbours
  * already placed — so the solution reads as one line, A to B. Null when no neighbour is placed.
  */
-function chainSpot(path: PlayerId[], i: number, placed: Map<string, Position>): { x: number; y: number } | null {
-  const centreOf = (j: number) => {
+function chainSpot(path: PlayerId[], i: number, placed: Map<string, Point>, card: Size): Point | null {
+  const centreAt = (j: number) => {
     const p = placed.get(playerKey(path[j]))
-    return p && { x: p.x + NODE_WIDTH / 2, y: p.y + NODE_HEIGHT / 2 }
+    return p && centreOf(p, card)
   }
   let before = -1
-  for (let j = i - 1; j >= 0 && before < 0; j--) if (centreOf(j)) before = j
+  for (let j = i - 1; j >= 0 && before < 0; j--) if (centreAt(j)) before = j
   let after = -1
-  for (let j = i + 1; j < path.length && after < 0; j++) if (centreOf(j)) after = j
+  for (let j = i + 1; j < path.length && after < 0; j++) if (centreAt(j)) after = j
   if (before < 0 && after < 0) return null
-  if (before < 0 || after < 0) return centreOf(before < 0 ? after : before)!
+  if (before < 0 || after < 0) return centreAt(before < 0 ? after : before)!
   const t = (i - before) / (after - before)
-  const a = centreOf(before)!
-  const b = centreOf(after)!
+  const a = centreAt(before)!
+  const b = centreAt(after)!
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }
-}
-
-function resolveOverlap(key: string, positions: Map<string, Position>): Map<string, Position> {
-  const pos = positions.get(key)
-  if (!pos) return positions
-  let nx = pos.x
-  let ny = pos.y
-  const cx = pos.x + NODE_WIDTH / 2
-  const cy = pos.y + NODE_HEIGHT / 2
-  for (const [k, p] of positions) {
-    if (k === key) continue
-    const ox = p.x + NODE_WIDTH / 2
-    const oy = p.y + NODE_HEIGHT / 2
-    const dx = cx - ox
-    const dy = cy - oy
-    const dist = Math.sqrt(dx * dx + dy * dy)
-    if (dist > 0 && dist < MIN_GAP) {
-      const push = (MIN_GAP - dist) / 2
-      nx += (dx / dist) * push
-      ny += (dy / dist) * push
-    }
-  }
-  return new Map(positions).set(key, { x: nx, y: ny })
 }
 
 function computePlayerPairEdges(edges: { playerId: PlayerId; clubId: ClubId; season: Season }[]): PlayerPairEdge[] {
@@ -150,7 +104,9 @@ function computePlayerPairEdges(edges: { playerId: PlayerId; clubId: ClubId; sea
 
 export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Props) {
   const boardRef = useRef<HTMLDivElement>(null)
-  const [positions, setPositions] = useState<Map<string, Position>>(new Map())
+  const [size, setSize] = useState<Size | null>(null)
+  /** Each card's place as a share of the board (see `toFraction`): a resize carries the cards along. */
+  const [fractions, setFractions] = useState<Map<string, Point>>(new Map())
   const [dragging, setDragging] = useState<DragState | null>(null)
   const [hoveredEdge, setHoveredEdge] = useState<string | null>(null)
   const [selectedEdge, setSelectedEdge] = useState<PlayerPairEdge | null>(null)
@@ -158,6 +114,24 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
   useEffect(() => {
     setSelectedEdge(null)
   }, [game.edges.length])
+
+  useEffect(() => {
+    const el = boardRef.current
+    if (!el) return
+    const measure = () => {
+      const w = el.clientWidth || FALLBACK_SIZE.w
+      const h = el.clientHeight || FALLBACK_SIZE.h
+      setSize((prev) => (prev?.w === w && prev?.h === h ? prev : { w, h }))
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  const board = size ?? FALLBACK_SIZE
+  const card = cardSizeFor(board)
 
   // The board's cards: the visitor's, then the proposed solution's players it does not have yet.
   const nodes = useMemo(() => {
@@ -168,43 +142,61 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
     return all
   }, [game, solution])
 
-  useEffect(() => {
-    const pAKey = playerKey(game.playerA.id)
-    const pBKey = playerKey(game.playerB.id)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const playerPairEdges = useMemo(() => computePlayerPairEdges(game.edges), [game.edges.length])
 
-    setPositions((prev) => {
+  // The proposed solution's links, and those of the visitor's that it shares.
+  const solutionPairEdges = useMemo(() => (solution ? computePlayerPairEdges(solution.edges) : []), [solution])
+
+  /** Every line drawn on the board, by the node keys at its ends — what a new card keeps clear of. */
+  const links = useMemo<[string, string][]>(
+    () =>
+      game.difficulty === 'easy'
+        ? [...playerPairEdges, ...solutionPairEdges].map((e) => [playerKey(e.playerAId), playerKey(e.playerBId)])
+        : game.edges.map((e) => [playerKey(e.playerId), clubKey(e.clubId, e.season)]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [game.difficulty, game.edges.length, playerPairEdges, solutionPairEdges],
+  )
+
+  useEffect(() => {
+    if (!size) return
+    const aKey = playerKey(game.playerA.id)
+    const bKey = playerKey(game.playerB.id)
+    const rank = (k: string) => (k === aKey ? 0 : k === bKey ? 1 : 2)
+
+    setFractions((prev) => {
       const newKeys = [...nodes.keys()].filter((k) => !prev.has(k))
       if (newKeys.length === 0) return prev
 
-      const boardW = boardRef.current?.clientWidth ?? 800
-      const boardH = boardRef.current?.clientHeight ?? 500
+      const placed = new Map([...prev].map(([k, f]) => [k, fromFraction(f, size, card)]))
+      const state = { board: size, card, placed, links, aKey, bKey }
+      const ends = targetSpots(size, card)
       const next = new Map(prev)
 
-      const sorted = [...newKeys].sort((a, b) => {
-        if (a === pAKey) return -1
-        if (b === pAKey) return 1
-        if (a === pBKey) return -1
-        if (b === pBKey) return 1
-        return 0
-      })
-
-      for (const key of sorted) {
-        if (key === pAKey) {
-          next.set(key, { x: boardW * 0.1, y: boardH / 2 - NODE_HEIGHT / 2 })
-        } else if (key === pBKey) {
-          next.set(key, { x: boardW * 0.82 - NODE_WIDTH, y: boardH / 2 - NODE_HEIGHT / 2 })
-        } else {
-          // A proposed solution player goes on the chain; any other card, near the centre.
+      // A and B first: every other card is placed relative to them.
+      for (const key of [...newKeys].sort((a, b) => rank(a) - rank(b))) {
+        let spot: Point
+        if (key === aKey) spot = ends.a
+        else if (key === bKey) spot = ends.b
+        else {
+          // A proposed solution player aims for the chain; any other card, for its links.
           const node = nodes.get(key)
           const onChain = node?.kind === 'player' && !game.nodes.has(key) ? (solution?.path.indexOf(node.id) ?? -1) : -1
-          const spot = onChain >= 0 ? chainSpot(solution!.path, onChain, next) : null
-          next.set(key, findFreePosition(next, boardW, boardH, spot ?? undefined))
+          const aim = onChain >= 0 ? chainSpot(solution!.path, onChain, placed, card) : null
+          spot = placeCard(key, state, aim ?? undefined)
         }
+        placed.set(key, spot)
+        next.set(key, toFraction(spot, size, card))
       }
 
       return next
     })
-  }, [game, nodes, solution])
+  }, [game, nodes, links, solution, size, card])
+
+  const positions = useMemo(
+    () => new Map([...fractions].map(([k, f]) => [k, fromFraction(f, board, card)])),
+    [fractions, board, card],
+  )
 
   const handlePointerDown = (e: React.PointerEvent, key: string) => {
     e.preventDefault()
@@ -216,16 +208,21 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!dragging) return
-    const boardW = boardRef.current?.clientWidth ?? 800
-    const boardH = boardRef.current?.clientHeight ?? 500
-    const nx = Math.max(0, Math.min(dragging.originX + (e.clientX - dragging.startX), boardW - NODE_WIDTH))
-    const ny = Math.max(0, Math.min(dragging.originY + (e.clientY - dragging.startY), boardH - NODE_HEIGHT))
-    setPositions((prev) => new Map(prev).set(dragging.key, { x: nx, y: ny }))
+    const nx = Math.max(0, Math.min(dragging.originX + (e.clientX - dragging.startX), board.w - card.w))
+    const ny = Math.max(0, Math.min(dragging.originY + (e.clientY - dragging.startY), board.h - card.h))
+    setFractions((prev) => new Map(prev).set(dragging.key, toFraction({ x: nx, y: ny }, board, card)))
   }
 
+  // Dropped on another card, a card moves to the nearest free spot.
   const handlePointerCancel = () => {
     if (!dragging) return
-    setPositions((prev) => resolveOverlap(dragging.key, prev))
+    const at = positions.get(dragging.key)
+    if (at) {
+      const aKey = playerKey(game.playerA.id)
+      const bKey = playerKey(game.playerB.id)
+      const spot = settleCard(dragging.key, at, { board, card, placed: positions, links, aKey, bKey })
+      if (spot !== at) setFractions((prev) => new Map(prev).set(dragging.key, toFraction(spot, board, card)))
+    }
     setDragging(null)
   }
 
@@ -252,16 +249,15 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
   const clubMap = new Map(allClubs.map((c) => [c.id as string, c.name]))
   const isTarget = (id: string) => id === game.playerA.id || id === game.playerB.id
 
-  const center = (key: string): { x: number; y: number } | null => {
+  const center = (key: string): Point | null => {
     const p = positions.get(key)
-    if (!p) return null
-    return { x: p.x + NODE_WIDTH / 2, y: p.y + NODE_HEIGHT / 2 }
+    return p ? centreOf(p, card) : null
   }
 
-  // ── Easy mode ──────────────────────────────────────────────────────────────
+  /** The card size is the layout's: the CSS reads it rather than repeating it. */
+  const boardStyle = { '--node-width': `${card.w}px`, '--node-height': `${card.h}px` } as React.CSSProperties
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const playerPairEdges = useMemo(() => computePlayerPairEdges(game.edges), [game.edges.length])
+  // ── Easy mode ──────────────────────────────────────────────────────────────
 
   const pathPairKeys = useMemo(() => {
     const set = new Set<string>()
@@ -272,8 +268,6 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
     return set
   }, [game.path])
 
-  // The proposed solution's links, and those of the visitor's that it shares.
-  const solutionPairEdges = useMemo(() => (solution ? computePlayerPairEdges(solution.edges) : []), [solution])
   const solutionPairKeys = useMemo(() => new Set(solutionPairEdges.map((e) => e.key)), [solutionPairEdges])
   const solutionOnly = solutionPairEdges.filter((e) => !playerPairEdges.some((own) => own.key === e.key))
   const onSolution = (id: PlayerId) => solution?.path.includes(id) ?? false
@@ -281,6 +275,7 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
   // A path only exists once A and B are connected: the board is then a won board, its chain lit up.
   const boardClass = [
     'game-board',
+    isCompact(board) ? 'game-board--compact' : '',
     game.path.length > 0 ? 'game-board--won' : '',
     solution ? 'game-board--solution' : '',
   ]
@@ -296,6 +291,7 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
       <div
         ref={boardRef}
         className={boardClass}
+        style={boardStyle}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
@@ -419,6 +415,7 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
     <div
       ref={boardRef}
       className={boardClass}
+      style={boardStyle}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}

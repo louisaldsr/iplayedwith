@@ -1418,6 +1418,42 @@ générée réécrit `memberships` (~100 k lignes), quelques secondes sous verro
 
 ---
 
+## ✅ Bloc 36 terminé — Placement des cartes sur le plateau
+
+Une carte tombait au plus près du **centre** du plateau, sans regarder ses liens : un joueur lié à A
+pouvait atterrir à côté de B, ses liens traversant tout le plateau, les cartes recouvraient les liens.
+Sur téléphone, A et B se chevauchaient, et une fois les places libres épuisées **toutes** les cartes
+suivantes s'empilaient dans le coin en haut à gauche. Placement réécrit dans `boardLayout.ts`
+(`src/components/game/`), géométrie pure, testée sans React.
+
+- **A et B sur le grand côté du plateau** : gauche / droite sur un plateau large, **haut / bas** sur un
+  téléphone (côte à côte, deux cartes remplissent sa largeur).
+- **Une place idéale** (`idealCentre`) : à côté des cartes auxquelles la nouvelle est liée, **un pas plus
+  loin vers le bout qu'elle n'a pas encore atteint** — liée au côté de A elle va vers B, liée au côté de
+  B vers A. La chaîne pousse des deux bouts vers le milieu et se lit A → B. Liée aux deux côtés, elle se
+  pose entre ses liens. Le pas laisse un lien visible — et cliquable — entre deux cartes.
+- **Puis la place la moins coûteuse** (`placeCard`), sur une grille (16 px, puis 4 px autour du
+  meilleur) : distance à l'idéal + recouvrir une carte ou les contrôles flottants (cœurs en bas, bandeau
+  d'erreur et interrupteur de solution en haut — `floatingZones`, à garder en phase avec leur CSS) +
+  un lien sous la carte + ses propres liens à travers une autre carte + croisements. Plateau plein : la
+  place la moins encombrée, jamais un coin. ~15 ms par carte sur un plateau de 20.
+- **Lâchée sur une autre carte**, une carte glisse à la place libre la plus proche (`settleCard`) ; sur
+  un terrain libre, elle reste où on l'a lâchée.
+- **Positions en fractions du plateau** (`toFraction`) : tourner le téléphone, ouvrir le clavier,
+  redimensionner la fenêtre emporte les cartes avec le plateau, aucune ne reste dehors. Le plateau se
+  mesure (`ResizeObserver`).
+- **Cartes compactes** sous 640 px de large ou 420 px de haut : 116 × 60 au lieu de 160 × 90, sans
+  l'avatar (le même pour tous), nom sur deux lignes. La taille vient du JS (`cardSizeFor`) et passe au
+  CSS par `--node-width` / `--node-height` sur le plateau : une seule source.
+- `.game-screen` en `100dvh` : sur téléphone, `100vh` passait sous la barre du navigateur, la saisie avec.
+- Les cartes proposées de la solution visent toujours leur place sur la chaîne (`chainSpot`), puis la
+  même recherche.
+
+e2e (`board.spec.ts`) : huit coups, sur téléphone et sur ordinateur — aucune carte n'en recouvre une
+autre, toutes dans le plateau, A avant B sur le grand côté.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -1481,8 +1517,8 @@ Saisie user
     et retirer le défi de demain (contrôles en bas du fichier)
 20. ~~Accueil : détection de première visite + pop-up des règles~~
 21. ~~Menu principal + page À propos~~
-22. ~~Formulaire de contact~~ (Bloc 30 — reste : compte Resend + clé, voir le bloc) ; dons (plateforme à choisir) ; plateau lisible sur mobile (A et B se
-    chevauchent à 390 px)
+22. ~~Formulaire de contact~~ (Bloc 30 — reste : compte Resend + clé, voir le bloc) ; dons (plateforme à choisir) ; ~~plateau lisible sur
+    mobile~~ (Bloc 36) ; reste : le plateau pendant la saisie, clavier ouvert
 23. ~~Vies dans le défi du jour~~
 24. ~~Révéler la solution du jour~~ (une fois la journée finie côté serveur, Bloc 20) ;
     ~~sauver le plateau en cours~~ ; ajuster les vies à la distance si les longs jours s'avèrent durs

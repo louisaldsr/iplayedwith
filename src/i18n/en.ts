@@ -1,5 +1,6 @@
 import type { NameAdjective, NameNoun } from '../domain/visitorName'
 import type { UsernameProblem } from '../domain/username'
+import type { ContactProblem } from '../domain/contactMessage'
 
 /** 1st, 2nd, 3rd, 4th… 11th, 12th, 13th… 21st. */
 function ordinal(n: number): string {
@@ -62,7 +63,29 @@ const en = {
     privacy:
       'No account. One cookie, holding the anonymous id your results are kept under, so they survive a browser that clears its storage; no tracking. Visits are counted anonymously (pages, countries, where visitors come from), never tied to you.',
     madeByTitle: 'Made by',
-    contactSoon: 'contact form coming soon.',
+    contact: {
+      title: 'Contact',
+      intro: 'A missing club, a wrong season, an idea? Write to',
+      copy: 'Copy the address',
+      copied: 'Copied',
+      formTitle: 'Or send a message from here',
+      name: 'Name',
+      email: 'Your email',
+      optional: 'optional',
+      emailHint: 'Only to answer you. Without it, no reply is possible.',
+      message: 'Message',
+      send: 'Send',
+      sending: 'Sending…',
+      sent: 'Message sent, thank you! If you left an email, the answer will arrive there.',
+      sendAnother: 'Send another message',
+      failed: 'The message could not be sent. Write directly to',
+      problems: {
+        'message-too-short': 'A little short: 10 characters at least.',
+        'message-too-long': 'A little long: 3,000 characters at most.',
+        email: 'This email does not look right.',
+        'name-too-long': 'A little long: 60 characters at most.',
+      } satisfies Record<ContactProblem, string>,
+    },
     back: 'Back to the menu',
   },
   rules: {

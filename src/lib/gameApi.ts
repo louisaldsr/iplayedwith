@@ -1,6 +1,7 @@
 import { Player } from '@/domain/player'
 import { ClubSearchResult } from '@/domain/club'
 import type { UsernameProblem } from '@/domain/username'
+import type { ContactProblem } from '@/domain/contactMessage'
 import { PlayerId } from '@/domain/ids'
 import { Season } from '@/domain/season'
 import { SportId } from '@/domain/sport'
@@ -212,4 +213,30 @@ export async function arePlayersConnected(playerAId: PlayerId, playerBId: Player
   if (!res.ok) return false
   const result: { valid: boolean } = await res.json()
   return result.valid
+}
+
+export type ContactResponse = { status: 'sent' } | { status: 'invalid'; problem: ContactProblem } | { status: 'failed' }
+
+/** Sends the contact form. Never throws: anything but a send or a refusal the form can explain is `failed`. */
+export async function sendContactMessage(body: {
+  name: string
+  email: string
+  message: string
+  visitorId: string
+  website: string
+}): Promise<ContactResponse> {
+  try {
+    const res = await fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (res.ok) return { status: 'sent' }
+    const json = (await res.json().catch(() => ({}))) as Record<string, unknown>
+    if (res.status === 400 && json.error === 'invalid')
+      return { status: 'invalid', problem: json.problem as ContactProblem }
+    return { status: 'failed' }
+  } catch {
+    return { status: 'failed' }
+  }
 }

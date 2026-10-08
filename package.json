@@ -34,6 +34,7 @@
     "seed:basketball:memberships": "tsx --env-file=.env.local scripts/basketball/seedMemberships.ts",
     "seed:basketball:fame": "tsx --env-file=.env.local scripts/basketball/seedFame.ts",
     "seed:basketball:prestige": "tsx --env-file=.env.local scripts/basketball/seedPrestige.ts",
+    "seed:basketball:logos": "tsx --env-file=.env.local scripts/basketball/seedLogos.ts",
     "fame:compute": "tsx --env-file=.env.local scripts/common/computeFame.ts",
     "fame:report": "tsx --env-file=.env.local scripts/common/fameReport.ts",
     "fame:exposure": "tsx --env-file=.env.local scripts/common/fameExposure.ts",
@@ -65,6 +66,7 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "prettier": "3.9.8",
+    "sharp": "0.34.5",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.12",
     "typescript": "^5.8.3"

@@ -4,7 +4,7 @@ import * as clubsRepo from '@/repositories/clubsRepository'
 import { ClubId } from '@/domain/ids'
 import { Club, ClubSearchResult } from '@/domain/club'
 import { SportId } from '@/domain/sport'
-import { ConflictError, NotFoundError } from '@/services/errors'
+import { ConflictError, NotFoundError, ValidationError } from '@/services/errors'
 
 export async function listClubs(db: SupabaseClient, sport: SportId, q?: string): Promise<ClubSearchResult[]> {
   return q ? clubsRepo.searchBySport(db, sport, q) : clubsRepo.listBySport(db, sport)
@@ -36,4 +36,21 @@ export async function createClub(
     logoUrl: input.logoUrl ?? undefined,
   }
   return clubsRepo.insert(db, club)
+}
+
+/**
+ * Replaces club crests in bulk, for a seed import — clubs are otherwise only ever created. One
+ * request per club: an import has a few dozen. Returns how many clubs matched.
+ */
+export async function updateClubLogos(
+  db: SupabaseClient,
+  sport: SportId,
+  rows: { clubId: string; logoUrl: string }[],
+): Promise<{ updated: number }> {
+  let updated = 0
+  for (const row of rows) {
+    if (!row.logoUrl.trim()) throw new ValidationError(`club ${row.clubId}: empty logo URL`)
+    if (await clubsRepo.updateLogoUrl(db, sport, ClubId(row.clubId), row.logoUrl)) updated++
+  }
+  return { updated }
 }

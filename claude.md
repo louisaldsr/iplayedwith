@@ -1289,7 +1289,7 @@ Dataset : 39 clubs, 3 820 joueurs, 23 047 memberships. `nationality` = **pays de
 (Tony Parker sort belge) — seule donnée de la source.
 
 ```
-seed:basketball:fetch → :build → :clubs → :players → :memberships → :fame → :prestige   puis 028 (alias)
+seed:basketball:fetch → :build → :clubs → :players → :memberships → :fame → :prestige → :logos   puis 028 (alias)
 ```
 
 ### ⚠️ Seeder les memberships lance le défi du jour
@@ -1328,6 +1328,19 @@ Si ça se reproduit : attendre une minute, puis `npm run fame:compute -- --sport
   Parker 83, Kobe 82, Durant 81, Jordan / Gasol / O'Neal 80. La bande de tirage 60–80 compte
   **114** joueurs (~300 en rugby et football) — un vivier plus étroit, que des noms connus.
 - `MAX_PLAUSIBLE_STARTS` passe de 100 à 250 (le plafond de `games`) : 98 saisons NBA dépassent 100.
+
+### Logos
+
+Basketball-Reference sert ses blasons en PNG à palette **sans transparence** : un carré blanc
+derrière chaque logo, visible sur le thème sombre — aucun `mix-blend-mode` ne l'enlève sans assombrir
+le blason. `seed:basketball:logos` (`scripts/basketball/lib/logos.ts`, `sharp`) le retire une fois :
+le blanc relié au bord devient transparent (le blanc **enfermé** dans le blason reste), et chaque
+pixel de bord est relu comme un mélange de la couleur intérieure et du blanc pour ne garder que sa
+part de blason — pas de halo clair. Les 39 PNG nettoyés sont **committés** dans
+`public/logos/basketball/` et `clubs.logo_url` pointe dessus (`/logos/basketball/BOS-2026.png`).
+Les blasons tout en encre sombre (Spurs, Bulls, Portland) comptent sur le liseré clair de `ClubLogo`,
+comme les blasons sombres du football. `updateClubLogos` (`clubsService`) : la seule écriture de
+`logo_url` après création.
 
 ## Tests e2e — jamais la vraie base
 

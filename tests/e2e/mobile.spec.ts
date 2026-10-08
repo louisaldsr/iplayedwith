@@ -51,14 +51,14 @@ test('the game: the clock and the name up top, the hearts in a corner, the field
 
 test('the sport tabs stay on one row: the others by their icon, still named for screen readers', async ({ page }) => {
   await asRegisteredVisitor(page)
-  for (const sport of ['rugby', 'football', 'basketball']) {
+  for (const sport of ['rugby', 'football', 'basketball', 'formula1']) {
     await mockApi(page, `/api/${sport}/daily/stats`, sampleDailyStats)
   }
   await page.goto('/')
   await page.getByRole('button', { name: 'My stats' }).click()
 
   const tabs = page.getByRole('dialog').getByRole('tab')
-  await expect(tabs).toHaveCount(3)
+  await expect(tabs).toHaveCount(4)
   const heights = await tabs.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height))
   expect(Math.max(...heights)).toBeLessThan(48)
 

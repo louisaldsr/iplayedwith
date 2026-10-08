@@ -20,16 +20,27 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('free-play setup screen', () => {
-  for (const sport of ['rugby', 'football', 'basketball'] as const) {
+  for (const sport of ['rugby', 'football', 'basketball', 'formula1'] as const) {
     test(`${sport} setup screen renders without loading a dataset`, async ({ page }) => {
       await page.goto(`/${sport}/free`)
-      await expect(page.getByPlaceholder('Search a player…').first()).toBeVisible()
+      await expect(page.getByPlaceholder(/Search a (player|driver)…/).first()).toBeVisible()
 
       // The point of the server-side engine: the setup screen needs no data at all. Before, this
       // page pulled every player, club and membership for the sport. Any call would fail the
       // fixture's unmocked-API guard.
     })
   }
+
+  test('Formula 1 speaks of drivers and constructors; the other sports keep players and clubs', async ({ page }) => {
+    await page.goto('/formula1/free')
+    await expect(page.getByRole('heading', { name: 'Choose Your Drivers' })).toBeVisible()
+    await expect(page.getByPlaceholder('Search a driver…').first()).toBeVisible()
+    await expect(page.getByText('Driver + Constructor + Season')).toBeVisible()
+
+    await page.goto('/rugby/free')
+    await expect(page.getByRole('heading', { name: 'Choose Your Players' })).toBeVisible()
+    await expect(page.getByText('Player + Club + Season')).toBeVisible()
+  })
 
   test('player search is asked of the server, scoped to the sport', async ({ page }) => {
     const calls = await mockApi(page, '/api/players', samplePlayers)
@@ -66,6 +77,26 @@ test.describe('daily challenge', () => {
     const more = page.getByRole('navigation', { name: 'Other ways to play' })
     await expect(more.getByRole('link', { name: /Free play/ })).toHaveAttribute('href', '/rugby/free')
     await expect(more.getByRole('link', { name: /Past challenges/ })).toHaveAttribute('href', '/rugby/archive')
+  })
+
+  test("a Formula 1 daily speaks of drivers, and a driver's career reads in calendar seasons", async ({ page }) => {
+    await mockApi(page, '/api/formula1/daily', { ...sampleDailyChallenge, sport: 'formula1' })
+    await mockApi(page, '/api/players/p-alpha/career', {
+      player: samplePlayers[0],
+      stints: [
+        { club: { id: 'c-mclaren', name: 'McLaren', sport: 'formula1' }, from: '2019', to: '2021', games: 60 },
+        { club: { id: 'c-ferrari', name: 'Ferrari', sport: 'formula1' }, from: '2022', to: '2022', games: 22 },
+      ],
+    })
+    await page.goto('/formula1')
+
+    await expect(page.getByText('Best solution: 1 driver in between')).toBeVisible()
+    await page.getByRole('button', { name: /Alpha Testeur/ }).click()
+    const career = page.getByRole('dialog', { name: 'Alpha Testeur' })
+    await expect(career.getByText('2019 – 2021')).toBeVisible()
+    await expect(career.getByText('60 races')).toBeVisible()
+    // One calendar season is one year, not "2022 – 2022".
+    await expect(career.getByText('2022', { exact: true })).toBeVisible()
   })
 
   test('a player of the pair opens their career, club by club', async ({ page }) => {

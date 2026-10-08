@@ -1,7 +1,7 @@
 import type { NameAdjective, NameNoun } from '../domain/visitorName'
 import type { UsernameProblem } from '../domain/username'
 import type { ContactProblem } from '../domain/contactMessage'
-import type { UpcomingSportId } from '../domain/sport'
+import type { SportId, UpcomingSportId } from '../domain/sport'
 
 /** 1st, 2nd, 3rd, 4th… 11th, 12th, 13th… 21st. */
 function ordinal(n: number): string {
@@ -21,10 +21,20 @@ const en = {
       rugby: 'Rugby',
       football: 'Football',
       basketball: 'Basketball',
-    },
-    upcoming: {
       formula1: 'Formula 1',
-    } satisfies Record<UpcomingSportId, string>,
+    } satisfies Record<SportId, string>,
+    upcoming: {} satisfies Record<UpcomingSportId, string>,
+  },
+  // Server-rendered metadata, always in English: the server does not know the reader's language.
+  seo: {
+    dailyDescription: (sport: string) =>
+      `Today's ${sport.toLowerCase()} challenge: connect two players through the teammates they shared. One pair a day, the same for everyone.`,
+    freeDescription: (sport: string) =>
+      `Pick any two ${sport.toLowerCase()} players and connect them through the teammates they shared.`,
+    sharedDescription: (a: string, b: string) => `${a} → ${b}. Can you connect them through their teammates?`,
+    sharedFallback: 'Link two players through the teammates they shared. One pair a day, the same for everyone.',
+    cardPlayerA: 'Player A',
+    cardPlayerB: 'Player B',
   },
   common: {
     loading: 'Loading…',
@@ -343,3 +353,64 @@ const en = {
 
 export type Translations = typeof en
 export default en
+
+const drivers = (n: number) => `${n} ${n === 1 ? 'driver' : 'drivers'}`
+
+/**
+ * What a sport says differently — Formula 1 has drivers and constructors, not players and clubs.
+ * Whole sentences, merged over the base by `translationsFor` (src/i18n/index.ts): the components
+ * never ask which sport they are in.
+ *
+ * Only words about athletes and their teams. Never the game's own players (rankings, "N players
+ * finished"), and not the rules pop-up: its demo is a football chain.
+ */
+export const enBySport: SportOverrides = {
+  formula1: {
+    seo: {
+      dailyDescription: () =>
+        "Today's Formula 1 challenge: connect two drivers through the teammates they shared. One pair a day, the same for everyone.",
+      freeDescription: () => 'Pick any two Formula 1 drivers and connect them through the teammates they shared.',
+      sharedFallback: 'Link two drivers through the teammates they shared. One pair a day, the same for everyone.',
+      cardPlayerA: 'Driver A',
+      cardPlayerB: 'Driver B',
+    },
+    daily: {
+      lostText: (between: number) => `It could be solved with ${drivers(between)} in between. Better luck tomorrow!`,
+      games: 'races',
+      careerEmpty: 'No career recorded for this driver.',
+      playersBetween: (n: number) => (n === 1 ? 'driver in between' : 'drivers in between'),
+      more: { freePlayHint: 'Pick your own drivers' },
+      scoreHint: (extra: number) =>
+        extra === 0 ? 'Best solution found' : `${drivers(extra)} more than the best solution`,
+    },
+    setup: {
+      title: 'Choose Your Drivers',
+      playerA: 'Driver A',
+      playerB: 'Driver B',
+      inputPlaceholder: 'Search a driver…',
+      easyDesc: 'Driver only',
+      hardDesc: 'Driver + Constructor + Season',
+      directlyConnectedWarning:
+        'These two drivers have already raced for the same constructor: in Easy mode there would be nothing to find — please pick a different pair.',
+    },
+    game: {
+      easyPlaceholder: 'Choose a driver…',
+      playerPlaceholder: 'Driver…',
+      clubPlaceholder: 'Constructor…',
+      seasonPlaceholder: '2022',
+      clubSearchPlaceholder: 'Search a constructor…',
+      addPlayer: 'Driver',
+      addClub: 'Constructor',
+      rejections: { 'not-connected': 'No constructor and season in common with anyone on the board.' },
+    },
+  },
+}
+
+/** Every string optional, all the way down; a leaf — text or function — replaces the base's. */
+export type DeepPartial<T> = T extends (...args: never[]) => unknown
+  ? T
+  : T extends object
+    ? { [K in keyof T]?: DeepPartial<T[K]> }
+    : T
+
+export type SportOverrides = Partial<Record<SportId, DeepPartial<Translations>>>

@@ -1539,6 +1539,95 @@ e2e : `board.spec.ts` (« the board as a whiteboard » : glisser, pincer, molett
 
 ---
 
+## ✅ Bloc 39 terminé — Formule 1 (1950 → 2025) : pilotes, écuries
+
+### Le vocabulaire d'un sport — sans `if (sport === …)`
+
+Une page F1 dit *pilote / écurie* (*driver / constructor*), les autres *joueur / club*. Aucun composant
+ne demande le sport :
+
+- `src/app/[sport]/layout.tsx` pose le sport dans un contexte (`SportProvider`, `src/i18n/SportContext.tsx`) ;
+- `useTranslations()` rend la base **fusionnée** avec les surcharges du sport (`translationsFor`,
+  `src/i18n/translationsFor.ts` — pure, mise en cache : même objet à chaque appel) ;
+- les surcharges sont des **données** : `enBySport` / `frBySport` (bas de `en.ts` / `fr.ts`), typées
+  `DeepPartial<Translations>` — une clé inexistante ne compile pas. **Des phrases entières** : en
+  français l'écurie est féminine (« aucune écurie »), substituer un mot ne suffit pas.
+- Seulement les mots sur les athlètes et leurs équipes. **Jamais** les joueurs du *jeu* (classement,
+  « N joueurs ont fini »), ni la pop-up des règles (sa démo est une chaîne de football).
+- Le serveur lit la même chose : `translationsFor('en', sport).seo.*` (descriptions, carte de
+  partage). Le titre du site liste `SPORTS`.
+
+Ajouter un sport au vocabulaire propre = une entrée dans `enBySport` / `frBySport`.
+
+### Import — `scripts/formula1/`, source Jolpica-F1 (successeur d'Ergast, même JSON)
+
+```
+seed:formula1:fetch → :build → (031) → :clubs → :players → :memberships → :fame → :prestige → fame:exposure
+```
+
+- **Fetch** : résultats de chaque saison (pages de 100) + classement constructeurs (dès 1958) — 366
+  pages, **~1 h** la première fois (500 requêtes/h chez Jolpica, 8 s entre deux), en cache dans
+  `scripts/input/formula1/` ensuite.
+- **Écurie = club** (`constructorId`, nommé comme Jolpica : Toleman, Benetton, Renault sont trois
+  écuries ; les « Lotus-Climax » des années 60 restent tels quels). **Saison = l'année** (Bloc 35).
+- **Indianapolis 500 exclu** (1950-60) : ~150 pilotes américains reliés à personne d'autre.
+- **Départ** : un résultat compte comme départ sauf statut de non-départ (*Withdrew*, *Did not
+  start*, *Excluded*…) **sans tour bouclé** — 23 « Withdrew » des années 50 ont des tours (voiture
+  passée en course) : ce sont des départs. Podium lu dans `positionText`, pas `position` (un
+  disqualifié garde un numéro).
+- Résultat : 172 écuries, 714 pilotes, 3 019 saisons-écurie ; 691 pilotes dans une seule composante
+  connexe, 15 isolés (privés sans coéquipier — jamais tirés).
+
+### Fame — la formule v3 telle quelle
+
+- `starts` par membership (part du pilote dans la saison de l'écurie) ; pas de minutes.
+- **Le pilier « international » porte les résultats du pilote** (la F1 n'a pas d'équipe nationale) :
+  ses podiums, sous une seule entrée `capsByNation['World Championship']`, poids 1 dans `nation_tiers`.
+- Prestige d'écurie : victoires en GP (« Grand Prix wins », rôle d'un parcours européen) + titre
+  constructeurs.
+- **Podiums et victoires ramenés à une saison de 20 courses** : 1950 avait 7 GP, 2024 en avait 24.
+- **Exposition** : Jolpica donne l'article Wikipedia anglais de chaque pilote → item Wikidata par
+  l'API Wikipedia (normalisation et redirections suivies, `itemsByEnwikiTitle`) : jamais deviné.
+  712/714 reliés.
+- Constantes (`031`, mesurées sur un Postgres local) : `k_games` 350, `k_club` 0,70, `k_rate` 8,
+  `k_continental` 12, `v_max` 5,5 M (Hamilton). Local : Hamilton 100, Schumacher 97, Verstappen 92,
+  Vettel 91, Senna 90 ; Clark 73, Fangio 72. **Bande du tirage 60–80 : 40 pilotes** — le vivier le plus
+  étroit, que des noms connus. Ken Miles (41) doit son exposition au film *Le Mans 66* : réel, gardé.
+
+### ⚠️ Ordre — merger seulement après l'import
+
+1. Appliquer `031` (ligne `sports` `('formula1','calendar')`, compétitions, calibration).
+2. `:clubs` → `:players`, puis **dans la même heure, juste après un :05** : `:memberships` → `:fame` →
+   `:prestige` → `fame:exposure -- --sport=formula1` (le cron tire le #1 dès qu'il y a des memberships).
+   *Statement timeout* : voir ci-dessous.
+3. `fame:report -- --sport=formula1`, puis merger **le jour même** — le #1 doit être jouable.
+
+**Import du 2026-10-08** : fait de 16 h 17 à 17 h 04. `:fame`, `:prestige` et `fame:exposure` ont tous
+écrit leurs entrées puis buté sur le *statement timeout* au recalcul — et **attendre ne suffisait
+pas**, contrairement au basketball (Bloc 32) : l'autoanalyze ne se déclenche qu'après ~10 % de lignes
+modifiées, et 3 019 memberships sur ~100 000 n'y arrivent pas. Le planificateur croyait `formula1`
+vide. Remède, dans l'éditeur SQL (l'API ne peut pas lancer `ANALYZE`) :
+
+```sql
+ANALYZE memberships; ANALYZE players; ANALYZE player_fame; ANALYZE club_season_prestige; ANALYZE club_titles;
+SELECT public.compute_fame_scores('formula1');   -- 714
+```
+
+⚠️ **Tout petit import** (un sport de moins de ~10 % des memberships) : prévoir ce `ANALYZE` juste après
+`:memberships`, avant `:fame`.
+
+Scores en base identiques à la mesure locale (Hamilton 100, 40 pilotes dans la bande). Défi #1 tiré à
+17 h 05 : Barrichello → Räikkönen (3 liens) ; #2 Barrichello → Alonso.
+
+⚠️ **Le tirage en production ne suit pas la bande 60–80** de `019` / `DRAW_FAME_BAND` : les paires
+F1 (82/87, 82/86) et celles des autres sports ces derniers jours (rugby 84, football 81, basketball
+80/82) en sortent. À vérifier : `SELECT pg_get_functiondef('public.generate_daily_challenge'::regproc);`.
+
+Logos d'écuries : pas encore (emplacement vide géré par `ClubLogo`) — Jolpica donne aussi l'article
+Wikipedia de chaque écurie.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :
@@ -1641,5 +1730,6 @@ Saisie user
     `npm run daily:ranking -- --day=…` sur un jour joué en retard (colonne `late`)
 41. Basketball (Bloc 32) : appliquer `027` puis `029`, `:clubs` → `:players`, puis dans la même heure
     `:memberships` → `:fame` → `:prestige` → `fame:exposure` ; lire `fame:report` ; `028` ; merger
-42. F1 (annoncée sur le menu, Bloc 34) : source Jolpica-F1 (successeur d'Ergast) ; saisons civiles tranchées
-    (Bloc 35, `030` appliquée) — reste : l'import (écurie = club, pilotes d'une même écurie la même année)
+42. ~~F1 (Blocs 34, 35, 39)~~ : `031` appliquée, import fait le 2026-10-08, #1 tiré ; reste : merger le jour
+    même, logos d'écuries, bande du tirage (40 pilotes) — et comprendre pourquoi le tirage de prod
+    sort de la bande 60–80 (tous les sports)

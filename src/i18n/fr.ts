@@ -1,4 +1,4 @@
-import type { Translations } from './en'
+import type { SportOverrides, Translations } from './en'
 
 const finished = (total: number) => `${total} ${total === 1 ? 'joueur a fini' : 'joueurs ont fini'}`
 
@@ -12,10 +12,20 @@ const fr: Translations = {
       rugby: 'Rugby',
       football: 'Football',
       basketball: 'Basketball',
-    },
-    upcoming: {
       formula1: 'Formule 1',
     },
+    upcoming: {},
+  },
+  // Lu par le serveur en anglais seulement (en.seo) ; gardé ici pour que le type reste le même.
+  seo: {
+    dailyDescription: (sport: string) =>
+      `Le défi ${sport.toLowerCase()} du jour : reliez deux joueurs par les coéquipiers qu’ils ont eus. Une paire par jour, la même pour tous.`,
+    freeDescription: (sport: string) =>
+      `Choisissez deux joueurs de ${sport.toLowerCase()} et reliez-les par les coéquipiers qu’ils ont eus.`,
+    sharedDescription: (a: string, b: string) => `${a} → ${b}. Saurez-vous les relier par leurs coéquipiers ?`,
+    sharedFallback: 'Reliez deux joueurs par les coéquipiers qu’ils ont eus. Une paire par jour, la même pour tous.',
+    cardPlayerA: 'Joueur A',
+    cardPlayerB: 'Joueur B',
   },
   common: {
     loading: 'Chargement…',
@@ -334,3 +344,48 @@ const fr: Translations = {
 }
 
 export default fr
+
+const pilotes = (n: number) => `${n} pilote${n === 1 ? '' : 's'}`
+
+/** Voir `enBySport` (en.ts) : des phrases entières, l’écurie est féminine. */
+export const frBySport: SportOverrides = {
+  formula1: {
+    seo: {
+      dailyDescription: () =>
+        'Le défi Formule 1 du jour : reliez deux pilotes par les coéquipiers qu’ils ont eus. Une paire par jour, la même pour tous.',
+      freeDescription: () => 'Choisissez deux pilotes de Formule 1 et reliez-les par les coéquipiers qu’ils ont eus.',
+      sharedFallback: 'Reliez deux pilotes par les coéquipiers qu’ils ont eus. Une paire par jour, la même pour tous.',
+      cardPlayerA: 'Pilote A',
+      cardPlayerB: 'Pilote B',
+    },
+    daily: {
+      lostText: (between: number) => `Il suffisait de ${pilotes(between)} entre les deux. Revanche demain !`,
+      games: 'courses',
+      careerEmpty: 'Aucune carrière enregistrée pour ce pilote.',
+      playersBetween: (n: number) => (n === 1 ? 'pilote entre les deux' : 'pilotes entre les deux'),
+      more: { freePlayHint: 'Choisissez vos pilotes' },
+      scoreHint: (extra: number) =>
+        extra === 0 ? 'Meilleure solution trouvée' : `${pilotes(extra)} de plus que la meilleure solution`,
+    },
+    setup: {
+      title: 'Choisissez vos pilotes',
+      playerA: 'Pilote A',
+      playerB: 'Pilote B',
+      inputPlaceholder: 'Rechercher un pilote…',
+      easyDesc: 'Pilote uniquement',
+      hardDesc: 'Pilote + Écurie + Saison',
+      directlyConnectedWarning:
+        'Ces deux pilotes ont déjà couru pour la même écurie : en mode Facile, il n’y aurait rien à trouver — choisissez une autre paire.',
+    },
+    game: {
+      easyPlaceholder: 'Choisir un pilote…',
+      playerPlaceholder: 'Pilote…',
+      clubPlaceholder: 'Écurie…',
+      seasonPlaceholder: '2022',
+      clubSearchPlaceholder: 'Rechercher une écurie…',
+      addPlayer: 'Pilote',
+      addClub: 'Écurie',
+      rejections: { 'not-connected': 'Aucune écurie ni aucune saison en commun avec les pilotes du plateau.' },
+    },
+  },
+}

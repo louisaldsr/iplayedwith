@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { ImageResponse } from 'next/og'
 import { notFound } from 'next/navigation'
 import { isSportId } from '@/domain/sport'
-import en from '@/i18n/en'
+import { translationsFor } from '@/i18n/translationsFor'
 import { parseChallengeNumber, sharedChallengeOrNull } from './sharedChallenge'
 
 /**
@@ -44,7 +44,8 @@ export default async function Image({ params }: { params: Promise<{ sport: strin
     asset('brand', 'fonts', 'Archivo-ExtraBold.ttf'),
   ])
 
-  const heading = `Daily challenge #${number} · ${en.home.sports[sport]}`
+  const t = translationsFor('en', sport)
+  const heading = `Daily challenge #${number} · ${t.home.sports[sport]}`
   return new ImageResponse(
     <div
       style={{
@@ -71,7 +72,7 @@ export default async function Image({ params }: { params: Promise<{ sport: strin
       </div>
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <PlayerCard name={shared?.playerA.name ?? 'Player A'} />
+        <PlayerCard name={shared?.playerA.name ?? t.seo.cardPlayerA} />
         <div style={{ display: 'flex', alignItems: 'center', width: 180 }}>
           <div style={{ flex: 1, height: 6, background: GOLD, opacity: 0.85 }} />
           <div
@@ -93,7 +94,7 @@ export default async function Image({ params }: { params: Promise<{ sport: strin
           </div>
           <div style={{ flex: 1, height: 6, background: GOLD, opacity: 0.85 }} />
         </div>
-        <PlayerCard name={shared?.playerB.name ?? 'Player B'} />
+        <PlayerCard name={shared?.playerB.name ?? t.seo.cardPlayerB} />
       </div>
 
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>

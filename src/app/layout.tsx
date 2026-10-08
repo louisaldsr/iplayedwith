@@ -4,15 +4,22 @@ import { RulesProvider } from '@/components/rules/RulesProvider'
 import { MenuButton } from '@/components/menu/MenuButton'
 import { SiteAnalytics } from '@/components/shared/SiteAnalytics'
 import { SITE_NAME, SITE_URL } from '@/lib/siteUrl'
+import { SPORTS } from '@/domain/sport'
+import en from '@/i18n/en'
+
+/** "rugby, football, basketball and Formula 1" — follows SPORTS, so a new sport is never left out. */
+const SPORT_LIST = new Intl.ListFormat('en', { type: 'conjunction' }).format(
+  SPORTS.map((sport) => en.home.sports[sport].replace(/^[A-Z][a-z]+$/, (word) => word.toLowerCase())),
+)
 
 const DESCRIPTION =
   'I Played With — the teammates game. Connect two players through the teammates they shared, club by club, ' +
-  'season by season. A daily challenge for rugby and football.'
+  `season by season. A daily challenge for ${SPORT_LIST}.`
 
 export const metadata: Metadata = {
   // Every relative URL below — canonicals, the Open Graph image — is built on the real domain.
   metadataBase: new URL(SITE_URL),
-  title: { default: `${SITE_NAME} — the teammates game for rugby and football`, template: `%s · ${SITE_NAME}` },
+  title: { default: `${SITE_NAME} — the teammates game for ${SPORT_LIST}`, template: `%s · ${SITE_NAME}` },
   description: DESCRIPTION,
   applicationName: SITE_NAME,
   alternates: { canonical: '/' },

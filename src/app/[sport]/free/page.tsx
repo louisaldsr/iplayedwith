@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { isSportId, SPORTS } from '@/domain/sport'
-import en from '@/i18n/en'
+import { translationsFor } from '@/i18n/translationsFor'
 import { GamePage } from '@/components/GamePage'
 
 type Props = {
@@ -15,10 +15,11 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { sport } = await params
   if (!isSportId(sport)) return {}
-  const name = en.home.sports[sport]
+  const t = translationsFor('en', sport)
+  const name = t.home.sports[sport]
   return {
     title: `Free play — ${name}`,
-    description: `Pick any two ${name.toLowerCase()} players and connect them through the teammates they shared.`,
+    description: t.seo.freeDescription(name),
     alternates: { canonical: `/${sport}/free` },
   }
 }

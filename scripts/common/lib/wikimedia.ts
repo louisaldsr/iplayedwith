@@ -59,6 +59,51 @@ export async function itemsByExternalId(property: string): Promise<Map<string, s
   return byId
 }
 
+type TitleQuery = {
+  query?: {
+    normalized?: { from: string; to: string }[]
+    redirects?: { from: string; to: string }[]
+    pages?: Record<string, { title: string; pageprops?: { wikibase_item?: string } }>
+  }
+}
+
+/**
+ * The Wikidata item of each English Wikipedia article, keyed by the title as GIVEN — for a source
+ * that links each player's article instead of sharing an ID with Wikidata (Formula 1: Jolpica).
+ * Through the Wikipedia API, 50 titles a call: it resolves what a stored link drifted into — the
+ * title's normalisation and any redirect — and reads the item from the page itself. A title with
+ * no article, or no item, is absent.
+ */
+export async function itemsByEnwikiTitle(titles: string[]): Promise<Map<string, string[]>> {
+  const items = new Map<string, string[]>()
+  for (let i = 0; i < titles.length; i += 50) {
+    const batch = titles.slice(i, i + 50)
+    const data = await getJson<TitleQuery>(
+      `https://en.wikipedia.org/w/api.php?${new URLSearchParams({
+        action: 'query',
+        format: 'json',
+        redirects: '1',
+        prop: 'pageprops',
+        ppprop: 'wikibase_item',
+        titles: batch.join('|'),
+      })}`,
+    )
+    if (!data) throw new Error(`Wikipedia did not answer for titles ${i}..${i + batch.length - 1}`)
+    const normalized = new Map((data.query?.normalized ?? []).map((n) => [n.from, n.to]))
+    const redirected = new Map((data.query?.redirects ?? []).map((r) => [r.from, r.to]))
+    const qidByTitle = new Map<string, string>()
+    for (const page of Object.values(data.query?.pages ?? {})) {
+      if (page.pageprops?.wikibase_item) qidByTitle.set(page.title, page.pageprops.wikibase_item)
+    }
+    for (const title of batch) {
+      const shown = normalized.get(title) ?? title
+      const qid = qidByTitle.get(redirected.get(shown) ?? shown)
+      if (qid) items.set(title, [qid])
+    }
+  }
+  return items
+}
+
 /**
  * Players of a sport (occupation `occupation`) with a French or English article but NO value for
  * `property`, by label — the candidates of the name fallback.

@@ -22,7 +22,9 @@ test('the sitemap lists the public pages on the real domain', async ({ request }
 
 test('the home page tells search engines its name, its canonical address and what it is', async ({ request }) => {
   const html = await (await request.get('/')).text()
-  expect(html).toContain('<title>I Played With — the teammates game for rugby and football</title>')
+  expect(html).toContain(
+    '<title>I Played With — the teammates game for rugby, football, basketball, and Formula 1</title>',
+  )
   expect(html).toContain('<link rel="canonical" href="https://iplayedwith.com"/>')
   expect(html).toContain('<meta property="og:url" content="https://iplayedwith.com"/>')
   expect(html).toContain('"@type":"WebSite"')

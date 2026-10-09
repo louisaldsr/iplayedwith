@@ -1,4 +1,11 @@
-import { isDrawnLogo, isLogo, logoFileName, logoFileOf, publicLogoUrl } from '../../../scripts/formula1/lib/logos'
+import {
+  isDrawnLogo,
+  isLogo,
+  keepsFirstMarkOnly,
+  logoFileName,
+  logoFileOf,
+  publicLogoUrl,
+} from '../../../scripts/formula1/lib/logos'
 
 describe('logoFileOf', () => {
   it('reads the file of an infobox logo, linked or bare', () => {
@@ -33,6 +40,13 @@ describe('isLogo', () => {
   it('turns down the infobox files reviewed as photographs', () => {
     expect(isLogo('Hector Rebaque Lotus 78.jpg')).toBe(false)
     expect(isLogo('TeamLotus.jpg')).toBe(true)
+  })
+})
+
+describe('keepsFirstMarkOnly', () => {
+  it("drops HP from Ferrari's logo, and touches no other", () => {
+    expect(keepsFirstMarkOnly('Scuderia Ferrari HP logo 24.svg')).toBe(true)
+    expect(keepsFirstMarkOnly('Red Bull Racing Logo 2026.svg')).toBe(false)
   })
 })
 

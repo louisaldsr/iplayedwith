@@ -4,7 +4,7 @@
  * sharp is a native module: it runs under node, not jsdom.
  */
 import sharp from 'sharp'
-import { lightenDarkInk, removeWhiteBackground, withoutFrame } from '../../../scripts/common/lib/logos'
+import { firstMark, lightenDarkInk, removeWhiteBackground, withoutFrame } from '../../../scripts/common/lib/logos'
 
 type Rgb = [number, number, number]
 const WHITE: Rgb = [255, 255, 255]
@@ -83,5 +83,44 @@ describe('lightenDarkInk', () => {
   it('keeps a logo that mixes black with colour as it is', async () => {
     const mixed = await strip([BLACK, RED])
     expect(await lightenDarkInk(mixed)).toBe(mixed)
+  })
+})
+
+describe('firstMark', () => {
+  /** A 40×4 strip: ink in columns [from, to] of each span, transparent elsewhere. */
+  const marks = (spans: [number, number][]) => {
+    const raw = Buffer.alloc(40 * 4 * 4)
+    for (let y = 0; y < 4; y++) {
+      for (const [from, to] of spans) {
+        for (let x = from; x <= to; x++) raw.set([...RED, 255], (y * 40 + x) * 4)
+      }
+    }
+    return sharp(raw, { raw: { width: 40, height: 4, channels: 4 } })
+      .png()
+      .toBuffer()
+  }
+
+  it("keeps the team's mark alone when a sponsor's follows it after a gap", async () => {
+    // Shield in 2..11, a 10-column gap, the sponsor in 22..37.
+    expect(
+      await size(
+        await firstMark(
+          await marks([
+            [2, 11],
+            [22, 37],
+          ]),
+        ),
+      ),
+    ).toEqual([10, 4])
+  })
+
+  it('does not split one mark at the narrow gaps inside it', async () => {
+    // Letters 3 columns apart: one mark, kept whole.
+    const word = await marks([
+      [0, 9],
+      [13, 22],
+      [26, 39],
+    ])
+    expect(await firstMark(word)).toBe(word)
   })
 })

@@ -5,11 +5,11 @@ import { updateClubLogos } from '@/services/clubsService'
 import { ServiceError } from '@/services/errors'
 import { getDb } from '../common/env'
 import { fetchBinaryWithCache } from '../common/fetchWithCache'
-import { lightenDarkInk, removeWhiteBackground, withoutFrame } from '../common/lib/logos'
+import { firstMark, lightenDarkInk, removeWhiteBackground, withoutFrame } from '../common/lib/logos'
 import { itemsByEnwikiTitle, leadWikitexts, logoClaims, thumbnailUrls, USER_AGENT } from '../common/lib/wikimedia'
 import { inputPath } from '../common/paths'
 import { loadSeededIds, seededIdPaths } from '../common/seedDataset'
-import { isDrawnLogo, isLogo, logoFileName, logoFileOf, publicLogoUrl } from './lib/logos'
+import { isDrawnLogo, isLogo, keepsFirstMarkOnly, logoFileName, logoFileOf, publicLogoUrl } from './lib/logos'
 import { loadFormula1Dataset } from './lib/seed'
 
 const PUBLIC_DIR = path.resolve(__dirname, '../../public/logos/formula1')
@@ -24,8 +24,9 @@ const DELAY_MS = 500
 
 /**
  * Step 8 of the Formula 1 pipeline: each constructor's logo (lib/logos.ts says where it is found),
- * with any frame and white background removed, black-only ink made light for the dark theme
- * (scripts/common/lib/logos.ts), and its empty margins trimmed — written to
+ * with any frame and white background removed, a title sponsor's mark dropped where listed,
+ * black-only ink made light for the dark theme (scripts/common/lib/logos.ts), and its empty margins
+ * trimmed — written to
  * `public/logos/formula1/` and set as the club's `logo_url`. Constructors sharing an article —
  * the 1960s "Lotus-Climax" and "Lotus-BRM" are both Team Lotus — share its logo.
  *
@@ -79,7 +80,8 @@ async function main() {
         userAgent: USER_AGENT,
       },
     )
-    const clean = await lightenDarkInk(await removeWhiteBackground(await withoutFrame(original)))
+    const cleared = await removeWhiteBackground(await withoutFrame(original))
+    const clean = await lightenDarkInk(keepsFirstMarkOnly(file) ? await firstMark(cleared) : cleared)
     fs.writeFileSync(path.join(PUBLIC_DIR, name), await fitted(clean))
     served.set(title, publicLogoUrl(name))
   }

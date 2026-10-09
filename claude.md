@@ -1466,8 +1466,9 @@ barre du jeu chargée, barre de saisie encombrante, copie du partage en erreur.
 - **Onglets de sport** (`SportTabs`) : sur téléphone (≤ 520 px), seul l'onglet choisi garde son nom, les
   autres leur emoji — le nom reste pour les lecteurs d'écran. La rangée défile de côté quand les sports
   la dépassent, l'onglet choisi ramené en vue.
-- **Barre du jeu** (partout) : Menu · le chrono avec le pseudo dessous · « ? ». Plus de badge Facile /
-  Difficile, plus de A et B (ils sont sur le plateau). Revue au Bloc 38.
+- **Barre du jeu** : plus de badge Facile / Difficile. **Ordinateur** : A → B à gauche, le chrono au
+  **centre** exact (grille à trois colonnes, marges égales), le pseudo à droite. **Téléphone** (≤ 640 px) :
+  Menu · le chrono avec le pseudo dessous · « ? », sans A et B (ils sont sur le plateau).
 - **Saisie flottante sur téléphone** (≤ 640 px) : plus de barre sous le plateau. Le plateau descend
   jusqu'en bas de l'écran, le champ flotte par-dessus en pastille. `boardLayout.ts` arrête le monde
   au-dessus (`fieldFloats`, même seuil de 640 px que le CSS — les changer ensemble).
@@ -1487,9 +1488,9 @@ page**, le clavier la poussait vers le haut, et toucher le champ zoomait la page
 champ dont le texte fait moins de 16 px — le nôtre en faisait 14,4). La règle désormais :
 
 ```
-barre du haut (fixe)     Menu · chrono + pseudo · « ? »
+barre du haut (fixe)     Menu · chrono + pseudo · « ? »      (ordinateur : A → B · chrono · pseudo)
 plateau                  un doigt le fait glisser, deux le zooment, un doigt sur une carte la déplace
-  cœurs                  empilés en haut à gauche, sans fond, fixes
+  cœurs                  empilés en haut à gauche, sans fond, fixes   (ordinateur : en ligne, en bas)
 champ (en bas)           posé sur le plateau ; le toucher ouvre la liste en plein écran
 ```
 
@@ -1512,8 +1513,9 @@ champ (en bas)           posé sur le plateau ; le toucher ouvre la liste en ple
     zoome autour du curseur (écouteur natif non passif, sinon la page zoome).
   - Zoom de 30 % à 250 % (`ZOOM_LIMITS`) ; au moins 96 px du monde restent à l'écran (`clampView`).
   - Une carte ajoutée hors champ est ramenée dans la vue, du strict nécessaire (`revealCard`).
-- **Cœurs** en colonne en haut à gauche du plateau, sans fond (partout). `floatingZones` y garde le coin
-  libre au placement.
+- **Cœurs** sur **téléphone** seulement : en colonne en haut à gauche du plateau, sans fond. Sur
+  **ordinateur**, ils restent en ligne en bas au centre, sur leur fond arrondi. `floatingZones` /
+  `targetSpots` (option `phone`, `World.field`) gardent libre la bonne zone au placement.
 - **Taper sur téléphone** (≤ 640 px **et** écran tactile) : toucher le champ ouvre une **feuille** sur tout
   l'écran (`.autocomplete-wrapper--sheet`, prop `sheetCloseLabel` d'`AutocompleteInput`) : « ← » et le
   champ **tout en haut**, la liste sur le reste — jusqu'au clavier. Basculée **dans** l'évènement
@@ -1535,7 +1537,8 @@ envoient deux pointeurs tactiles comme un navigateur), et le Simulateur iOS dema
 licence Xcode (`sudo xcodebuild -license`). À vérifier sur un vrai iPhone.
 
 e2e : `board.spec.ts` (« the board as a whiteboard » : glisser, pincer, molette) ; `mobile.spec.ts`
-(barre, cœurs, feuille de saisie).
+(barre, cœurs, feuille de saisie) ; `desktop.spec.ts` — l'ordinateur garde sa barre et ses cœurs en bas
+(la première version de ce bloc avait appliqué la barre et les cœurs du téléphone partout).
 
 ---
 

@@ -35,13 +35,15 @@ function linkLengthFor(card: Size): number {
 
 /**
  * What floats over the board, kept clear of cards: the refused-guess toast and the solution switch
- * at the top, the hearts in the top-left corner (see `.error-banner--toast`, `.solution-overlay`,
- * `.lives-bar`).
+ * at the top, the hearts — at the bottom on a computer, stacked in the top-left corner on a phone
+ * (see `.error-banner--toast`, `.solution-overlay`, `.lives-bar`).
  * On screen, at the camera's usual zoom — in world pixels, they are that much larger.
  */
 const TOP_ZONE: Size = { w: 280, h: 56 }
-/** The hearts, stacked in the top-left corner. */
-const HEARTS: Size = { w: 60, h: 140 }
+/** The hearts in a row at the bottom, centred — a computer. */
+const HEARTS_ROW: Size = { w: 200, h: 80 }
+/** The hearts stacked in the top-left corner — a phone. */
+const HEARTS_STACK: Size = { w: 60, h: 140 }
 /** The floating move field on a phone, from the screen's foot (`.game-screen-controls`). */
 const FIELD_HEIGHT = 72
 
@@ -50,12 +52,14 @@ export function fieldFloats(screen: Size): boolean {
   return screen.w <= 640
 }
 
-export function floatingZones(board: Size, zoom = 1): Rect[] {
+/** `phone`: the board of a phone (`World.field`) — its hearts are stacked in the top-left corner. */
+export function floatingZones(board: Size, zoom = 1, phone = false): Rect[] {
   const top = { w: TOP_ZONE.w / zoom, h: TOP_ZONE.h / zoom }
-  const hearts = { w: HEARTS.w / zoom, h: HEARTS.h / zoom }
+  const heartsSize = phone ? HEARTS_STACK : HEARTS_ROW
+  const hearts = { w: heartsSize.w / zoom, h: heartsSize.h / zoom }
   return [
     { x: (board.w - top.w) / 2, y: 0, ...top },
-    { x: 0, y: 0, ...hearts },
+    phone ? { x: 0, y: 0, ...hearts } : { x: (board.w - hearts.w) / 2, y: board.h - hearts.h, ...hearts },
   ]
 }
 
@@ -63,7 +67,7 @@ export function floatingZones(board: Size, zoom = 1): Rect[] {
  * A and B, the two ends of the chain, along the board's long side: left and right on a wide board,
  * top and bottom on a phone — side by side, a phone has no room between them.
  */
-export function targetSpots(board: Size, card: Size, zoom = 1): { a: Point; b: Point } {
+export function targetSpots(board: Size, card: Size, zoom = 1, phone = false): { a: Point; b: Point } {
   const gap = gapFor(card)
   if (board.w >= board.h) {
     const y = (board.h - card.h) / 2
@@ -72,7 +76,9 @@ export function targetSpots(board: Size, card: Size, zoom = 1): { a: Point; b: P
   }
   const x = (board.w - card.w) / 2
   const top = TOP_ZONE.h / zoom + gap
-  return { a: { x, y: top }, b: { x, y: Math.max(top, board.h - gap - card.h) } }
+  // A computer keeps its hearts at the bottom: B sits above them.
+  const bottom = phone ? 0 : HEARTS_ROW.h / zoom
+  return { a: { x, y: top }, b: { x, y: Math.max(top, board.h - bottom - gap - card.h) } }
 }
 
 export const centreOf = (p: Point, card: Size): Point => ({ x: p.x + card.w / 2, y: p.y + card.h / 2 })
@@ -193,6 +199,8 @@ export type BoardState = {
   bKey: string
   /** The world's usual zoom (`World.zoom`), which sizes the floating controls in world pixels. */
   zoom?: number
+  /** A phone's board (`World.field`): where its hearts are. */
+  phone?: boolean
 }
 
 /**
@@ -250,7 +258,7 @@ export function placeCard(key: string, state: BoardState, ideal: Point = idealCe
   const rectOf = (p: Point): Rect => ({ ...p, ...card })
 
   const others = [...placed].filter(([k]) => k !== key).map(([k, p]) => ({ key: k, rect: rectOf(p) }))
-  const obstacles = [...others.map((o) => o.rect), ...floatingZones(board, state.zoom)]
+  const obstacles = [...others.map((o) => o.rect), ...floatingZones(board, state.zoom, state.phone)]
   const centre = (k: string) => centreOf(placed.get(k)!, card)
   const segments = links
     .filter(([p, q]) => p !== key && q !== key && placed.has(p) && placed.has(q))

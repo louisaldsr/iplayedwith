@@ -2367,42 +2367,88 @@ html:has(.game-screen) body {
 
 .game-topbar {
   flex-shrink: 0;
-  display: flex;
+  /* A computer: A → B on the left, the clock in the very middle, the name on the right. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
-  /* Side padding leaves room for the fixed menu (left) and rules (right) buttons. */
-  padding: 0 72px;
+  column-gap: 16px;
+  /* Side padding leaves room for the fixed menu (left) and rules (right) buttons — the same on both
+     sides, or the clock is off-centre. */
+  padding: 0 140px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
   height: 68px;
 }
 
-/* The clock, the visitor's name under it — the name the rankings show. */
-.game-topbar__centre {
+.game-topbar__players {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  min-width: 0;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.game-topbar__player {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-topbar__arrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 .game-topbar__chrono {
-  font-size: 1.15rem;
+  grid-column: 2;
+  font-size: 1rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--accent);
   letter-spacing: 0.04em;
-  line-height: 1.2;
 }
 
+/* The visitor's name, always in view while playing — the name the rankings show. */
 .game-topbar__visitor {
-  font-size: 0.75rem;
+  grid-column: 3;
+  justify-self: end;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+}
+
+/* A phone: Menu · the clock over the name · "?". A and B are on the board. */
+@media (max-width: 640px) {
+  .game-topbar {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    row-gap: 2px;
+    padding: 0 72px;
+  }
+
+  .game-topbar__players {
+    display: none;
+  }
+
+  .game-topbar__chrono {
+    grid-column: 1;
+    justify-self: center;
+    font-size: 1.15rem;
+    line-height: 1.2;
+  }
+
+  .game-topbar__visitor {
+    grid-column: 1;
+    justify-self: center;
+    font-size: 0.75rem;
+  }
 }
 
 .game-screen-board {
@@ -2413,26 +2459,57 @@ html:has(.game-screen) body {
 }
 
 /* ─── Lives (daily) ──────────────────────────────────────── */
-/* Hearts stacked in the board's top-left corner, as if drawn on it: no background, and they stay put
-   while the board is dragged and zoomed under them. Clicks pass through to the cards underneath. */
+/* A computer: hearts at the bottom of the board, centred. Auto margins rather than a translate, so the
+   shake animation owns `transform`. Clicks pass through to the cards underneath. */
 .lives-bar {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  bottom: 16px;
+  left: 0;
+  right: 0;
   z-index: 5;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  background: rgba(17, 19, 24, 0.72);
+  backdrop-filter: blur(4px);
   pointer-events: none;
 }
 
 .lives-bar__hearts {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .heart {
   display: block;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
+}
+
+/* A phone: stacked in the board's top-left corner, as if drawn on it — no background, and they stay
+   put while the board is dragged and zoomed under them. */
+@media (max-width: 640px) {
+  .lives-bar {
+    top: 12px;
+    bottom: auto;
+    left: 12px;
+    right: auto;
+    margin: 0;
+    padding: 0;
+    background: none;
+    backdrop-filter: none;
+  }
+
+  .lives-bar__hearts {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .heart {
+    width: 36px;
+    height: 36px;
+  }
 }
 
 .heart__svg {

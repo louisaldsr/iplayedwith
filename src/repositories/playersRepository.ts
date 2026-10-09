@@ -3,7 +3,6 @@ import { PlayerId } from '@/domain/ids'
 import { Player } from '@/domain/player'
 import { SportId } from '@/domain/sport'
 import { Nationality } from '@/domain/nationality'
-import { FameBand } from '@/domain/drawFameBand'
 import {
   FameDetails,
   FameTerms,
@@ -71,48 +70,22 @@ export async function findRandom(db: SupabaseClient, sport: SportId, excludeId?:
 }
 
 /**
- * A uniformly random player among those whose fame score lies in `band` (inclusive), by the
- * same offset pick as `findRandom`, read from `player_fame` — its (sport, score) index exists
- * for this.
+ * A random player from the sport's draw pool — its N most famous connected players, N per sport
+ * in `draw_settings`. Next to a `partner` from the pool, on the daily draw's sliding scale: the
+ * better known the partner, the deeper the pick (032_draw_pool.sql, `random_pool_player`). The
+ * partner is never returned.
  *
- * Null when the band holds fewer than 2 players (scores not computed yet): one player cannot
- * fill both slots of a game, so the caller falls back to `findRandom` rather than serve the
- * same name every time.
+ * Null when the pool is empty (no settings or no scores yet): the caller falls back to `findRandom`.
  */
-export async function findRandomInFameBand(
+export async function findRandomInDrawPool(
   db: SupabaseClient,
   sport: SportId,
-  band: FameBand,
-  excludeId?: PlayerId,
+  partnerId?: PlayerId,
 ): Promise<Player | null> {
-  const { count, error: countError } = await db
-    .from('player_fame')
-    .select('player_id', { count: 'exact', head: true })
-    .eq('sport', sport)
-    .gte('score', band.min)
-    .lte('score', band.max)
-  if (countError) throw new Error(countError.message)
-  if (!count || count < 2) return null
-
-  return pickByOffset(
-    count,
-    async (offset) => {
-      const { data, error } = await db
-        .from('player_fame')
-        .select('players(id, name, sport, nationality)')
-        .eq('sport', sport)
-        .gte('score', band.min)
-        .lte('score', band.max)
-        .order('player_id')
-        .range(offset, offset)
-      if (error) throw new Error(error.message)
-      // Many-to-one through the (player_id, sport) FK: PostgREST embeds an object. Without
-      // generated types supabase-js cannot know that and types every embed as an array.
-      const row = data?.[0] as unknown as { players: PlayerRow | null } | undefined
-      return row?.players ? toPlayer(row.players) : null
-    },
-    excludeId,
-  )
+  const { data, error } = await db.rpc('random_pool_player', { p_sport: sport, p_partner: partnerId ?? null })
+  if (error) throw new Error(error.message)
+  const [row] = (data ?? []) as PlayerRow[]
+  return row ? toPlayer(row) : null
 }
 
 async function pickByOffset(

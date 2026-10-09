@@ -120,28 +120,29 @@ body {
   }
 }
 
-/* The visitor's generated name, top left of the menu — where the menu button sits in a game. */
+/* The visitor's generated name, top left of the menu — where the menu button sits in a game.
+   48 px, 4 px taller than the « ? » across: 10 px from the top keeps their centres level. */
 .visitor-badge {
   position: fixed;
-  top: 12px;
+  top: 10px;
   left: 12px;
   z-index: 50;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 44px;
+  gap: 10px;
+  height: 48px;
   max-width: calc(100vw - 24px - 44px - 12px);
-  padding: 0 16px 0 12px;
+  padding: 0 7px 0 14px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-subtle);
   background: var(--bg-surface);
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 600;
 }
 
 .visitor-badge__icon {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   line-height: 1;
 }
 
@@ -166,15 +167,33 @@ body {
   background: var(--bg-elevated);
 }
 
+/* The rename cue: a round accent button inside the badge, where ✓ sits once editing — the same
+   button turning from ✎ to ✓. */
 .visitor-badge__edit {
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  line-height: 1;
-  transition: color 0.15s;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: #fff;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    transform 0.15s;
 }
 
-.visitor-badge--button:hover .visitor-badge__edit {
-  color: var(--accent-hover);
+.visitor-badge__edit svg {
+  width: 16px;
+  height: 16px;
+}
+
+.visitor-badge--button:hover .visitor-badge__edit,
+.visitor-badge--button:focus-visible .visitor-badge__edit {
+  background: var(--accent-hover);
+  transform: rotate(-12deg);
 }
 
 .visitor-badge--saved {
@@ -197,7 +216,7 @@ body {
 /* ─── Renaming, in place ─── */
 /* The badge itself becomes the field; hints, refusals and suggestions sit in a bubble under it. */
 .visitor-badge--editing {
-  padding: 0 4px 0 12px;
+  padding: 0 6px 0 14px;
   gap: 6px;
   border-color: var(--accent);
   background: var(--bg-elevated);
@@ -374,6 +393,11 @@ body {
   .visitor-badge--taken,
   .visitor-badge__bubble {
     animation: none;
+  }
+
+  .visitor-badge__edit {
+    transition: none;
+    transform: none !important;
   }
 }
 

@@ -144,7 +144,17 @@ export function VisitorBadge() {
           <span className="visitor-badge__name">{displayName}</span>
           <span className="visually-hidden"> — {r.open}</span>
           <span className="visitor-badge__edit" aria-hidden="true">
-            ✎
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.25"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" />
+              <path d="m14.5 5.5 3 3" />
+            </svg>
           </span>
         </button>
         <span className="visually-hidden" role="status">

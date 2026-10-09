@@ -90,6 +90,20 @@ describe('A and B', () => {
   })
 })
 
+describe('the hearts', () => {
+  // A computer shows them in a row at the bottom; a phone, stacked in the top-left corner.
+  it('are kept clear at the bottom centre on a computer, in the top-left corner on a phone', () => {
+    const [, computer] = floatingZones(DESKTOP)
+    expect(computer.y + computer.h).toBe(DESKTOP.h)
+    expect(computer.x + computer.w / 2).toBe(DESKTOP.w / 2)
+
+    const [, phone] = floatingZones(PHONE, 1, true)
+    expect(phone.x).toBe(0)
+    expect(phone.y).toBe(0)
+    expect(phone.h).toBeGreaterThan(phone.w)
+  })
+})
+
 describe('a new card', () => {
   it('linked to A, heads for B', () => {
     const { grow, centre } = boardOf(DESKTOP)

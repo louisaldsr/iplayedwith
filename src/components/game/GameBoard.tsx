@@ -197,7 +197,7 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
     const aKey = playerKey(game.playerA.id)
     const bKey = playerKey(game.playerB.id)
     const rank = (k: string) => (k === aKey ? 0 : k === bKey ? 1 : 2)
-    const { size: board, card, zoom } = placedWorld
+    const { size: board, card, zoom, field: phone } = placedWorld
 
     setLayout((prev) => {
       if (!prev || prev.world !== placedWorld) return prev
@@ -205,8 +205,8 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
       if (newKeys.length === 0) return prev
 
       const placed = new Map(prev.positions)
-      const state = { board, card, placed, links, aKey, bKey, zoom }
-      const ends = targetSpots(board, card, zoom)
+      const state = { board, card, placed, links, aKey, bKey, zoom, phone }
+      const ends = targetSpots(board, card, zoom, phone)
 
       // A and B first: every other card is placed relative to them.
       for (const key of [...newKeys].sort((a, b) => rank(a) - rank(b))) {
@@ -339,7 +339,16 @@ export function GameBoard({ game, players, clubs, onOpenPlayer, solution }: Prop
     if (at) {
       const aKey = playerKey(game.playerA.id)
       const bKey = playerKey(game.playerB.id)
-      const spot = settleCard(dragging.key, at, { board, card, placed: positions, links, aKey, bKey, zoom: world.zoom })
+      const spot = settleCard(dragging.key, at, {
+        board,
+        card,
+        placed: positions,
+        links,
+        aKey,
+        bKey,
+        zoom: world.zoom,
+        phone: world.field,
+      })
       if (spot !== at) moveCard(dragging.key, spot)
     }
     setDragging(null)

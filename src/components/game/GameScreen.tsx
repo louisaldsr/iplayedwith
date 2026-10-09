@@ -94,18 +94,24 @@ export function GameScreen({
 
   return (
     <div className="game-screen">
-      {/* Menu and rules buttons are fixed on either side (layout); A and B are on the board. */}
+      {/* Menu and rules buttons are fixed on either side (layout). A computer reads A → B · the clock ·
+          the name across; a phone, the clock over the name — A and B are on its board (see CSS). */}
       <div className="game-topbar">
-        <div className="game-topbar__centre">
-          <span className="game-topbar__chrono">{formatTime(over?.elapsedMs ?? elapsed)}</span>
-          {username && (
-            <span className="game-topbar__visitor" title={t.menu.yourName}>
-              <span aria-hidden="true">👤 </span>
-              <span className="visually-hidden">{t.menu.yourName}: </span>
-              {formatUsername(username, t.visitorNames)}
-            </span>
-          )}
+        <div className="game-topbar__players">
+          <span className="game-topbar__player">{game.playerA.name}</span>
+          <span className="game-topbar__arrow" aria-hidden="true">
+            →
+          </span>
+          <span className="game-topbar__player">{game.playerB.name}</span>
         </div>
+        <span className="game-topbar__chrono">{formatTime(over?.elapsedMs ?? elapsed)}</span>
+        {username && (
+          <span className="game-topbar__visitor" title={t.menu.yourName}>
+            <span aria-hidden="true">👤 </span>
+            <span className="visually-hidden">{t.menu.yourName}: </span>
+            {formatUsername(username, t.visitorNames)}
+          </span>
+        )}
       </div>
 
       <div className="game-screen-board">

@@ -31,7 +31,7 @@ test('the game: the clock and the name up top, the hearts in a corner, the field
   await expect(bar.locator('.game-topbar__chrono')).toBeVisible()
   await expect(bar.getByText('Hasty Prop 042')).toBeVisible()
   // A and B are on the board; the level said nothing worth the room.
-  await expect(bar.getByText('Alpha Testeur')).toHaveCount(0)
+  await expect(bar.getByText('Alpha Testeur')).toBeHidden()
   await expect(bar.getByText('Easy')).toHaveCount(0)
 
   // The hearts, stacked in the board's top-left corner.

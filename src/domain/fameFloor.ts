@@ -4,7 +4,7 @@
  * A user cannot tell a 47 from a 52, and neither can the score: it orders the top imprecisely
  * (see docs/spikes/fame.md) but groups well. So what the game shows — the card styles, points
  * later — reads a player's floor, never their score. The random draw is the one exception: it
- * reads a score band straddling two floors (drawFameBand.ts), and never shows it.
+ * ranks players by score (032_draw_pool.sql), and never shows it.
  *
  * The thresholds are ABSOLUTE, not percentiles, for the same reasons the score is: a player's
  * floor depends on their own career only, so importing other players never moves it, and the

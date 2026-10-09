@@ -1,7 +1,6 @@
 import { listPlayers, createPlayer, randomPlayer } from '@/services/playersService'
 import * as playersRepo from '@/repositories/playersRepository'
 import { PlayerId } from '@/domain/ids'
-import { DRAW_FAME_BAND } from '@/domain/drawFameBand'
 
 jest.mock('@/repositories/playersRepository')
 
@@ -36,19 +35,19 @@ describe('listPlayers', () => {
 describe('randomPlayer', () => {
   const mo = { id: PlayerId('p1'), name: "Richie Mo'unga", sport: 'rugby' as const }
 
-  it('draws from the fame band first', async () => {
-    mockedRepo.findRandomInFameBand.mockResolvedValue(mo)
+  it('draws from the pool first, next to the player in the other slot', async () => {
+    mockedRepo.findRandomInDrawPool.mockResolvedValue(mo)
 
     const result = await randomPlayer(db, 'rugby', PlayerId('p2'))
 
-    expect(mockedRepo.findRandomInFameBand).toHaveBeenCalledWith(db, 'rugby', DRAW_FAME_BAND, PlayerId('p2'))
+    expect(mockedRepo.findRandomInDrawPool).toHaveBeenCalledWith(db, 'rugby', PlayerId('p2'))
     expect(mockedRepo.findRandom).not.toHaveBeenCalled()
     expect(result).toBe(mo)
   })
 
   // Scores not computed yet: an unknown player beats no player at all.
-  it('falls back to the whole sport when the band cannot supply a player', async () => {
-    mockedRepo.findRandomInFameBand.mockResolvedValue(null)
+  it('falls back to the whole sport when the pool cannot supply a player', async () => {
+    mockedRepo.findRandomInDrawPool.mockResolvedValue(null)
     mockedRepo.findRandom.mockResolvedValue(mo)
 
     const result = await randomPlayer(db, 'rugby', PlayerId('p2'))

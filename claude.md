@@ -664,6 +664,8 @@ absolue est bâtie sur `iplayedwith.com` (`metadataBase`, Bloc 21).
 
 ## ✅ Bloc 16 terminé — Tirage dans une bande de fame (60–80)
 
+> **Remplacé par le Bloc 41** (vivier des N premiers par sport, échelle glissante). Gardé pour l'historique.
+
 Tiré uniformément, un nouveau joueur tombait sur deux inconnus (⅔ du rugby et ⅘ du football sont
 `unsung`). Le tirage vise désormais **juste sous les stars** : des noms qu'on a pu entendre, sans
 les quelques célébrités dont tout le monde trouve la chaîne. `DRAW_FAME_BAND = { min: 60, max: 80 }`
@@ -1622,9 +1624,8 @@ SELECT public.compute_fame_scores('formula1');   -- 714
 Scores en base identiques à la mesure locale (Hamilton 100, 40 pilotes dans la bande). Défi #1 tiré à
 17 h 05 : Barrichello → Räikkönen (3 liens) ; #2 Barrichello → Alonso.
 
-⚠️ **Le tirage en production ne suit pas la bande 60–80** de `019` / `DRAW_FAME_BAND` : les paires
-F1 (82/87, 82/86) et celles des autres sports ces derniers jours (rugby 84, football 81, basketball
-80/82) en sortent. À vérifier : `SELECT pg_get_functiondef('public.generate_daily_challenge'::regproc);`.
+Le tirage de prod sortait de la bande 60–80 : il tournait sur une bande 75–100 jamais mergée — voir
+le Bloc 41, qui le remplace.
 
 Logos d'écuries : Bloc 40.
 
@@ -1680,6 +1681,69 @@ est la marque. Les mots-symboles larges (Alfa Romeo, Aston Martin) sont petits d
 ⚠️ **Ordre** : merger d'abord (les fichiers doivent être servis), puis `npm run seed:formula1:logos`
 (écrit `logo_url`). Avant, un `logo_url` pointerait un fichier absent — sans casse (`ClubLogo` montre son
 emplacement vide), mais inutile. `--dry-run` écrit les fichiers sans toucher la base.
+
+---
+
+## ✅ Bloc 41 terminé — Le tirage, retravaillé : vivier par sport, échelle glissante, mémoire
+
+`032_draw_pool.sql` remplace le tirage du défi et le bouton « Aléatoire » de la partie libre.
+
+**Ce qui n'allait pas.** La prod ne tournait pas sur `019` (60–80) mais sur
+`022_daily_fame_band_raise.sql` (**75–100**), appliquée depuis la branche `feature/daily-fame-band-75`
+**jamais mergée** — le dépôt et la partie libre disaient 60–80. Une bande absolue donne à chaque sport
+ce que son échelle met au-dessus du seuil : à 75+, rugby 102, football 129, **basketball 15, F1 22**.
+Résultat : Jokić → Durant au #1 **et** au #3 du basketball, Barrichello deux jours de suite en F1, et
+21 paires sur 28 à 2 liens.
+
+### Les règles
+
+- **Vivier = les N premiers par fame**, joueurs avec membership, rang départagé par l'id. N dans
+  `draw_settings` (une ligne par sport, en données comme `fame_calibration`) : rugby 200 (jusqu'à 65),
+  football 200 (70), basketball 120 (59), F1 60 (57 — Hunt, Russell, Montoya…). Le rang devient une
+  **obscurité** 0..1 (0 = la plus grande star, 1 = le dernier du vivier) : même sens pour 60 ou 200.
+- **Échelle glissante** : A uniforme dans le vivier ; B uniforme dans une fenêtre qui dépend de A —
+  plus A est connu, plus B peut être profond (`draw_partner_range`) :
+
+  ```
+  cible(A) = 0,6 − 0,5 × obscurité(A)      fenêtre = cible ± 0,2, bornée à [0, 1]
+  A star (0) → B dans 0,4..0,8 · A au milieu (0,5) → 0,15..0,55 · A en bas (1) → 0..0,3
+  ```
+
+  Chaque jour a au moins un nom que tout le monde connaît. Puis A et B sont **inversés une fois sur
+  deux** : la star n'est pas toujours du même côté.
+- **Mémoire** : un joueur tiré à moins de `recent_days` du jour (des deux côtés — demain est tiré
+  avant la fin d'aujourd'hui) est écarté ; une paire déjà tirée ne revient **jamais**, dans un sens ou
+  l'autre. Rugby / football 30 jours, basketball 20, F1 10 — deux joueurs par jour doivent laisser
+  l'essentiel du vivier libre.
+- **Distance 2 à 4 liens, 3 de préférence** : une paire à 3 liens est gardée tout de suite ; à 2 ou
+  4, seulement une fois sur 5 — sinon mise de côté pendant que le tirage cherche un 3, et gardée si
+  rien en 15 essais. Au-delà de 4 : refusée (la chaîne passerait par des inconnus).
+- **Replis** : passe 2 = vivier uniforme sans mémoire ni fenêtre (≥ 2 liens) ; passe 3 = tirage de
+  `013` sur tout le sport. Un sport sans ligne `draw_settings` ou sans scores a toujours son défi.
+- **Partie libre** : `random_pool_player(sport, partner)` — uniforme dans le vivier, ou dans la
+  fenêtre du joueur de l'autre case s'il est dans le vivier. Vivier vide → `findRandom` uniforme.
+  `DRAW_FAME_BAND` et `drawFameBand.ts` disparaissent : **les constantes ne vivent plus qu'en SQL**.
+
+### Mesuré (copie locale de la prod du 2026-10-09, 120 jours simulés par sport)
+
+| | 3 liens | joueurs distincts | meilleur / autre (moy.) |
+|---|---|---|---|
+| rugby | 23 % | 154 | 78 / 69 |
+| football | 33 % | 156 | 84 / 75 |
+| basketball | 58 % | 101 | 72 / 64 |
+| formula1 | 66 % | 58 | 81 / 65 |
+
+Le 3 est rare en rugby et football **par nature du graphe** : parmi les paires brutes du vivier, 7 %
+seulement sont à 3 liens (les stars partagent une poignée de grands clubs) ; 19 % en basketball, 24 %
+en F1 (dont 30 % au-delà de 4 : le vivier couvre 75 ans). **Accepté** : avec des effectifs aussi
+larges, qui ne trouve pas le coéquipier commun a toujours beaucoup d'autres chemins. ~70 ms par tirage. Aucune répétition dans
+la fenêtre de mémoire, aucune paire en double.
+
+**Régler** : `UPDATE draw_settings SET pool_size = …, recent_days = … WHERE sport = …` — pas de
+migration, effet au prochain tirage. La forme de l'échelle et la préférence pour 3 sont dans `032`.
+
+⚠️ Appliquer `032` **avant** de déployer : le bouton « Aléatoire » appelle `random_pool_player`
+(sans elle, il échoue en 500). Puis retirer le défi de demain (contrôles en bas du fichier).
 
 ---
 
@@ -1742,8 +1806,7 @@ Saisie user
     fermé à anon) — et noter le temps réel du BFS sur les vraies données
 18. ~~Identité du joueur (anonyme d'abord), résultats du défi vérifiés côté serveur~~, ~~classement
     du jour (côté serveur)~~ ; reste : stats perso, empêcher de rejouer le défi
-19. ~~Tirage du défi par la fame~~ (bande 60–80, Bloc 16) ; reste : appliquer `019_daily_fame_band.sql`
-    et retirer le défi de demain (contrôles en bas du fichier)
+19. ~~Tirage du défi par la fame~~ (Bloc 16, remplacé par le Bloc 41)
 20. ~~Accueil : détection de première visite + pop-up des règles~~
 21. ~~Menu principal + page À propos~~
 22. ~~Formulaire de contact~~ (Bloc 30 — reste : compte Resend + clé, voir le bloc) ; dons (plateforme à choisir) ; ~~plateau lisible sur
@@ -1775,8 +1838,8 @@ Saisie user
 36. Appliquer `022_daily_score.sql` **avant** le déploiement, puis ses contrôles ; après quelques
     jours, lire `npm run daily:ranking` (colonne `chain u/k/f`) pour décider de la fame
 37. ~~Fame v3 : `023` → `025` appliqués, imports des deux sports passés (`seed:fame`, `seed:prestige`,
-    `fame:exposure`)~~ ; reste : revoir les paliers 70 / 30 et la bande du tirage 60-80 sur la
-    nouvelle échelle (famous : 119 rugby, 201 football)
+    `fame:exposure`)~~ ; reste : revoir les paliers 70 / 30 sur la nouvelle échelle (famous : 119 rugby,
+    201 football)
 38. Awards en multiplicateur d'exposition (liste curée : joueur de l'année, équipes types…) ; vues
     des autres langues ; biais des gardiens (100 % des minutes) dans le pilier club
 39. Référencement + supervision (Bloc 21) : faire les 4 étapes hors code, puis suivre Search Console
@@ -1786,5 +1849,7 @@ Saisie user
 41. Basketball (Bloc 32) : appliquer `027` puis `029`, `:clubs` → `:players`, puis dans la même heure
     `:memberships` → `:fame` → `:prestige` → `fame:exposure` ; lire `fame:report` ; `028` ; merger
 42. ~~F1 (Blocs 34, 35, 39, 40)~~ : `031` appliquée, import fait le 2026-10-08, #1 tiré, logos d'écuries
-    (lancer `seed:formula1:logos` après le merge) ; reste : bande du tirage (40 pilotes) — et comprendre
-    pourquoi le tirage de prod sort de la bande 60–80 (tous les sports)
+    (lancer `seed:formula1:logos` après le merge)
+43. Tirage retravaillé (Bloc 41) : appliquer `032_draw_pool.sql` **avant** le déploiement, retirer le
+    défi de demain, lire les tirages des jours suivants (contrôles en bas du fichier) ; supprimer la
+    branche `feature/daily-fame-band-75` (sa `022` ne doit jamais être réappliquée)

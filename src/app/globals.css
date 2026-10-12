@@ -1337,6 +1337,11 @@ html:has(dialog.modal[open]) {
   padding-left: 18px;
 }
 
+/* Kept whole: a phone would break « 2012-2013 » at its hyphen. */
+.about-screen__since {
+  white-space: nowrap;
+}
+
 .about-screen__section strong {
   color: var(--text-primary);
 }
@@ -2218,6 +2223,16 @@ html:has(dialog.modal[open]) {
   font-size: 0.8rem;
   color: var(--text-muted);
   white-space: nowrap;
+}
+
+/* The data's first season, under a career that reaches back to it: a footnote, not a warning. */
+.career-dialog__since {
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-align: left;
 }
 
 /* ─── Data fetch status (loading/error) ─────────────────── */

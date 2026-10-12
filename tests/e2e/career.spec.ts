@@ -142,3 +142,26 @@ test('each club of a career shows its crest; one that fails to load leaves an em
   await expect(clubs.nth(1).locator('.club-logo--empty')).toBeAttached()
   await expect(clubs.nth(1).locator('img')).toHaveCount(0)
 })
+
+test("a career reaching back to the sport's first season of data says it may have begun earlier", async ({ page }) => {
+  const [one, two] = sampleCareer.stints
+  await mockApi(page, '/api/players/p-alpha/career', {
+    ...sampleCareer,
+    stints: [{ ...one, from: '2013-2014' }, two],
+  })
+  await page.goto('/rugby')
+  await page.getByRole('button', { name: /Alpha Testeur/ }).click()
+
+  await expect(career(page).getByText('2013 – 2019')).toBeVisible()
+  await expect(
+    career(page).getByText('Our data starts in 2013-2014: this career may have begun earlier.'),
+  ).toBeVisible()
+})
+
+test('a career that starts later is whole: no data notice', async ({ page }) => {
+  await page.goto('/rugby')
+  await page.getByRole('button', { name: /Alpha Testeur/ }).click()
+
+  await expect(career(page).getByText('Club Un')).toBeVisible()
+  await expect(career(page).locator('.career-dialog__since')).toHaveCount(0)
+})

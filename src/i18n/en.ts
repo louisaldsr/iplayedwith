@@ -74,7 +74,9 @@ const en = {
     title: 'About',
     dataTitle: 'Data',
     and: 'and',
-    dataCaveat: 'An independent fan project. Records may be incomplete.',
+    dataSince: (season: string): string => `from ${season}`,
+    dataCaveat:
+      'An independent fan project. Records may be incomplete, and nothing before the first season of each sport is in the game.',
     privacyTitle: 'Privacy',
     privacy:
       'No account. One cookie, holding the anonymous id your results are kept under, so they survive a browser that clears its storage; no tracking. Visits are counted anonymously (pages, countries, where visitors come from), never tied to you.',
@@ -145,6 +147,7 @@ const en = {
     close: 'Close',
     careerEmpty: 'No career recorded for this player.',
     careerError: 'Could not load the career — try again.',
+    careerSince: (season: string): string => `Our data starts in ${season}: this career may have begun earlier.`,
     bestSolution: 'Best solution:',
     playersBetween: (n: number): string => (n === 1 ? 'player in between' : 'players in between'),
     start: 'Start',

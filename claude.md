@@ -1747,6 +1747,26 @@ migration, effet au prochain tirage. La forme de l'échelle et la préférence p
 
 ---
 
+## ✅ Bloc 42 terminé — Première saison des données, dite au joueur
+
+Une carrière commence au plus tôt en **2013-2014** au rugby, **2012-2013** au football : un joueur arrivé avant y
+semble débuter cette saison-là. Rien ne le disait.
+
+- `DATA_SINCE` (`src/domain/dataCoverage.ts`) : la première saison de chaque sport, **en données** —
+  rugby 2013-2014, football 2012-2013, basketball 1979-1980, F1 1950. La première saison **pleine**, pas
+  la plus ancienne ligne : le rugby a 69 memberships de 4 clubs en 2012-2013, contre 1 828 de 37 clubs
+  en 2013-2014. À relire après un import qui remonte plus loin (effectifs par saison).
+- **Carrière** (`PlayerCareerDialog`) : une note sous la liste — « Nos données commencent en 2013-2014 :
+  cette carrière a pu commencer plus tôt » — **seulement** si son premier passage commence à cette saison
+  ou avant (les quelques passages rugby de 2012-2013 compris).
+  Une carrière commencée après est entière : pas de note. En F1 aussi : Fangio courait avant 1950.
+- **À propos** : chaque sport avec sa source et sa première saison (« depuis 2013-2014 ») ; basketball (Basketball-Reference)
+  et F1 (Jolpica-F1) y manquaient.
+
+e2e (`career.spec.ts`) : la note sur une carrière qui part de la première saison, absente sur une carrière plus récente.
+
+---
+
 ## Tests e2e — jamais la vraie base
 
 Il n'existe qu'**une** base Supabase, la vraie. Les tests e2e n'y touchent jamais :

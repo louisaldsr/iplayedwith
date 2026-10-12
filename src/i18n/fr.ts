@@ -65,7 +65,9 @@ const fr: Translations = {
     title: 'À propos',
     dataTitle: 'Données',
     and: 'et',
-    dataCaveat: 'Un projet indépendant de fan. Les fiches peuvent être incomplètes.',
+    dataSince: (season: string) => `depuis ${season}`,
+    dataCaveat:
+      'Un projet indépendant de fan. Les fiches peuvent être incomplètes, et rien d’avant la première saison de chaque sport n’est dans le jeu.',
     privacyTitle: 'Vie privée',
     privacy:
       'Pas de compte. Un seul cookie, l’identifiant anonyme sous lequel vos résultats sont gardés, pour qu’ils survivent à un navigateur qui vide son stockage ; aucun pistage. Les visites sont comptées anonymement (pages, pays, provenance), jamais reliées à vous.',
@@ -136,6 +138,7 @@ const fr: Translations = {
     close: 'Fermer',
     careerEmpty: 'Aucune carrière enregistrée pour ce joueur.',
     careerError: 'Impossible de charger la carrière — réessayez.',
+    careerSince: (season: string) => `Nos données commencent en ${season} : cette carrière a pu commencer plus tôt.`,
     bestSolution: 'Meilleure solution :',
     playersBetween: (n: number) => (n === 1 ? 'joueur entre les deux' : 'joueurs entre les deux'),
     start: 'Commencer',
